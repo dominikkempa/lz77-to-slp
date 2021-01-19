@@ -6,10 +6,12 @@
 #include <string>
 #include <ctime>
 #include <unistd.h>
+#include <getopt.h>
 
 #include "include/utils.hpp"
 #include "include/compute_sa.hpp"
 #include "include/compute_lz77.hpp"
+#include "include/uint40.hpp"
 
 
 //=============================================================================
@@ -31,7 +33,7 @@ void compute_lz77_and_write_to_file(
   output_filename = utils::absolute_path(output_filename);
 
   // Get filesize.
-  std::uint64_t text_length = utils::file_size(text_filename);
+  const std::uint64_t text_length = utils::file_size(text_filename);
 
   // Print parameters.
   fprintf(stderr, "Timestamp = %s", utils::get_timestamp().c_str());
@@ -44,7 +46,7 @@ void compute_lz77_and_write_to_file(
   fprintf(stderr, "\n\n");
 
   // Allocate text.
-  char_type *text = new char_type[text_length];
+  char_type * const text = new char_type[text_length];
 
   // Read text.
   {
@@ -56,14 +58,14 @@ void compute_lz77_and_write_to_file(
   }
 
   // Allocate SA.
-  text_offset_type *sa = new text_offset_type[text_length];
+  text_offset_type * const sa = new text_offset_type[text_length];
 
   // Compute SA.
   {
     fprintf(stderr, "Compute SA... ");
-    long double start = utils::wclock();
+    const long double start = utils::wclock();
     compute_sa(text, text_length, sa);
-    long double elapsed = utils::wclock() - start;
+    const long double elapsed = utils::wclock() - start;
     fprintf(stderr, "%.2Lfs\n", elapsed);
   }
 
@@ -71,9 +73,9 @@ void compute_lz77_and_write_to_file(
   std::vector<pair_type> parsing;
   {
     fprintf(stderr, "Compute LZ77... ");
-    long double start = utils::wclock();
+    const long double start = utils::wclock();
     compute_lz77::kkp2n(text, text_length, sa, parsing);
-    long double elapsed = utils::wclock() - start;
+    const long double elapsed = utils::wclock() - start;
     fprintf(stderr, "%.2Lfs\n", elapsed);
   }
 
@@ -83,11 +85,11 @@ void compute_lz77_and_write_to_file(
   // Write parsing to file.
   {
     fprintf(stderr, "Write parsing to file... ");
-    long double start = utils::wclock();
+    const long double start = utils::wclock();
     const pair_type * const parsing_data = parsing.data();
     utils::write_to_file<pair_type>(parsing_data,
         parsing.size(), output_filename);
-    long double elapsed = utils::wclock() - start;
+    const long double elapsed = utils::wclock() - start;
     fprintf(stderr, "%.2Lfs\n", elapsed);
   }
 
@@ -98,21 +100,116 @@ void compute_lz77_and_write_to_file(
   // Print final message.
   fprintf(stderr, "Computation finished\n");
 }
-    
+
+//=============================================================================
+// Print usage instructions and exit.
+//=============================================================================
+void usage(
+    const char * const program_name,
+    const int status) {
+  printf(
+
+"Usage: %s [OPTION]... FILE\n"
+"Construct the LZ77 parsing of text stored in FILE.\n"
+"\n"
+"Mandatory arguments to long options are mandatory for short options too.\n"
+"  -h, --help              display this help and exit\n"
+"  -o, --output=OUTFILE    specify output filename. Default: FILE.lz77\n",
+
+    program_name);
+
+  std::exit(status);
+}
 
 int main(int argc, char **argv) {
 
-  // Check input parameters.
-  if (argc != 3)
-    std::exit(EXIT_FAILURE);
+  // Initial setup.
+  srand(time(0) + getpid());
+  const char * const program_name = argv[0];
+
+  // Declare flags.
+  static struct option long_options[] = {
+    {"help",     no_argument,       NULL, 'h'},
+    {"output",   required_argument, NULL, 'o'},
+    {NULL,       0,                 NULL, 0}
+  };
+
+  // Initialize output filename.
+  std::string output_filename("");
+
+  // Parse command-line options.
+  int c;
+  while ((c = getopt_long(argc, argv, "ho:",
+          long_options, NULL)) != -1) {
+    switch(c) {
+      case 'h':
+        usage(program_name, EXIT_FAILURE);
+        break;
+      case 'o':
+        output_filename = std::string(optarg);
+        break;
+      default:
+        usage(program_name, EXIT_FAILURE);
+        break;
+    }
+  }
+
+  // Print error if there is not file.
+  if (optind >= argc) {
+    fprintf(stderr, "Error: FILE not provided\n\n");
+    usage(program_name, EXIT_FAILURE);
+  }
+
+  // Parse the text filename.
+  const std::string text_filename = std::string(argv[optind++]);
+  if (optind < argc) {
+    fprintf(stderr, "Warning: multiple input files provided. "
+    "Only the first will be processed.\n");
+  }
+
+  // Set default output filename (if not provided).
+  if (output_filename.empty())
+    output_filename = text_filename + ".lz77";
+
+  // Check for the existence of text.
+  if (!utils::file_exists(text_filename)) {
+    fprintf(stderr, "Error: input file (%s) does not exist\n\n",
+        text_filename.c_str());
+    usage(program_name, EXIT_FAILURE);
+  }
+
+  // Check if output file exists.
+  if (utils::file_exists(output_filename)) {
+
+    // Output file exists, should we proceed?
+    char *line = NULL;
+    std::uint64_t buflen = 0;
+    std::int64_t len = 0L;
+
+    // Obtain the answer.
+    do {
+      printf("Output file (%s) exists. Overwrite? [y/n]: ",
+          output_filename.c_str());
+      if ((len = getline(&line, &buflen, stdin)) == -1) {
+        printf("\nError: failed to read answer\n\n");
+        std::fflush(stdout);
+        usage(program_name, EXIT_FAILURE);
+      }
+    } while (len != 2 || (line[0] != 'y' && line[0] != 'n'));
+
+    // If not, then exit.
+    if (line[0] == 'n') {
+      free(line);
+      std::exit(EXIT_FAILURE);
+    }
+
+    // Otherwise, we proceed.
+    free(line);
+  }
 
   // Set types.
   typedef std::uint8_t char_type;
   typedef uint40 text_offset_type;
-
-  // Get filename and filesize.
-  std::string text_filename = argv[1];
-  std::string output_filename = argv[2];
 
   // Run the parsing algorithm.
   compute_lz77_and_write_to_file<char_type, text_offset_type>(
