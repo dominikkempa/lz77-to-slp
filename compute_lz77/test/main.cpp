@@ -103,10 +103,10 @@ int main() {
   srand(time(0) + getpid());
 
 #ifdef NDEBUG
-  static const std::uint64_t length_limit = (1 << 11);
+  static const std::uint64_t length_limit = (1 << 10);
   static const std::uint64_t n_tests = 10000;
 #else
-  static const std::uint64_t length_limit = (1 << 10);
+  static const std::uint64_t length_limit = (1 << 9);
   static const std::uint64_t n_tests = 1000;
 #endif
 
