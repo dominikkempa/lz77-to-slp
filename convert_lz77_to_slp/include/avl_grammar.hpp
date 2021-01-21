@@ -197,7 +197,7 @@ avl_grammar_node<char_type> *create_substring_avl_grammar(
   node_type *x = root;
   std::uint64_t cur_range_beg = 0;
   std::uint64_t cur_range_end = x->m_exp_len;
-  while (cur_range_end - cur_range_beg > end - begin &&
+  while (x->m_height > 0 &&
       (end <= cur_range_beg + x->m_left->m_exp_len ||
        begin >= cur_range_beg + x->m_left->m_exp_len)) {
     if (end <= cur_range_beg + x->m_left->m_exp_len) {
