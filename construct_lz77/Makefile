@@ -3,13 +3,13 @@ CC = g++
 CFLAGS = -Wall -Wextra -pedantic -Wshadow -funroll-loops -O3 -DNDEBUG -march=native
 #CFLAGS = -Wall -Wextra -pedantic -Wshadow -g2
 
-all: test
+all: construct_lz77
 
-test:
-	$(CC) $(CFLAGS) -o test main.cpp src/utils.cpp
+construct_lz77:
+	$(CC) $(CFLAGS) -o construct_lz77 main.cpp src/utils.cpp
 
 clean:
 	/bin/rm -f *.o
 
 nuclear:
-	/bin/rm -f test *.o
+	/bin/rm -f construct_lz77 *.o
