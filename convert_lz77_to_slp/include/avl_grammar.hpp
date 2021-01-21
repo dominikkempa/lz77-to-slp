@@ -168,7 +168,7 @@ avl_grammar_node<char_type> *merge_avl_grammars(
 }
 
 //=============================================================================
-// Given the AVL grammar expanding to string T, compute the the AVL
+// Given the AVL grammar expanding to string T, compute the AVL
 // grammar expanding to T[begin..end).
 //=============================================================================
 template<typename char_type>
