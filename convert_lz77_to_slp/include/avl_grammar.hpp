@@ -58,6 +58,49 @@ struct avl_grammar_node {
       m_right->print_expansion();
     }
   }
+
+  // Write the expansion into the given array.
+  void write_expansion(char_type * const text) const {
+    if (m_height == 0)
+      text[0] = m_char;
+    else {
+      m_left->write_expansion(text);
+      m_right->write_expansion(text + m_left->m_exp_len);
+    }
+  }
+};
+
+//=============================================================================
+// A class storing AVL grammar.
+//=============================================================================
+template<typename char_type>
+struct avl_grammar {
+  typedef avl_grammar_node<char_type> node_type;
+
+  // Class members.
+  std::vector<const node_type*> m_nonterminals;
+  const node_type *m_root;
+
+  // Constructor.
+  avl_grammar() :
+    m_root(NULL) {}
+
+  // Print the string encoded by the grammar.
+  void print_expansion() const {
+    m_root->print_expansion();
+  }
+
+  std::uint64_t size() const {
+    return m_nonterminals.size();
+  }
+
+  void decode(
+      char_type* &text,
+      std::uint64_t &text_length) const {
+    text_length = m_root->m_exp_len;
+    text = new char_type[text_length];
+    m_root->write_expansion(text);
+  }
 };
 
 //=============================================================================
@@ -65,8 +108,8 @@ struct avl_grammar_node {
 // AVL grammar expanding to XY.
 //=============================================================================
 template<typename char_type>
-avl_grammar_node<char_type> *merge_avl_grammars(
-    std::vector<avl_grammar_node<char_type> *> &nonterminals,
+const avl_grammar_node<char_type> *merge_avl_grammars(
+    std::vector<const avl_grammar_node<char_type> *> &nonterminals,
     const avl_grammar_node<char_type> * const left,
     const avl_grammar_node<char_type> * const right) {
   
@@ -79,7 +122,7 @@ avl_grammar_node<char_type> *merge_avl_grammars(
     if (left->m_height - right->m_height <= 1) {
 
       // Height are close. Just merge and return.
-      node_type * const newroot = new node_type(left, right);
+      const node_type * const newroot = new node_type(left, right);
       nonterminals.push_back(newroot);
       return newroot;
     } else {
@@ -92,11 +135,11 @@ avl_grammar_node<char_type> *merge_avl_grammars(
         if (newright->m_left->m_height > newright->m_right->m_height) {
 
           // Double (right-left) rotation.
-          node_type * const X =
+          const node_type * const X =
             new node_type(left->m_left, newright->m_left->m_left);
-          node_type * const Z =
+          const node_type * const Z =
             new node_type(newright->m_left->m_right, newright->m_right);
-          node_type * const Y = new node_type(X, Z);
+          const node_type * const Y = new node_type(X, Z);
           nonterminals.push_back(X);
           nonterminals.push_back(Y);
           nonterminals.push_back(Z);
@@ -104,8 +147,9 @@ avl_grammar_node<char_type> *merge_avl_grammars(
         } else {
 
           // Single (left) rotation.
-          node_type * const X = new node_type(left->m_left, newright->m_left);
-          node_type * const Y = new node_type(X, newright->m_right);
+          const node_type * const X =
+            new node_type(left->m_left, newright->m_left);
+          const node_type * const Y = new node_type(X, newright->m_right);
           nonterminals.push_back(X);
           nonterminals.push_back(Y);
           return Y;
@@ -113,7 +157,8 @@ avl_grammar_node<char_type> *merge_avl_grammars(
       } else {
 
         // No need to rebalance.
-        node_type * const newroot = new node_type(left->m_left, newright);
+        const node_type * const newroot =
+          new node_type(left->m_left, newright);
         nonterminals.push_back(newroot);
         return newroot;
       }
@@ -122,7 +167,7 @@ avl_grammar_node<char_type> *merge_avl_grammars(
     if (right->m_height - left->m_height <= 1) {
 
       // Heights are close. Just merge and return.
-      node_type * const newroot = new node_type(left, right);
+      const node_type * const newroot = new node_type(left, right);
       nonterminals.push_back(newroot);
       return newroot;
     } else {
@@ -135,11 +180,11 @@ avl_grammar_node<char_type> *merge_avl_grammars(
         if (newleft->m_right->m_height > newleft->m_left->m_height) {
 
           // Double (left-right) rotation.
-          node_type * const X =
+          const node_type * const X =
             new node_type(newleft->m_left, newleft->m_right->m_left);
-          node_type * const Z =
+          const node_type * const Z =
             new node_type(newleft->m_right->m_right, right->m_right);
-          node_type * const Y = new node_type(X, Z);
+          const node_type * const Y = new node_type(X, Z);
           nonterminals.push_back(X);
           nonterminals.push_back(Y);
           nonterminals.push_back(Z);
@@ -147,9 +192,9 @@ avl_grammar_node<char_type> *merge_avl_grammars(
         } else {
 
           // Single (right) rotation.
-          node_type * const Y =
+          const node_type * const Y =
             new node_type(newleft->m_right, right->m_right);
-          node_type * const X = new node_type(newleft->m_left, Y);
+          const node_type * const X = new node_type(newleft->m_left, Y);
           nonterminals.push_back(X);
           nonterminals.push_back(Y);
           return X;
@@ -157,7 +202,8 @@ avl_grammar_node<char_type> *merge_avl_grammars(
       } else {
 
         // No need to rebalance.
-        node_type * const newroot = new node_type(newleft, right->m_right);
+        const node_type * const newroot =
+          new node_type(newleft, right->m_right);
         nonterminals.push_back(newroot);
         return newroot;
       }
@@ -170,8 +216,8 @@ avl_grammar_node<char_type> *merge_avl_grammars(
 // grammar expanding to T[begin..end).
 //=============================================================================
 template<typename char_type>
-avl_grammar_node<char_type> *create_substring_avl_grammar(
-    std::vector<avl_grammar_node<char_type> *> &nonterminals,
+const avl_grammar_node<char_type> *create_substring_avl_grammar(
+    std::vector<const avl_grammar_node<char_type> *> &nonterminals,
     const avl_grammar_node<char_type> * const root,
     const std::uint64_t begin,
     const std::uint64_t end) {
@@ -221,7 +267,6 @@ avl_grammar_node<char_type> *create_substring_avl_grammar(
     // root of the resulting grammar is stored in left_grammar.
     const node_type * left_grammar = NULL;
     {
-      const std::uint64_t left_range_beg = cur_range_beg;
       const std::uint64_t left_range_end =
         cur_range_beg + x->m_left->m_exp_len;
       std::uint64_t suffix_length = left_range_end - begin;
@@ -231,7 +276,7 @@ avl_grammar_node<char_type> *create_substring_avl_grammar(
       // away. For the merge to be O(log n) time, we need to merge
       // grammar short-to-tall and hence we first collect their roots
       // in a vector.
-      std::vector<node_type*> grammars_to_merge;
+      std::vector<const node_type*> grammars_to_merge;
       while (suffix_length > 0) {
         if (y->m_exp_len == suffix_length) {
           grammars_to_merge.push_back(y);
@@ -245,9 +290,9 @@ avl_grammar_node<char_type> *create_substring_avl_grammar(
 
       // Merge AVL grammars in grammars_to_merge into a single AVL grammar.
       while (grammars_to_merge.size() > 1) {
-        node_type * const left = grammars_to_merge.back();
+        const node_type * const left = grammars_to_merge.back();
         grammars_to_merge.pop_back();
-        node_type * const right = grammars_to_merge.back();
+        const node_type * const right = grammars_to_merge.back();
         grammars_to_merge.pop_back();
         grammars_to_merge.push_back(
             merge_avl_grammars<char_type>(nonterminals, left, right));
@@ -260,12 +305,11 @@ avl_grammar_node<char_type> *create_substring_avl_grammar(
     {
       const std::uint64_t right_range_beg =
         cur_range_beg + x->m_left->m_exp_len;
-      const std::uint64_t right_range_end = cur_range_end;
       std::uint64_t prefix_length = end - right_range_beg;
       const node_type *y = x->m_right;
       
       // Collect the roots of grammars to merge.
-      std::vector<node_type*> grammars_to_merge;
+      std::vector<const node_type*> grammars_to_merge;
       while (prefix_length > 0) {
         if (y->m_exp_len == prefix_length) {
           grammars_to_merge.push_back(y);
@@ -279,9 +323,9 @@ avl_grammar_node<char_type> *create_substring_avl_grammar(
 
       // Merge AVL grammars in grammars_to_merge into a single AVL grammar.
       while (grammars_to_merge.size() > 1) {
-        node_type * const right = grammars_to_merge.back();
+        const node_type * const right = grammars_to_merge.back();
         grammars_to_merge.pop_back();
-        node_type * const left = grammars_to_merge.back();
+        const node_type * const left = grammars_to_merge.back();
         grammars_to_merge.pop_back();
         grammars_to_merge.push_back(
             merge_avl_grammars<char_type>(nonterminals, left, right));
@@ -298,6 +342,64 @@ avl_grammar_node<char_type> *create_substring_avl_grammar(
     // Return the result.
     return final_grammar;
   }
+}
+
+//=============================================================================
+// Given the LZ77 parsing (consisting of z phrases) of text T, compute
+// the AVL grammar of size O(z log n) expanding to T.  The parsing is
+// given as a sequence of pairs (pos, len), where either len > 0 and
+// pos encodes the position of the previous occurrence in the string,
+// or len = 0 and then pos contain the text symbol.
+//
+// TODO: the grammar at this point is guaranteed to be of size O(z log
+//       n), but there might be some unused nonterminals.  should be
+//       removed here. Anyway, at this point, I just want to test the
+//       correctness of the conversion.
+//=============================================================================
+template<
+  typename char_type,
+  typename text_offset_type>
+avl_grammar<char_type> *convert_lz77_to_avl_grammar(
+    const std::vector<
+      std::pair<text_offset_type, text_offset_type> > &parsing) {
+
+  // Declare types.
+  typedef avl_grammar_node<char_type> node_type;
+  typedef avl_grammar<char_type> grammar_type;
+
+  // Compute the AVL grammar expanding to T.
+  grammar_type *grammar = new grammar_type();
+  for (std::uint64_t phrase_id = 0; phrase_id < parsing.size();
+      ++phrase_id) {
+    std::pair<text_offset_type, text_offset_type> p = parsing[phrase_id];
+    
+    // Compute the AVL grammar expanding to phrase p.
+    const node_type *phrase_root = NULL;
+    if ((std::uint64_t)p.second == 0) {
+
+      // If this is a literal phrase, create a trivial grammar.
+      phrase_root = new node_type((char_type)p.first);
+      grammar->m_nonterminals.push_back(phrase_root);
+    } else {
+
+      // Create the grammar using create_substring_avl_grammar.
+      std::uint64_t begin = (std::uint64_t)p.first;
+      std::uint64_t end = begin + (std::uint64_t)p.second;
+      phrase_root = create_substring_avl_grammar<char_type>(
+          grammar->m_nonterminals, grammar->m_root, begin, end);
+    }
+
+    // Update prefix_grammar to encode the longer prefix.
+    if (grammar->m_root == NULL)
+      grammar->m_root = phrase_root;
+    else
+      grammar->m_root =
+        merge_avl_grammars<char_type>(grammar->m_nonterminals,
+            grammar->m_root, phrase_root);
+  }
+
+  // Return the result.
+  return grammar;
 }
 
 #endif  // __AVL_GRAMMAR_HPP_INCLUDED

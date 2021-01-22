@@ -12,15 +12,14 @@
 #include "include/avl_grammar.hpp"
 
 
-int main(int, char **) {
-
+void quick_test_merge() {
   typedef std::uint8_t char_type;
   typedef avl_grammar_node<char_type> node_type;
 
   // Manually create an AVL grammar encoding the string
   // Fib_7 = abaababaabaab (the 7-th fibonacci string).
   // Nonterminals are names as in the example in Rytter's paper.
-  std::vector<node_type*> nonterminals;
+  std::vector<const node_type*> nonterminals;
   node_type *X1 = new node_type((char_type)'b');
   nonterminals.push_back(X1);
   node_type *X2 = new node_type((char_type)'a');
@@ -47,7 +46,8 @@ int main(int, char **) {
 
   // Test merging.
   {
-    node_type *X_7_6 = merge_avl_grammars<char_type>(nonterminals, X7, X6);
+    const node_type *X_7_6 =
+      merge_avl_grammars<char_type>(nonterminals, X7, X6);
     X_7_6->print_expansion();
     fprintf(stderr, "\n");
   }
@@ -55,5 +55,98 @@ int main(int, char **) {
   // Clean up.
   for (std::uint64_t i = 0; i < nonterminals.size(); ++i)
     delete nonterminals[i];
+}
+
+void test_conversion(
+    std::string text_filename,
+    std::string parsing_filename) {
+
+  // Declare types.
+  typedef std::uint8_t char_type;
+  typedef std::uint64_t text_offset_type;
+  typedef std::pair<text_offset_type, text_offset_type> phrase_type;
+  typedef avl_grammar<char_type> grammar_type;
+
+  // Read parsing.
+  std::vector<phrase_type> parsing;
+  {
+    fprintf(stderr, "Read parsing... ");
+    long double start = utils::wclock();
+    std::uint64_t parsing_size =
+      utils::file_size(parsing_filename) / sizeof(phrase_type);
+    parsing.resize(parsing_size);
+    utils::read_from_file(parsing.data(), parsing_size, parsing_filename);
+    long double elapsed = utils::wclock() - start;
+    fprintf(stderr, "%.2Lfs\n", elapsed);
+  }
+
+  // Convert LZ77 to AVL grammar.
+  grammar_type *grammar = NULL;
+  {
+    fprintf(stderr, "Convert LZ77 to SLP... ");
+    long double start = utils::wclock();
+    grammar =
+      convert_lz77_to_avl_grammar<char_type, text_offset_type>(parsing);
+    long double elapsed = utils::wclock() - start;
+    fprintf(stderr, "%.2Lfs\n", elapsed);
+  }
+
+  // Print info. Note that the grammar may
+  // still contain unused nonterminals.
+  fprintf(stderr, "Number of phrases = %lu\n", parsing.size());
+  fprintf(stderr, "Grammar size = %lu\n", grammar->size());
+
+  // Check if the resulting grammar indeed expands to the text.
+  // For this, we first read the original text. Note: the text
+  // could be streamed, or I could simple decoded it from LZ77.
+  std::uint64_t text_length = 0;
+  char_type *text = NULL;
+  {
+    fprintf(stderr, "Read text... ");
+    long double start = utils::wclock();
+    text_length = utils::file_size(text_filename) / sizeof(char_type);
+    text = new char_type[text_length];
+    utils::read_from_file(text, text_length, text_filename);
+    long double elapsed = utils::wclock() - start;
+    fprintf(stderr, "%.2Lfs\n", elapsed);
+  }
+
+  // Obtain the string to which the grammar is expanding.
+  std::uint64_t decoded_text_length = 0;
+  char_type *decoded_text = NULL;
+  {
+    fprintf(stderr, "Decode text from grammar... ");
+    long double start = utils::wclock();
+    grammar->decode(decoded_text, decoded_text_length);
+    long double elapsed = utils::wclock() - start;
+    fprintf(stderr, "%.2Lf\n", elapsed);
+  }
+
+  // Compare text and decoded text.
+  {
+    fprintf(stderr, "Compare texts... ");
+    long double start = utils::wclock();
+    bool eq = true;
+    if (text_length != decoded_text_length) eq = false;
+    else {
+      if (!std::equal(text, text + text_length, decoded_text))
+        eq = false;
+    }
+    long double elapsed = utils::wclock() - start;
+    fprintf(stderr, "%.2Lfs\n", elapsed);
+    fprintf(stderr, "Result: %s\n", eq ? "OK" : "ERROR");
+  }
+
+  // Clean up.
+  delete[] text;
+  delete[] decoded_text;
+  for (std::uint64_t i = 0; i < grammar->m_nonterminals.size(); ++i)
+    delete grammar->m_nonterminals[i];
+}
+
+int main(int argc, char **argv) {
+  if (argc != 3)
+    std::exit(EXIT_FAILURE);
+  test_conversion(argv[1], argv[2]);
 }
 
