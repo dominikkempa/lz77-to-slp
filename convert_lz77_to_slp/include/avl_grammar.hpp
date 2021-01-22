@@ -24,12 +24,11 @@ struct avl_grammar_node {
 
   // Default constructor.
   avl_grammar_node() :
+      m_char((char_type)0),
+      m_height(0),
+      m_exp_len(1),
       m_left(NULL),
-      m_right(NULL) {
-    m_char = (char_type)0;
-    m_height = 0;
-    m_exp_len = 1;
-  }
+      m_right(NULL) {}
 
   // Constructor for a node expanding to a single symbol.
   avl_grammar_node(const char_type c) :
