@@ -36,6 +36,7 @@ void compute_lz77_and_write_to_file(
   const std::uint64_t text_length = utils::file_size(text_filename);
 
   // Print parameters.
+  fprintf(stderr, "Construct LZ77 parsing\n");
   fprintf(stderr, "Timestamp = %s", utils::get_timestamp().c_str());
   fprintf(stderr, "Text filename = %s\n", text_filename.c_str());
   fprintf(stderr, "Output filename = %s\n", output_filename.c_str());
