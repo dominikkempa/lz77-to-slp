@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <getopt.h>
 
+#include "include/uint40.hpp"
 #include "include/utils.hpp"
 #include "include/avl_grammar.hpp"
 
@@ -47,7 +48,7 @@ void quick_test_merge() {
   // Test merging.
   {
     const node_type *X_7_6 =
-      merge_avl_grammars<char_type>(nonterminals, X7, X6);
+      add_concat_nonterminal<char_type>(nonterminals, X7, X6);
     X_7_6->print_expansion();
     fprintf(stderr, "\n");
   }
@@ -57,15 +58,30 @@ void quick_test_merge() {
     delete nonterminals[i];
 }
 
+template<
+  typename char_type = std::uint8_t,
+  typename text_offset_type = std::uint64_t>
 void test_conversion(
     std::string text_filename,
     std::string parsing_filename) {
 
   // Declare types.
-  typedef std::uint8_t char_type;
-  typedef std::uint64_t text_offset_type;
   typedef std::pair<text_offset_type, text_offset_type> phrase_type;
   typedef avl_grammar<char_type> grammar_type;
+
+  // Turn paths absolute.
+  text_filename = utils::absolute_path(text_filename);
+  parsing_filename = utils::absolute_path(parsing_filename);
+
+  // Print parameters.
+  fprintf(stderr, "Convert LZ77 to SLP\n");
+  fprintf(stderr, "Timestamp = %s", utils::get_timestamp().c_str());
+  fprintf(stderr, "Text filename = %s\n", text_filename.c_str());
+  fprintf(stderr, "Parsing filename = %s\n", parsing_filename.c_str());
+  fprintf(stderr, "sizeof(char_type) = %lu\n", sizeof(char_type));
+  fprintf(stderr, "sizeof(text_offset_type) = %lu\n",
+      sizeof(text_offset_type));
+  fprintf(stderr, "\n\n");
 
   // Read parsing.
   std::vector<phrase_type> parsing;
@@ -79,6 +95,15 @@ void test_conversion(
     long double elapsed = utils::wclock() - start;
     fprintf(stderr, "%.2Lfs\n", elapsed);
   }
+
+  // debug //
+  // fprintf(stderr, "Parsing:\n");
+  // for (std::uint64_t i = 0; i < parsing.size(); ++i)
+  //   fprintf(stderr, "\t(%lu, %lu)\n",
+  //       (std::uint64_t)parsing[i].first,
+  //       (std::uint64_t)parsing[i].second);
+  // fprintf(stderr, "\n");
+  ///////////
 
   // Convert LZ77 to AVL grammar.
   grammar_type *grammar = NULL;
@@ -147,6 +172,17 @@ void test_conversion(
 int main(int argc, char **argv) {
   if (argc != 3)
     std::exit(EXIT_FAILURE);
-  test_conversion(argv[1], argv[2]);
+
+  // Declare types.
+  typedef std::uint8_t char_type;
+  typedef uint40 text_offset_type;
+
+  // Obtain filenames.
+  std::string text_filename = argv[1];
+  std::string parsing_filename = argv[2];
+
+  // Run the algorithm.
+  test_conversion<char_type, text_offset_type>(
+      text_filename, parsing_filename);
 }
 

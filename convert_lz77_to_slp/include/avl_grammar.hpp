@@ -104,11 +104,13 @@ struct avl_grammar {
 };
 
 //=============================================================================
-// Given the AVL grammars expanding to strings X and Y, compute the
-// AVL grammar expanding to XY.
+// Givne two nonterminals `left' and `right' of the same grammar
+// expanding respectively to strings X and Y, add to grammar a
+// nonterminals that expands to XY, and return the pointer to it.
+// The root of the original grammar remains unchanged.
 //=============================================================================
 template<typename char_type>
-const avl_grammar_node<char_type> *merge_avl_grammars(
+const avl_grammar_node<char_type> *add_concat_nonterminal(
     std::vector<const avl_grammar_node<char_type> *> &nonterminals,
     const avl_grammar_node<char_type> * const left,
     const avl_grammar_node<char_type> * const right) {
@@ -127,7 +129,7 @@ const avl_grammar_node<char_type> *merge_avl_grammars(
       return newroot;
     } else {
       const node_type * const newright =
-        merge_avl_grammars<char_type>(nonterminals, left->m_right, right);
+        add_concat_nonterminal<char_type>(nonterminals, left->m_right, right);
       if (newright->m_height > left->m_left->m_height &&
           newright->m_height - left->m_left->m_height > 1) {
         
@@ -172,7 +174,7 @@ const avl_grammar_node<char_type> *merge_avl_grammars(
       return newroot;
     } else {
       const node_type * const newleft =
-        merge_avl_grammars<char_type>(nonterminals, left, right->m_left);
+        add_concat_nonterminal<char_type>(nonterminals, left, right->m_left);
       if (newleft->m_height > right->m_right->m_height &&
           newleft->m_height - right->m_right->m_height > 1) {
 
@@ -212,11 +214,12 @@ const avl_grammar_node<char_type> *merge_avl_grammars(
 }
 
 //=============================================================================
-// Given the AVL grammar expanding to string T, compute the AVL
-// grammar expanding to T[begin..end).
+// Given the AVL grammar expanding to string T, create and return
+// the nonterminal expanding to T[begin..end). The root of the
+// input grammar remains unchanged.
 //=============================================================================
 template<typename char_type>
-const avl_grammar_node<char_type> *create_substring_avl_grammar(
+const avl_grammar_node<char_type> *add_substring_nonterminal(
     std::vector<const avl_grammar_node<char_type> *> &nonterminals,
     const avl_grammar_node<char_type> * const root,
     const std::uint64_t begin,
@@ -295,7 +298,7 @@ const avl_grammar_node<char_type> *create_substring_avl_grammar(
         const node_type * const right = grammars_to_merge.back();
         grammars_to_merge.pop_back();
         grammars_to_merge.push_back(
-            merge_avl_grammars<char_type>(nonterminals, left, right));
+            add_concat_nonterminal<char_type>(nonterminals, left, right));
       }
       left_grammar = grammars_to_merge.back();
     }
@@ -328,7 +331,7 @@ const avl_grammar_node<char_type> *create_substring_avl_grammar(
         const node_type * const left = grammars_to_merge.back();
         grammars_to_merge.pop_back();
         grammars_to_merge.push_back(
-            merge_avl_grammars<char_type>(nonterminals, left, right));
+            add_concat_nonterminal<char_type>(nonterminals, left, right));
       }
       right_grammar = grammars_to_merge.back();
     }
@@ -336,7 +339,7 @@ const avl_grammar_node<char_type> *create_substring_avl_grammar(
     // Merge left_grammar with right_grammar and return.
     // Both are guaranteed to be non-NULL.
     const node_type * const final_grammar =
-      merge_avl_grammars<char_type>(nonterminals,
+      add_concat_nonterminal<char_type>(nonterminals,
           left_grammar, right_grammar);
 
     // Return the result.
@@ -369,24 +372,59 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
 
   // Compute the AVL grammar expanding to T.
   grammar_type *grammar = new grammar_type();
+  std::uint64_t prefix_length = 0;
   for (std::uint64_t phrase_id = 0; phrase_id < parsing.size();
       ++phrase_id) {
     std::pair<text_offset_type, text_offset_type> p = parsing[phrase_id];
+    std::uint64_t pos = p.first;
+    std::uint64_t len = p.second;
     
     // Compute the AVL grammar expanding to phrase p.
     const node_type *phrase_root = NULL;
-    if ((std::uint64_t)p.second == 0) {
+    if (len == 0) {
 
       // If this is a literal phrase, create a trivial grammar.
-      phrase_root = new node_type((char_type)p.first);
+      phrase_root = new node_type((char_type)pos);
       grammar->m_nonterminals.push_back(phrase_root);
     } else {
 
-      // Create the grammar using create_substring_avl_grammar.
-      std::uint64_t begin = (std::uint64_t)p.first;
-      std::uint64_t end = begin + (std::uint64_t)p.second;
-      phrase_root = create_substring_avl_grammar<char_type>(
-          grammar->m_nonterminals, grammar->m_root, begin, end);
+      // We proceed differently, depending on whether
+      // the phrase is self-overlapping. This part is
+      // unadressed in the original Rytter's paper. The
+      // fix is described in the proof of Theorem 6.1
+      // in https://arxiv.org/abs/1910.10631v3.
+      if (pos + len > prefix_length) {
+
+        // If the phase is self-overlapping, we create the
+        // nonterminal expanding to text[pos..prefix_length).
+        const node_type * const suffix_nonterminal =
+          add_substring_nonterminal<char_type>(
+              grammar->m_nonterminals, grammar->m_root, pos, prefix_length);
+
+        // Square the above nonterminal until
+        // it reaches length >= len.
+        const node_type *suffix_pow_nonterminal = suffix_nonterminal;
+        std::uint64_t curlen = prefix_length - pos;
+        while (curlen < len) {
+          const node_type * const square =
+            new node_type(suffix_pow_nonterminal, suffix_pow_nonterminal);
+          grammar->m_nonterminals.push_back(square);
+          curlen <<= 1;
+          suffix_pow_nonterminal = square;
+        }
+
+        // Create a nonterminal expanding to the prefix
+        // of exp(suffix_pow_nonterminal) of length len.
+        phrase_root = add_substring_nonterminal<char_type>(
+            grammar->m_nonterminals, suffix_pow_nonterminal, 0, len);
+      } else {
+
+        // Add the nonterminal expanding to phrase p.
+        std::uint64_t begin = pos;
+        std::uint64_t end = begin + len;
+        phrase_root = add_substring_nonterminal<char_type>(
+            grammar->m_nonterminals, grammar->m_root, begin, end);
+      }
     }
 
     // Update prefix_grammar to encode the longer prefix.
@@ -394,8 +432,11 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
       grammar->m_root = phrase_root;
     else
       grammar->m_root =
-        merge_avl_grammars<char_type>(grammar->m_nonterminals,
+        add_concat_nonterminal<char_type>(grammar->m_nonterminals,
             grammar->m_root, phrase_root);
+
+    // Update prefix_length.
+    prefix_length += std::max(len, (std::uint64_t)1);
   }
 
   // Return the result.
