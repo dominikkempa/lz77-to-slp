@@ -355,8 +355,8 @@ const avl_grammar_node<char_type> *add_substring_nonterminal(
 // or len = 0 and then pos contain the text symbol.
 //
 // TODO: the grammar at this point is guaranteed to be of size O(z log
-//       n), but there might be some unused nonterminals.  should be
-//       removed here. Anyway, at this point, I just want to test the
+//       n), but there might be some unused nonterminals. They should
+//       be removed. Anyway, at this point, I just want to test the
 //       correctness of the conversion.
 //=============================================================================
 template<
@@ -391,7 +391,7 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
       // We proceed differently, depending on whether
       // the phrase is self-overlapping. This part is
       // unadressed in the original Rytter's paper. The
-      // fix is described in the proof of Theorem 6.1
+      // solution is described in the proof of Theorem 6.1
       // in https://arxiv.org/abs/1910.10631v3.
       if (pos + len > prefix_length) {
 
