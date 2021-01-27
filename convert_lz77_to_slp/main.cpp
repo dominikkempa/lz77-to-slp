@@ -108,6 +108,16 @@ void test_conversion(
     fprintf(stderr, "Result: %s\n", eq ? "OK" : "ERROR");
   }
 
+  // Test AVL property.
+  {
+    fprintf(stderr, "Test AVL property... ");
+    long double start = utils::wclock();
+    bool result = grammar->test_avl_property();
+    long double elapsed = utils::wclock() - start;
+    fprintf(stderr, "%.2Lfs\n", elapsed);
+    fprintf(stderr, "AVL property = %s\n", result ? "TRUE" : "FALSE");
+  }
+
   // Clean up.
   delete[] text;
   delete[] decoded_text;

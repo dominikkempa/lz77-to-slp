@@ -68,6 +68,22 @@ struct avl_grammar_node {
       m_right->write_expansion(text + m_left->m_exp_len);
     }
   }
+
+  // Test the AVL propert of a subtree.
+  bool test_avl_property() const {
+    if (m_height == 0)
+      return true;
+    else {
+      if ((!(m_left->test_avl_property())) ||
+          (!(m_right->test_avl_property())) ||
+          (m_right->m_height > m_left->m_height &&
+           m_right->m_height - m_left->m_height > 1) ||
+          (m_left->m_height > m_right->m_height &&
+           m_left->m_height - m_right->m_height > 1))
+        return false;
+      else return true;
+    }
+  }
 };
 
 //=============================================================================
@@ -90,16 +106,23 @@ struct avl_grammar {
     m_root->print_expansion();
   }
 
+  // Return the number of nonterminals.
   std::uint64_t size() const {
     return m_nonterminals.size();
   }
 
+  // Decode the text and write to a given array.
   void decode(
       char_type* &text,
       std::uint64_t &text_length) const {
     text_length = m_root->m_exp_len;
     text = new char_type[text_length];
     m_root->write_expansion(text);
+  }
+
+  // Test the AVL property of all nonterminals.
+  bool test_avl_property() const {
+    return m_root->test_avl_property();
   }
 };
 
