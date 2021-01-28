@@ -9,6 +9,25 @@
 
 
 //=============================================================================
+// Compute a^n (mod p) in O(log n) time.
+//=============================================================================
+template<typename int_type = std::uint64_t>
+int_type mod_pow(
+    const int_type a,
+    int_type n,
+    const int_type p) {
+  int_type pow = a % p;
+  int_type ret = 1 % p;
+  while (n > 0) {
+    if (n & 1)
+      ret = (ret * pow) % p;
+    pow = (pow * pow) % p;
+    n >>= 1;
+  }
+  return ret;
+}
+
+//=============================================================================
 // A class used to represent the nonterminal in the AVL grammar.
 //=============================================================================
 template<typename char_type>
@@ -84,6 +103,38 @@ struct avl_grammar_node {
       else return true;
     }
   }
+
+  // Collect Karp-Rabin hashes of all nonterminals.
+  std::uint64_t collect_karp_rabin_hashes(
+      std::vector<std::uint64_t> &hashes,
+      const std::uint64_t a,
+      const std::uint64_t p) const {
+    if (m_height == 0) {
+      std::uint64_t h = m_char % p;
+      hashes.push_back(h);
+      return h;
+    } else {
+      std::uint64_t left_hash =
+        m_left->collect_karp_rabin_hashes(hashes, a, p);
+      std::uint64_t right_hash =
+        m_right->collect_karp_rabin_hashes(hashes, a, p);
+      std::uint64_t h =
+        (left_hash * mod_pow<std::uint64_t>(a, m_right->m_exp_len, p)) % p;
+      h = (h + right_hash) % p;
+      hashes.push_back(h);
+      return h;
+    }
+  }
+
+  // Collect reachable nonterminals.
+  void collect_nonterminal_pointers(
+      std::vector<const node_type*> &pointers) const {
+    pointers.push_back(this);
+    if (m_height > 0) {
+      m_left->collect_nonterminal_pointers(pointers);
+      m_right->collect_nonterminal_pointers(pointers);
+    }
+  }
 };
 
 //=============================================================================
@@ -123,6 +174,20 @@ struct avl_grammar {
   // Test the AVL property of all nonterminals.
   bool test_avl_property() const {
     return m_root->test_avl_property();
+  }
+
+  // Collect rarp-rabin hashes in a vector.
+  void collect_karp_rabin_hashes(
+      std::vector<std::uint64_t> &hashes,
+      const std::uint64_t a = (std::uint64_t)999285268,
+      const std::uint64_t p = (std::uint64_t)1000000009) const {
+    (void) m_root->collect_karp_rabin_hashes(hashes, a, p);
+  }
+
+  // Collect pointers to all nonterminals reachable from the root.
+  void collect_nonterminal_pointers(
+      std::vector<const node_type*> &pointers) const {
+    m_root->collect_nonterminal_pointers(pointers);
   }
 };
 
