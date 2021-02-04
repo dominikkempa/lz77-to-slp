@@ -6,7 +6,7 @@ CFLAGS = -Wall -Wextra -pedantic -Wshadow -funroll-loops -O3 -DNDEBUG -march=nat
 all: convert_lz77_to_slp
 
 convert_lz77_to_slp:
-	$(CC) $(CFLAGS) -o convert_lz77_to_slp main.cpp src/utils.cpp
+	$(CC) $(CFLAGS) -o convert_lz77_to_slp main.cpp src/utils.cpp src/karp_rabin_hashing.cpp
 
 clean:
 	/bin/rm -f *.o

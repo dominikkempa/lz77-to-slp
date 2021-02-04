@@ -7,25 +7,8 @@
 #include <vector>
 #include <algorithm>
 
+#include "karp_rabin_hashing.hpp"
 
-//=============================================================================
-// Compute a^n (mod p) in O(log n) time.
-//=============================================================================
-template<typename int_type = std::uint64_t>
-int_type mod_pow(
-    const int_type a,
-    int_type n,
-    const int_type p) {
-  int_type pow = a % p;
-  int_type ret = 1 % p;
-  while (n > 0) {
-    if (n & 1)
-      ret = (ret * pow) % p;
-    pow = (pow * pow) % p;
-    n >>= 1;
-  }
-  return ret;
-}
 
 //=============================================================================
 // A class used to represent the nonterminal in the AVL grammar.
