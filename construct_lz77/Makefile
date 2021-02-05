@@ -1,7 +1,7 @@
 SHELL = /bin/sh
 CC = g++
-CFLAGS = -Wall -Wextra -pedantic -Wshadow -funroll-loops -O3 -DNDEBUG -march=native
-#CFLAGS = -Wall -Wextra -pedantic -Wshadow -g2
+CFLAGS = -Wall -Wextra -pedantic -Wshadow -funroll-loops -O3 -DNDEBUG -march=native -std=c++0x
+#CFLAGS = -Wall -Wextra -pedantic -Wshadow -g2 -std=c++0x
 
 all: construct_lz77
 
