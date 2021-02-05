@@ -200,13 +200,32 @@ void read_at_offset(
   std::fclose(f);
 }
 
-std::int32_t random_int32(const std::int32_t, const std::int32_t);
-std::int64_t random_int64(const std::int64_t, const std::int64_t);
+template<typename int_type>
+int_type random_int(
+    const int_type,
+    const int_type) {
+  fprintf(stderr, "\nError: random_int: unsupported type!\n");
+  fprintf(stderr, "sizeof(int_type) = %lu\n",
+      (std::uint64_t)sizeof(int_type));
+  std::exit(EXIT_FAILURE);
+}
+
+template<>
+std::uint32_t random_int(const std::uint32_t, const std::uint32_t);
+template<>
+std::uint64_t random_int(const std::uint64_t, const std::uint64_t);
+
 void fill_random_string(std::uint8_t * const &,
     const std::uint64_t, const std::uint64_t);
 void fill_random_letters(std::uint8_t * const &,
     const std::uint64_t, const std::uint64_t);
 std::string random_string_hash();
+
+template<typename real_type = long double>
+real_type random_real() {
+  const std::uint64_t mx = std::numeric_limits<std::uint64_t>::max() - 1;
+  return (real_type)utils::random_int<std::uint64_t>(0, mx) / mx;
+}
 
 std::uint64_t log2ceil(const std::uint64_t);
 std::uint64_t log2floor(const std::uint64_t);
