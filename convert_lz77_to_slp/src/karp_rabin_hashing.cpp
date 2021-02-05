@@ -54,7 +54,8 @@ std::uint64_t mod_mersenne(
 // Return random number x in [0..p), where p = (2^k) - 1.
 std::uint64_t rand_mod_mersenne(const std::uint64_t k) {
   const std::uint64_t p = ((std::uint64_t)1 << k) - 1;
-  return utils::random_int64((std::uint64_t)0, p - 1);
+  return utils::random_int<std::uint64_t>(
+      (std::uint64_t)0, (std::uint64_t(p - 1)));
 }
 
 // Return (a^n) mod p, where p = (2^k) - 1.
