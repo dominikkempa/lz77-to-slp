@@ -93,17 +93,46 @@ struct avl_grammar_node {
       const std::uint64_t a,
       const std::uint64_t p) const {
     if (m_height == 0) {
-      std::uint64_t h = m_char % p;
+      const std::uint64_t h = m_char % p;
       hashes.push_back(h);
       return h;
     } else {
-      std::uint64_t left_hash =
+      const std::uint64_t left_hash =
         m_left->collect_karp_rabin_hashes(hashes, a, p);
-      std::uint64_t right_hash =
+      const std::uint64_t right_hash =
         m_right->collect_karp_rabin_hashes(hashes, a, p);
       std::uint64_t h =
         (left_hash * mod_pow<std::uint64_t>(a, m_right->m_exp_len, p)) % p;
       h = (h + right_hash) % p;
+      hashes.push_back(h);
+      return h;
+    }
+  }
+
+  // Collect Mersenne Karp-Rabin hashes of all nonterminals.
+  std::uint64_t collect_mersenne_karp_rabin_hashes(
+      std::vector<std::uint64_t> &hashes,
+      const std::uint64_t hash_variable,
+      const std::uint64_t mersenne_prime_exponent) const {
+    if (m_height == 0) {
+      const std::uint64_t h = mod_mersenne(m_char, mersenne_prime_exponent);
+      hashes.push_back(h);
+      return h;
+    } else {
+      const std::uint64_t left_hash =
+        m_left->collect_mersenne_karp_rabin_hashes(hashes,
+            hash_variable, mersenne_prime_exponent);
+      const std::uint64_t right_hash =
+        m_right->collect_mersenne_karp_rabin_hashes(hashes,
+            hash_variable, mersenne_prime_exponent);
+      std::uint64_t h = 0;
+      {
+        const std::uint64_t pow = pow_mod_mersenne(hash_variable,
+            m_right->m_exp_len, mersenne_prime_exponent);
+        const std::uint64_t tmp = mul_mod_meresenne(left_hash,
+            pow, mersenne_prime_exponent);
+        h = mod_mersenne(tmp + right_hash, mersenne_prime_exponent);
+      }
       hashes.push_back(h);
       return h;
     }
@@ -159,12 +188,33 @@ struct avl_grammar {
     return m_root->test_avl_property();
   }
 
-  // Collect rarp-rabin hashes in a vector.
+  // Collect Karp-Rabin hashes in a vector.
   void collect_karp_rabin_hashes(
       std::vector<std::uint64_t> &hashes,
       const std::uint64_t a = (std::uint64_t)999285268,
       const std::uint64_t p = (std::uint64_t)1000000009) const {
     (void) m_root->collect_karp_rabin_hashes(hashes, a, p);
+  }
+
+  // Collect Mersenne Karp-Rabin hashes in a vector.
+  // Allows specifying variable and prime exponent.
+  void collect_mersenne_karp_rabin_hashes(
+      std::vector<std::uint64_t> &hashes,
+      const std::uint64_t hash_variable,
+      const std::uint64_t mersenne_prime_exponent) const {
+    (void) m_root->collect_mersenne_karp_rabin_hashes(hashes,
+        hash_variable, mersenne_prime_exponent);
+  }
+
+  // Collect Mersenne Karp_Rabin hashes in a vector.
+  // Relies on automatic choice of variable and exponent.
+  void collect_mersenne_karp_rabin_hashes(
+      std::vector<std::uint64_t> &hashes) const {
+    const std::uint64_t mersenne_prime_exponent = 61;
+    const std::uint64_t hash_variable = 
+      rand_mod_mersenne(mersenne_prime_exponent);
+    collect_mersenne_karp_rabin_hashes(hashes,
+        hash_variable, mersenne_prime_exponent);
   }
 
   // Collect pointers to all nonterminals reachable from the root.

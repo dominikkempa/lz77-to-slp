@@ -21,9 +21,11 @@ int_type mod_pow(
   return ret;
 }
 
-std::uint64_t mul_mod_meresenne(std::uint64_t a,
-    std::uint64_t b, std::uint64_t k);
-std::uint64_t mod_mersenne(std::uint64_t a, std::uint64_t k);
-std::uint64_t rand_mod_mersenne(std::uint64_t k);
+std::uint64_t mul_mod_meresenne(const std::uint64_t a,
+    const std::uint64_t b, const std::uint64_t k);
+std::uint64_t mod_mersenne(std::uint64_t a, const std::uint64_t k);
+std::uint64_t rand_mod_mersenne(const std::uint64_t k);
+std::uint64_t pow_mod_mersenne(const std::uint64_t a,
+    std::uint64_t n, const std::uint64_t k);
 
 #endif  // __KARP_RABIN_HASHING_HPP_INCLUDED

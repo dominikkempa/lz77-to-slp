@@ -118,6 +118,7 @@ void test_conversion(
     fprintf(stderr, "AVL property = %s\n", result ? "TRUE" : "FALSE");
   }
 
+#if 0
   // Check the number of different KR hashes.
   {
     fprintf(stderr, "Collect Karp-Rabin hashes... ");
@@ -145,6 +146,23 @@ void test_conversion(
     std::sort(good_hashes.begin(), good_hashes.end());
     good_hashes.erase(std::unique(good_hashes.begin(), good_hashes.end()), good_hashes.end());
     fprintf(stderr, "Number of unique hashes = %lu\n", good_hashes.size());
+  }
+#endif
+
+  // Check the number of different Mersenne KR hashes.
+  // These hashes are much better, so there should no collisions.
+  {
+    fprintf(stderr, "Collect Mersenne Karp-Rabin hashes... ");
+    std::vector<std::uint64_t> mersenne_hashes;
+    long double start = utils::wclock();
+    grammar->collect_mersenne_karp_rabin_hashes(mersenne_hashes);
+    long double elapsed = utils::wclock() - start;
+    fprintf(stderr, "%.2Lfs\n", elapsed);
+    std::sort(mersenne_hashes.begin(), mersenne_hashes.end());
+    mersenne_hashes.erase(std::unique(mersenne_hashes.begin(),
+          mersenne_hashes.end()), mersenne_hashes.end());
+    fprintf(stderr, "Number of unique hashes = %lu\n",
+        mersenne_hashes.size());
   }
 
   // Check the number of different reachable nonterminals.
