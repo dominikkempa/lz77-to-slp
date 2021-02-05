@@ -2,11 +2,13 @@
 #include <cstdlib>
 #include <cstdint>
 #include <ctime>
+#include <vector>
+#include <algorithm>
 #include <unistd.h>
 
-#include "utils.hpp"
-#include "compute_sa.hpp"
-#include "byte_rank.hpp"
+#include "../include/utils.hpp"
+#include "../include/compute_sa.hpp"
+#include "../include/byte_rank.hpp"
 
 
 // Main testing function.
@@ -20,7 +22,7 @@ void test(
 
   // Compute suffix array of text.
   text_offset_type *sa = new text_offset_type[text_length];
-  compute_sa(text, text_length, sa);
+  compute_sa<char_type, text_offset_type>(text, text_length, sa);
 
   // Comptute isa0.
   std::uint64_t isa0 = 0;
@@ -61,16 +63,16 @@ void test(
 
   // Run tests.
   for (std::uint64_t query_id = 0; query_id < n_queries; ++query_id) {
-    std::uint64_t pat_length = utils::random_int64((std::int64_t)0,
-        (std::uint64_t)max_pat_length);
+    std::uint64_t pat_length = utils::random_int<std::uint64_t>(
+        (std::int64_t)0, (std::uint64_t)max_pat_length);
 
     // Choose random pattern.
     for (std::uint64_t j = 0; j < pat_length; ++j)
-      pat[j] = 'a' + utils::random_int64(
+      pat[j] = 'a' + utils::random_int<std::uint64_t>(
           (std::int64_t)0,
           (std::int64_t)alph_size - 1);
 
-    char_type c = 'a' + utils::random_int64(
+    char_type c = 'a' + utils::random_int<std::uint64_t>(
         (std::int64_t)0,
         (std::int64_t)alph_size - 1);
 
@@ -198,7 +200,11 @@ int main() {
     fprintf(stderr, "Alphabet size = 2\n");
 
     // Allocate text.
-    static const std::uint64_t max_text_length = 20;
+#ifdef NDEBUG
+    static const std::uint64_t max_text_length = 16;
+#else
+    static const std::uint64_t max_text_length = 12;
+#endif
     char_type *text = new char_type[max_text_length];
 
     // Run tests.
@@ -223,7 +229,7 @@ int main() {
     delete[] text;
 
     // Print summary.
-    fprintf(stderr, "All tests passed.\n");
+    fprintf(stderr, "All tests passed.\n\n");
   }
 
   {
@@ -231,7 +237,11 @@ int main() {
     fprintf(stderr, "Alphabet size = 3\n");
 
     // Allocate text.
-    static const std::uint64_t max_text_length = 13;
+#ifdef NDEBUG
+    static const std::uint64_t max_text_length = 11;
+#else
+    static const std::uint64_t max_text_length = 8;
+#endif
     char_type *text = new char_type[max_text_length];
 
     // Run tests.
@@ -266,7 +276,7 @@ int main() {
     delete[] text;
 
     // Print summary.
-    fprintf(stderr, "All tests passed.\n");
+    fprintf(stderr, "All tests passed.\n\n");
   }
 
   {
@@ -274,7 +284,11 @@ int main() {
     fprintf(stderr, "Alphabet size = 4\n");
 
     // Allocate text.
-    static const std::uint64_t max_text_length = 10;
+#ifdef NDEBUG
+    static const std::uint64_t max_text_length = 9;
+#else
+    static const std::uint64_t max_text_length = 7;
+#endif
     char_type *text = new char_type[max_text_length];
 
     // Run tests.
