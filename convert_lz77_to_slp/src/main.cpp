@@ -8,9 +8,9 @@
 #include <unistd.h>
 #include <getopt.h>
 
-#include "include/uint40.hpp"
-#include "include/utils.hpp"
-#include "include/avl_grammar.hpp"
+#include "../include/uint40.hpp"
+#include "../include/utils.hpp"
+#include "../include/avl_grammar.hpp"
 
 
 template<
