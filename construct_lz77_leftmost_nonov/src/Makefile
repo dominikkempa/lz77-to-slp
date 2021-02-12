@@ -1,15 +1,15 @@
 SHELL = /bin/sh
 CC = g++
-CFLAGS = -Wall -Wextra -Wshadow -funroll-loops -DNDEBUG -O3 -march=native -pthread -std=c++0x
-#CFLAGS = -Wall -Wextra -Wshadow -g2 -std=c++0x
+CFLAGS = -Wall -Wextra -pedantic -Wshadow -funroll-loops -O3 -DNDEBUG -march=native -std=c++0x
+#CFLAGS = -Wall -Wextra -pedantic -Wshadow -g2 -std=c++0x
 
-all: bench
+all: construct_lz77
 
-bench:
-	$(CC) $(CFLAGS) -o bench main.cpp utils.cpp
+construct_lz77:
+	$(CC) $(CFLAGS) -o construct_lz77 src/main.cpp src/utils.cpp
 
 clean:
 	/bin/rm -f *.o
 
 nuclear:
-	/bin/rm -f bench *.o
+	/bin/rm -f construct_lz77 *.o

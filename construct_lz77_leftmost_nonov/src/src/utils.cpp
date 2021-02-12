@@ -2,7 +2,7 @@
  * @file    utils.cpp
  * @section LICENCE
  *
- * Copyright (C) 2017
+ * Copyright (C) 2012-2021
  *   Dominik Kempa <dominik.kempa (at) gmail.com>
  *
  * Permission is hereby granted, free of charge, to any person
@@ -42,8 +42,9 @@
 #include <mutex>
 #include <fstream>
 #include <algorithm>
+#include <limits>
 
-#include "utils.hpp"
+#include "../include/utils.hpp"
 
 
 namespace utils {
@@ -93,9 +94,9 @@ void deallocate(const void * const tab) {
   free(ptr);
 }
 
-void aligned_deallocate(void *tab) {
-  std::uint8_t *ptr = (std::uint8_t *)tab;
-  std::uint64_t *ptr64 = (std::uint64_t *)(ptr - 8);
+void aligned_deallocate(const void * const tab) {
+  const std::uint8_t * const ptr = (std::uint8_t *)tab;
+  const std::uint64_t * const ptr64 = (std::uint64_t *)(ptr - 8);
   deallocate((void *)(*ptr64));
 }
 
@@ -229,21 +230,48 @@ void empty_page_cache(const std::string filename) {
 }
 
 std::string get_timestamp() {
-  std::time_t result = std::time(NULL);
+  const std::time_t result = std::time(NULL);
   return std::string(std::ctime(&result));
 }
 
-std::int32_t random_int32(std::int32_t p, std::int32_t r) {
-  return p + rand() % (r - p + 1);
+template<>
+std::uint32_t random_int(
+    const std::uint32_t p,
+    const std::uint32_t r) {
+    
+  // Sanity check.
+  if (p > r) {
+    fprintf(stderr, "\nError in random_int<std::uint32_t>: p > r\n");
+    std::exit(EXIT_FAILURE);
+  }
+
+  // Generate random bits.
+  const std::uint32_t r30 = rand();
+  const std::uint64_t s2  = rand() & 0x3;
+  const std::uint64_t r32 = (r30 << 2) + s2;
+
+  // Return the answer.
+  return p + r32 % (r - p + 1);
 }
 
-std::int64_t random_int64(
-    const std::int64_t p,
-    const std::int64_t r) {
-  const std::uint64_t r30 = RAND_MAX * rand() + rand();
-  const std::uint64_t s30 = RAND_MAX * rand() + rand();
+template<>
+std::uint64_t random_int(
+    const std::uint64_t p,
+    const std::uint64_t r) {
+    
+  // Sanity check.
+  if (p > r) {
+    fprintf(stderr, "\nError in random_int<std::uint64_t>: p > r\n");
+    std::exit(EXIT_FAILURE);
+  }
+
+  // Generate random bits.
+  const std::uint64_t r30 = rand() & 0x3fffffff;
+  const std::uint64_t s30 = rand() & 0x3fffffff;
   const std::uint64_t t4  = rand() & 0xf;
   const std::uint64_t r64 = (r30 << 34) + (s30 << 4) + t4;
+
+  // Return the answer.
   return p + r64 % (r - p + 1);
 }
 
@@ -251,8 +279,16 @@ void fill_random_string(
     std::uint8_t * const &s,
     const std::uint64_t length,
     const std::uint64_t sigma) {
+
+  // Sanity check.
+  if (sigma == 0) {
+    fprintf(stderr, "\nError: fill_random_string: sigma == 0\n");
+    std::exit(EXIT_FAILURE);
+  }
+
+  // Generate the string.
   for (std::uint64_t i = 0; i < length; ++i)
-    s[i] = random_int32(0, sigma - 1);
+    s[i] = random_int((std::uint64_t)0, (std::uint64_t)(sigma - 1));
 }
 
 void fill_random_letters(
@@ -265,7 +301,8 @@ void fill_random_letters(
 }
 
 std::string random_string_hash() {
-  const uint64_t hash = (uint64_t)rand() * RAND_MAX + rand();
+  const uint64_t hash = random_int<std::uint64_t>(
+      0, std::numeric_limits<std::uint64_t>::max() - 1);
   std::stringstream ss;
   ss << hash;
   return ss.str();

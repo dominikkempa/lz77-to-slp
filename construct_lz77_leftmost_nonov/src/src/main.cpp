@@ -3,8 +3,8 @@
 #include <algorithm>
 #include <vector>
 
-#include "utils.hpp"
-#include "compute_lz77.hpp"
+#include "../include/utils.hpp"
+#include "../include/compute_lz77.hpp"
 
 
 int main(int argc, char **argv) {
