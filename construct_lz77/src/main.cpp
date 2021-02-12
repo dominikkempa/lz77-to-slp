@@ -8,10 +8,10 @@
 #include <unistd.h>
 #include <getopt.h>
 
-#include "include/utils.hpp"
-#include "include/compute_sa.hpp"
-#include "include/compute_lz77.hpp"
-#include "include/uint40.hpp"
+#include "../include/utils.hpp"
+#include "../include/compute_sa.hpp"
+#include "../include/compute_lz77.hpp"
+#include "../include/uint40.hpp"
 
 
 //=============================================================================

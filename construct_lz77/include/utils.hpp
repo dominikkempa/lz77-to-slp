@@ -1,3 +1,32 @@
+/**
+ * @file    utils.hpp
+ * @section LICENCE
+ *
+ * Copyright (C) 2012-2021
+ *   Dominik Kempa <dominik.kempa (at) gmail.com>
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ **/
+
 #ifndef __UTILS_HPP_INCLUDED
 #define __UTILS_HPP_INCLUDED
 
@@ -200,13 +229,32 @@ void read_at_offset(
   std::fclose(f);
 }
 
-std::int32_t random_int32(const std::int32_t, const std::int32_t);
-std::int64_t random_int64(const std::int64_t, const std::int64_t);
+template<typename int_type>
+int_type random_int(
+    const int_type,
+    const int_type) {
+  fprintf(stderr, "\nError: random_int: unsupported type!\n");
+  fprintf(stderr, "sizeof(int_type) = %lu\n",
+      (std::uint64_t)sizeof(int_type));
+  std::exit(EXIT_FAILURE);
+}
+
+template<>
+std::uint32_t random_int(const std::uint32_t, const std::uint32_t);
+template<>
+std::uint64_t random_int(const std::uint64_t, const std::uint64_t);
+
 void fill_random_string(std::uint8_t * const &,
     const std::uint64_t, const std::uint64_t);
 void fill_random_letters(std::uint8_t * const &,
     const std::uint64_t, const std::uint64_t);
 std::string random_string_hash();
+
+template<typename real_type = long double>
+real_type random_real() {
+  const std::uint64_t mx = std::numeric_limits<std::uint64_t>::max() - 1;
+  return (real_type)utils::random_int<std::uint64_t>(0, mx) / mx;
+}
 
 std::uint64_t log2ceil(const std::uint64_t);
 std::uint64_t log2floor(const std::uint64_t);
