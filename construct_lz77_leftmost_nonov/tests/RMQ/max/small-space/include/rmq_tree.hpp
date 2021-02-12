@@ -147,7 +147,9 @@ struct rmq_tree {
 
     // Return the boolean value telling whether there is any item
     // in the range [beg..end) that is >= than given threshold.
-    inline bool geq(std::uint64_t beg, std::uint64_t end,
+    inline bool geq(
+        std::uint64_t beg,
+        std::uint64_t end,
         std::uint64_t threshold) const {
 
       // Handle special cases.
@@ -230,7 +232,7 @@ struct rmq_tree {
             std::max(ret, (std::uint64_t)m_data[right_block_id - 1]);
         }
 
-        // If know, return the answer.
+        // If known, return the answer.
         if (ret >= threshold)
           return true;
 

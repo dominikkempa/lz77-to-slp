@@ -6,12 +6,12 @@
 #include <ctime>
 #include <unistd.h>
 
-#include "utils.hpp"
-#include "rmq_tree.hpp"
-#include "large_rmq_tree.hpp"
+#include "../include/utils.hpp"
+#include "../include/rmq_tree.hpp"
+#include "../include/large_rmq_tree.hpp"
 
 
-// Return the position of max in the range [beg..end).
+// Return the position of min in the range [beg..end).
 // If no valid position exists, return `size'.
 template<typename value_type>
 std::uint64_t naive_rmq(
@@ -20,7 +20,7 @@ std::uint64_t naive_rmq(
     std::uint64_t beg,
     std::uint64_t end) {
   std::uint64_t ret_pos = size;
-  std::uint64_t ret_val = 0;
+  std::uint64_t ret_val = std::numeric_limits<value_type>::max();
 
   beg = std::min(beg, size);
   end = std::min(end, size);
@@ -29,7 +29,7 @@ std::uint64_t naive_rmq(
     return size;
 
   for (std::uint64_t i = beg; i < end; ++i) {
-    if ((std::uint64_t)tab[i] > ret_val) {
+    if ((std::uint64_t)tab[i] < ret_val) {
       ret_val = tab[i];
       ret_pos = i;
     }
@@ -39,7 +39,7 @@ std::uint64_t naive_rmq(
 }
 
 template<typename value_type>
-bool naive_geq(
+bool naive_less(
     const value_type *tab,
     std::uint64_t size,
     std::uint64_t beg,
@@ -53,19 +53,19 @@ bool naive_geq(
     return false;
 
   for (std::uint64_t i = beg; i < end; ++i) 
-    if ((std::uint64_t)tab[i] >= threshold)
+    if ((std::uint64_t)tab[i] < threshold)
       return true;
 
   return false;
 }
 
 template<typename value_type, std::uint64_t block_size>
-void test_geq(
+void test_less(
     const value_type *tab,
     std::uint64_t size,
     std::uint64_t n_queries) {
 
-  fprintf(stderr, "GEQTEST(sizeof(value_type) = %lu, size = %lu, "
+  fprintf(stderr, "LESSTEST(sizeof(value_type) = %lu, size = %lu, "
       "n_queries = %lu, block_size = %lu)\n",
       (std::uint64_t)sizeof(value_type), size, n_queries, block_size);
 
@@ -77,29 +77,35 @@ void test_geq(
 
   for (std::uint64_t query_id = 0; query_id < n_queries; ++query_id) {
     std::uint64_t beg =
-      utils::random_int64((std::int64_t)0, (std::int64_t)(2 * size));
+      utils::random_int<std::uint64_t>(
+          (std::int64_t)0,
+          (std::int64_t)(2 * size));
     std::uint64_t end =
-      utils::random_int64((std::int64_t)0, (std::int64_t)(2 * size));
+      utils::random_int<std::uint64_t>(
+          (std::int64_t)0,
+          (std::int64_t)(2 * size));
     std::uint64_t threshold = 0;
 
-    if (utils::random_int64((std::int64_t)0, (std::int64_t)1) == 0)
-      threshold = tab[utils::random_int64(
+    if (utils::random_int<std::uint64_t>(
+          (std::int64_t)0,
+          (std::int64_t)1) == 0)
+      threshold = tab[utils::random_int<std::uint64_t>(
           (std::uint64_t)0, (std::uint64_t)(size - 1))];
     else {
       if (sizeof(value_type) < 8)
-        threshold = utils::random_int64(
+        threshold = utils::random_int<std::uint64_t>(
             (std::uint64_t)0,
             (std::uint64_t)std::numeric_limits<value_type>::max());
       else
-        threshold = utils::random_int64(
+        threshold = utils::random_int<std::uint64_t>(
             (std::uint64_t)0,
             (std::uint64_t)std::numeric_limits<std::int64_t>::max());
     }
 
-    bool ret_correct = naive_geq<value_type>(tab, size,
+    bool ret_correct = naive_less<value_type>(tab, size,
         beg, end, threshold);
-    bool ret_correct_2 = large_rmq->geq(beg, end, threshold);
-    bool ret_computed = rmq->geq(beg, end, threshold);
+    bool ret_correct_2 = large_rmq->less(beg, end, threshold);
+    bool ret_computed = rmq->less(beg, end, threshold);
 
     if (ret_computed != ret_correct || ret_computed != ret_correct_2) {
       fprintf(stderr, "\nError:\n");
@@ -143,9 +149,13 @@ void test_rmq(
 
   for (std::uint64_t query_id = 0; query_id < n_queries; ++query_id) {
     std::uint64_t beg =
-      utils::random_int64((std::int64_t)0, (std::int64_t)(2 * size));
+      utils::random_int<std::uint64_t>(
+          (std::int64_t)0,
+          (std::int64_t)(2 * size));
     std::uint64_t end =
-      utils::random_int64((std::int64_t)0, (std::int64_t)(2 * size));
+      utils::random_int<std::uint64_t>(
+          (std::int64_t)0,
+          (std::int64_t)(2 * size));
 
     std::uint64_t ret_correct = naive_rmq<value_type>(tab, size, beg, end);
     std::uint64_t ret_correct_2 = large_rmq->rmq(beg, end);
@@ -178,20 +188,22 @@ void test_rmq(
 }
 
 template<typename value_type>
-void test_rmq(
+void test_rmq_2(
     std::uint64_t max_size,
     std::uint64_t n_queries) {
 
-  std::uint64_t size = utils::random_int64((std::int64_t)1, (std::int64_t)max_size);
+  std::uint64_t size = utils::random_int<std::uint64_t>(
+      (std::int64_t)1,
+      (std::int64_t)max_size);
   value_type *tab = new value_type[size];
   if (sizeof(value_type) < 8) {
     for (std::uint64_t i = 0; i < size; ++i)
-      tab[i] = utils::random_int64(
+      tab[i] = utils::random_int<std::uint64_t>(
           (std::int64_t)0,
           (std::int64_t)std::numeric_limits<value_type>::max());
   } else {
     for (std::uint64_t i = 0; i < size; ++i)
-      tab[i] = utils::random_int64(
+      tab[i] = utils::random_int<std::uint64_t>(
           (std::int64_t)0,
           (std::int64_t)std::numeric_limits<std::int64_t>::max());
   }
@@ -210,57 +222,73 @@ void test_rmq(
 }
 
 template<typename value_type>
-void test_rmq() {
-  for (std::uint64_t size = 1; size <= (1 << 19); size <<= 1)
-    test_rmq<value_type>(size, 10000);
+void test_rmq(
+    const std::uint64_t max_size,
+    const std::uint64_t n_tests) {
+  for (std::uint64_t size = 1; size <= max_size; size <<= 1)
+    test_rmq_2<value_type>(size, n_tests);
 }
 
 template<typename value_type>
-void test_geq(
+void test_less_2(
     std::uint64_t max_size,
     std::uint64_t n_queries) {
 
-  std::uint64_t size = utils::random_int64((std::int64_t)1, (std::int64_t)max_size);
+  std::uint64_t size = utils::random_int<std::uint64_t>(
+      (std::int64_t)1,
+      (std::int64_t)max_size);
   value_type *tab = new value_type[size];
   if (sizeof(value_type) < 8) {
     for (std::uint64_t i = 0; i < size; ++i)
-      tab[i] = utils::random_int64(
+      tab[i] = utils::random_int<std::uint64_t>(
           (std::int64_t)0,
           (std::int64_t)std::numeric_limits<value_type>::max());
   } else {
     for (std::uint64_t i = 0; i < size; ++i)
-      tab[i] = utils::random_int64(
+      tab[i] = utils::random_int<std::uint64_t>(
           (std::int64_t)0,
           (std::int64_t)std::numeric_limits<std::int64_t>::max());
   }
 
-  test_geq<value_type, (std::uint64_t)1>(tab, size, n_queries);
-  test_geq<value_type, (std::uint64_t)2>(tab, size, n_queries);
-  test_geq<value_type, (std::uint64_t)3>(tab, size, n_queries);
-  test_geq<value_type, (std::uint64_t)4>(tab, size, n_queries);
-  test_geq<value_type, (std::uint64_t)8>(tab, size, n_queries);
-  test_geq<value_type, (std::uint64_t)16>(tab, size, n_queries);
-  test_geq<value_type, (std::uint64_t)30>(tab, size, n_queries);
-  test_geq<value_type, (std::uint64_t)64>(tab, size, n_queries);
-  test_geq<value_type, (std::uint64_t)256>(tab, size, n_queries);
+  test_less<value_type, (std::uint64_t)1>(tab, size, n_queries);
+  test_less<value_type, (std::uint64_t)2>(tab, size, n_queries);
+  test_less<value_type, (std::uint64_t)3>(tab, size, n_queries);
+  test_less<value_type, (std::uint64_t)4>(tab, size, n_queries);
+  test_less<value_type, (std::uint64_t)8>(tab, size, n_queries);
+  test_less<value_type, (std::uint64_t)16>(tab, size, n_queries);
+  test_less<value_type, (std::uint64_t)30>(tab, size, n_queries);
+  test_less<value_type, (std::uint64_t)64>(tab, size, n_queries);
+  test_less<value_type, (std::uint64_t)256>(tab, size, n_queries);
 
   delete[] tab;
 }
 
 template<typename value_type>
-void test_geq() {
-  for (std::uint64_t size = 1; size <= (1 << 19); size <<= 1)
-    test_geq<value_type>(size, 100000);
+void test_less(
+    const std::uint64_t max_size,
+    const std::uint64_t n_tests) {
+  for (std::uint64_t size = 1; size <= max_size; size <<= 1)
+    test_less_2<value_type>(size, n_tests);
 }
 
 int main() {
   srand(time(0) + getpid());
-  test_rmq<std::uint16_t>();
-  test_rmq<std::uint32_t>();
-  test_rmq<std::uint64_t>();
-  test_geq<std::uint16_t>();
-  test_geq<std::uint32_t>();
-  test_geq<std::uint64_t>();
+
+#ifdef NDEBUG
+  const std::uint64_t max_size = (1 << 18);
+  const std::uint64_t n_tests = 10000;
+#else
+  const std::uint64_t max_size = (1 << 17);
+  const std::uint64_t n_tests = 1000;
+#endif
+
+  test_rmq<std::uint16_t>(max_size, n_tests);
+  test_rmq<std::uint32_t>(max_size, n_tests);
+  test_rmq<std::uint64_t>(max_size, n_tests);
+  test_less<std::uint16_t>(max_size, n_tests);
+  test_less<std::uint32_t>(max_size, n_tests);
+  test_less<std::uint64_t>(max_size, n_tests);
+
   fprintf(stderr, "All tests passed.\n");
 }
 

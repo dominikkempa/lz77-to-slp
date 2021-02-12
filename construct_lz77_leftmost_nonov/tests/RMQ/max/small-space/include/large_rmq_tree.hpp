@@ -1,41 +1,12 @@
-/**
- * @file    rmq_tree.hpp
- * @section LICENCE
- *
- * Copyright (C) 2017
- *   Dominik Kempa <dominik.kempa (at) gmail.com>
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- **/
-
-#ifndef __RMQ_TREE_HPP_INCLUDED
-#define __RMQ_TREE_HPP_INCLUDED
+#ifndef __LARGE_RMQ_TREE_HPP_INCLUDED
+#define __LARGE_RMQ_TREE_HPP_INCLUDED
 
 #include <cstdint>
 #include <algorithm>
 
 
 template<typename ValueType>
-struct rmq_tree {
+struct large_rmq_tree {
   public:
     typedef ValueType value_type;
 
@@ -48,7 +19,7 @@ struct rmq_tree {
     std::uint64_t *m_pos;
 
   public:
-    rmq_tree(const value_type *tab, std::uint64_t size) {
+    large_rmq_tree(const value_type *tab, std::uint64_t size) {
       m_size = size;
       m_tab = tab;
 
@@ -87,7 +58,7 @@ struct rmq_tree {
       } else m_data = NULL;
     }
 
-    ~rmq_tree() {
+    ~large_rmq_tree() {
       if (m_data != NULL) {
         delete[] m_data;
         delete[] m_pos;
@@ -96,7 +67,9 @@ struct rmq_tree {
 
     // Return the boolean value telling whether there is any item
     // in the range [beg..end) that is >= than given threshold.
-    inline bool geq(std::uint64_t beg, std::uint64_t end,
+    inline bool geq(
+        std::uint64_t beg,
+        std::uint64_t end,
         std::uint64_t threshold) const {
 
       beg = std::min(beg, m_size);
@@ -213,4 +186,4 @@ struct rmq_tree {
     }
 };
 
-#endif  // __RMQ_TREE_HPP_INCLUDED
+#endif  // __LARGE_RMQ_TREE_HPP_INCLUDED

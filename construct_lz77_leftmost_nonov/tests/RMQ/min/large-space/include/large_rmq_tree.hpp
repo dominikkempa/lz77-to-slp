@@ -2,7 +2,7 @@
 #define __LARGE_RMQ_TREE_HPP_INCLUDED
 
 #include <cstdint>
-#include <limits>
+#include <algorithm>
 
 
 template<typename ValueType>
@@ -67,7 +67,9 @@ struct large_rmq_tree {
 
     // Return the boolean value telling whether there is any item
     // in the range [beg..end) that is < than given threshold.
-    inline bool less(std::uint64_t beg, std::uint64_t end,
+    inline bool less(
+        std::uint64_t beg,
+        std::uint64_t end,
         std::uint64_t threshold) const {
 
       beg = std::min(beg, m_size);
@@ -93,8 +95,7 @@ struct large_rmq_tree {
       static const std::uint64_t small_range = 512;
       if (right - left <= small_range) {
         for (std::uint64_t j = beg + 1; j + 1 < end; ++j)
-          if ((std::uint64_t)m_tab[j] < threshold)
-            return true;
+          if ((std::uint64_t)m_tab[j] < threshold) return true;
         return false;
       }
 
