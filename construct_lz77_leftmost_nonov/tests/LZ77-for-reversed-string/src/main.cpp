@@ -10,10 +10,12 @@
 
 template<typename text_offset_type>
 void naive_lz77(
-    const std::uint8_t *text,
-    std::uint64_t text_length,
+    const std::uint8_t * const text,
+    const std::uint64_t text_length,
     std::vector<std::pair<text_offset_type,
         text_offset_type> > &parsing) {
+
+  // Parse.
   std::uint64_t parsed_length = 0;
   while (parsed_length < text_length) {
     std::uint64_t max_lcp = 0;
@@ -22,7 +24,8 @@ void naive_lz77(
       std::uint64_t lcp = 0;
       while (j + lcp < parsed_length &&
           parsed_length + lcp < text_length &&
-          text[j + lcp] == text[parsed_length + lcp]) ++lcp;
+          text[j + lcp] == text[parsed_length + lcp])
+        ++lcp;
       if (lcp > max_lcp) {
         max_lcp = lcp;
         max_lcp_pos = j;
@@ -45,34 +48,54 @@ void naive_lz77(
 
 template<typename text_offset_type>
 bool verify_parsing(
-    const std::uint8_t *text,
-    std::uint64_t text_length,
+    const std::uint8_t * const text,
+    const std::uint64_t text_length,
     const std::vector<std::pair<text_offset_type,
         text_offset_type> > &parsing) {
-  std::uint8_t *decoded_text = new std::uint8_t[text_length];
+
+  // Allocate array for decoded text.
+  std::uint8_t * const decoded_text =
+    new std::uint8_t[text_length];
   std::uint64_t decoded_length = 0;
 
+  // Decode parsing.
   for (std::uint64_t j = 0; j < parsing.size(); ++j) {
-    std::uint64_t len = parsing[j].second;
+    const std::uint64_t len = parsing[j].second;
     if (len == 0) {
+
+      // Return false if decoded text is too long.
       if (decoded_length == text_length)
         return false;
+
+      // Decode next symbol.
       decoded_text[decoded_length++] =
         (std::uint8_t)parsing[j].first;
     } else {
+
+      // Return false, if the next phrase
+      // would create a text that is too long.
       if (decoded_length + len > text_length)
         return false;
-      std::uint64_t pos = parsing[j].first;
+
+      // Obtain the pointer to the source.
+      const std::uint64_t pos = parsing[j].first;
+
+      // Return false, if the source overlaps the phrase.
       if (pos + len > decoded_length)
         return false;
+
+      // Decode next phrase.
       for (std::uint64_t i = 0; i < len; ++i)
-        decoded_text[decoded_length++] = decoded_text[pos + i];
+        decoded_text[decoded_length++] =
+          decoded_text[pos + i];
     }
   }
 
+  // Return false if the text was too short.
   if (decoded_length != text_length)
     return false;
 
+  // Return false if decoded text is not equal from original.
   if (!std::equal(text, text + text_length, decoded_text))
     return false;
 
@@ -85,8 +108,8 @@ bool verify_parsing(
 
 template<typename text_offset_type>
 void test(
-    std::uint8_t *text,
-    std::uint64_t text_length) {
+    std::uint8_t * const text,
+    const std::uint64_t text_length) {
 
   // Compute parsing using the algorithm.
   typedef std::pair<text_offset_type, text_offset_type> pair_type;
@@ -102,6 +125,8 @@ void test(
   if (parsing_correct.size() != parsing_computed.size() ||
       !verify_parsing<text_offset_type>(text,
         text_length, parsing_computed)) {
+
+    // Print debug info.
     fprintf(stderr, "\nError:\n");
     fprintf(stderr, "  text = ");
     for (std::uint64_t j = 0; j < text_length; ++j)
@@ -156,7 +181,7 @@ int main() {
 #else
     static const std::uint64_t max_text_length = 11;
 #endif
-    char_type *text = new char_type[max_text_length];
+    char_type * const text = new char_type[max_text_length];
 
     // Run tests.
     for (std::uint64_t text_length = 1;
@@ -166,7 +191,7 @@ int main() {
       fprintf(stderr, "Text length = %lu\n", text_length);
 
       // Run tests.
-      std::uint64_t n_texts = ((std::uint64_t)1 << text_length);
+      const std::uint64_t n_texts = ((std::uint64_t)1 << text_length);
       for (std::uint64_t text_id = 0; text_id < n_texts; ++text_id) {
         for (std::uint64_t j = 0; j < text_length; ++j)
           if (text_id & ((std::uint64_t)1 << j)) text[j] = 'a';
@@ -192,7 +217,7 @@ int main() {
 #else
     static const std::uint64_t max_text_length = 7;
 #endif
-    char_type *text = new char_type[max_text_length];
+    char_type * const text = new char_type[max_text_length];
 
     // Run tests.
     for (std::uint64_t text_length = 1;
@@ -209,7 +234,7 @@ int main() {
       for (std::uint64_t text_id = 0; text_id < n_texts; ++text_id) {
         std::uint64_t temp_text_id = text_id;
         for (std::uint64_t j = 0; j < text_length; ++j) {
-          std::uint64_t rest = temp_text_id % 3;
+          const std::uint64_t rest = temp_text_id % 3;
 
           if (rest == 0) text[j] = 'a';
           else if (rest == 1) text[j] = 'b';
@@ -238,7 +263,7 @@ int main() {
 #else
     static const std::uint64_t max_text_length = 5;
 #endif
-    char_type *text = new char_type[max_text_length];
+    char_type * const text = new char_type[max_text_length];
 
     // Run tests.
     for (std::uint64_t text_length = 1;
@@ -255,7 +280,7 @@ int main() {
       for (std::uint64_t text_id = 0; text_id < n_texts; ++text_id) {
         std::uint64_t temp_text_id = text_id;
         for (std::uint64_t j = 0; j < text_length; ++j) {
-          std::uint64_t rest = temp_text_id % 4;
+          const std::uint64_t rest = temp_text_id % 4;
 
           if (rest == 0) text[j] = 'a';
           else if (rest == 1) text[j] = 'b';

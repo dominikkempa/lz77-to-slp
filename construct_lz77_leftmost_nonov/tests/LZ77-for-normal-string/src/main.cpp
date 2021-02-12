@@ -200,7 +200,7 @@ bool verify_parsing_nonov(
   if (decoded_length != text_length)
     return false;
 
-  // Return false if decoded text equal from original.
+  // Return false if decoded text is not equal from original.
   if (!std::equal(text, text + text_length, decoded_text))
     return false;
 
@@ -280,14 +280,13 @@ void test_leftmost_pair(
     const std::uint64_t text_length) {
 
   // Compute parsing using the algorithm.
-  std::vector<std::pair<text_offset_type, text_offset_type> >
-    parsing_computed;
+  typedef std::pair<text_offset_type, text_offset_type> pair_type;
+  std::vector<pair_type> parsing_computed;
   compute_leftmost_lz77<text_offset_type>(
       text, text_length, parsing_computed);
 
   // Compute correct parsing.
-  std::vector<std::pair<text_offset_type, text_offset_type> >
-    parsing_correct;
+  std::vector<pair_type> parsing_correct;
   naive_leftmost_lz77<text_offset_type>(
       text, text_length, parsing_correct);
 
