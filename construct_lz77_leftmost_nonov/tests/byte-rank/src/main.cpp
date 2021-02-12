@@ -5,8 +5,8 @@
 #include <ctime>
 #include <unistd.h>
 
-#include "utils.hpp"
-#include "byte_rank.hpp"
+#include "../include/utils.hpp"
+#include "../include/byte_rank.hpp"
 
 
 std::uint64_t naive_rank(
@@ -37,10 +37,10 @@ void test(
   rank_type *rank = new rank_type(text, length);
 
   for (std::uint64_t query_id = 0; query_id < n_queries; ++query_id) {
-    std::uint64_t i = utils::random_int64(
+    std::uint64_t i = utils::random_int<std::uint64_t>(
         (std::uint64_t)0,
         (std::uint64_t)(2 * length));
-    std::uint8_t c = utils::random_int64(
+    std::uint8_t c = utils::random_int<std::uint64_t>(
         (std::uint64_t)0,
         (std::uint64_t)255);
 
@@ -122,23 +122,33 @@ void test(
 }
 
 void test(std::uint64_t max_length) {
-  std::uint64_t length = utils::random_int64(
+  std::uint64_t length = utils::random_int<std::uint64_t>(
       (std::uint64_t)1,
       (std::uint64_t)max_length);
   std::uint8_t *text = new std::uint8_t[length];
   for (std::uint64_t i = 0; i < length; ++i)
-    text[i] = utils::random_int64(
+    text[i] = utils::random_int<std::uint64_t>(
         (std::uint64_t)0,
         (std::uint64_t)255);
+#ifdef NDEBUG
   test(text, length, 10000);
+#else
+  test(text, length, 1000);
+#endif
   delete[] text;
 }
 
 int main() {
   srand(time(0) + getpid());
 
+#ifdef NDEBUG
+  static const std::uint64_t max_length_limit = ((std::uint64_t)1) << 17;
+#else
+  static const std::uint64_t max_length_limit = ((std::uint64_t)1 << 14);
+#endif
+
   for (std::uint64_t max_length = 1;
-      max_length <= (1 << 19); max_length <<= 1)
+      max_length <= max_length_limit; max_length <<= 1)
     test(max_length);
 
   fprintf(stderr, "All tests passed.\n");
