@@ -5,7 +5,7 @@
 #include <ctime>
 #include <unistd.h>
 
-#include "compute_lz77.hpp"
+#include "../include/compute_lz77.hpp"
 
 
 template<typename text_offset_type>
@@ -20,7 +20,8 @@ void naive_lz77(
     std::uint64_t max_lcp_pos = 0;
     for (std::uint64_t j = 0; j < parsed_length; ++j) {
       std::uint64_t lcp = 0;
-      while (j + lcp < parsed_length && parsed_length + lcp < text_length &&
+      while (j + lcp < parsed_length &&
+          parsed_length + lcp < text_length &&
           text[j + lcp] == text[parsed_length + lcp]) ++lcp;
       if (lcp > max_lcp) {
         max_lcp = lcp;
@@ -56,7 +57,8 @@ bool verify_parsing(
     if (len == 0) {
       if (decoded_length == text_length)
         return false;
-      decoded_text[decoded_length++] = (std::uint8_t)parsing[j].first;
+      decoded_text[decoded_length++] =
+        (std::uint8_t)parsing[j].first;
     } else {
       if (decoded_length + len > text_length)
         return false;
@@ -87,17 +89,19 @@ void test(
     std::uint64_t text_length) {
 
   // Compute parsing using the algorithm.
-  std::vector<std::pair<text_offset_type, text_offset_type> > parsing_computed;
+  typedef std::pair<text_offset_type, text_offset_type> pair_type;
+  std::vector<pair_type> parsing_computed;
   compute_lz77<text_offset_type>(text, text_length, parsing_computed);
 
   // Compute correct parsing.
   std::reverse(text, text + text_length);
-  std::vector<std::pair<text_offset_type, text_offset_type> > parsing_correct;
+  std::vector<pair_type> parsing_correct;
   naive_lz77<text_offset_type>(text, text_length, parsing_correct);
 
   // Compare results.
   if (parsing_correct.size() != parsing_computed.size() ||
-      !verify_parsing<text_offset_type>(text, text_length, parsing_computed)) {
+      !verify_parsing<text_offset_type>(text,
+        text_length, parsing_computed)) {
     fprintf(stderr, "\nError:\n");
     fprintf(stderr, "  text = ");
     for (std::uint64_t j = 0; j < text_length; ++j)
@@ -147,7 +151,11 @@ int main() {
     fprintf(stderr, "Alphabet size = 2\n");
 
     // Allocate text.
-    static const std::uint64_t max_text_length = 20;
+#ifdef NDEBUG
+    static const std::uint64_t max_text_length = 17;
+#else
+    static const std::uint64_t max_text_length = 11;
+#endif
     char_type *text = new char_type[max_text_length];
 
     // Run tests.
@@ -179,7 +187,11 @@ int main() {
     fprintf(stderr, "Alphabet size = 3\n");
 
     // Allocate text.
-    static const std::uint64_t max_text_length = 13;
+#ifdef NDEBUG
+    static const std::uint64_t max_text_length = 11;
+#else
+    static const std::uint64_t max_text_length = 7;
+#endif
     char_type *text = new char_type[max_text_length];
 
     // Run tests.
@@ -221,7 +233,11 @@ int main() {
     fprintf(stderr, "Alphabet size = 4\n");
 
     // Allocate text.
-    static const std::uint64_t max_text_length = 10;
+#ifdef NDEBUG
+    static const std::uint64_t max_text_length = 9;
+#else
+    static const std::uint64_t max_text_length = 5;
+#endif
     char_type *text = new char_type[max_text_length];
 
     // Run tests.

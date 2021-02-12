@@ -591,3 +591,4 @@ typedef typename std::iterator_traits<string_type>::value_type char_type;
 
 #endif /* __cplusplus */
 #endif /* _SAIS_HXX */
+

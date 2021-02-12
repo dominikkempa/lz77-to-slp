@@ -34,21 +34,25 @@
 #include <algorithm>
 
 
+//=============================================================================
 // With the default block size (256), the data structure uses
 // (assuming ValueType = std::uint64_t) at most n bits. For
 // smaller ValueType it uses even less space.
-template<typename ValueType,
+//=============================================================================
+template<
+  typename ValueType,
   std::uint64_t BlockSize = 256>
 struct rmq_tree {
   public:
     typedef ValueType value_type;
 
   private:
+    const value_type * const m_tab; 
+
     std::uint64_t m_size;
     std::uint64_t m_blocks;
     std::uint64_t m_leaves2;
 
-    const value_type *m_tab;
     value_type *m_data;
     std::uint64_t *m_pos;
 
@@ -56,10 +60,16 @@ struct rmq_tree {
 
   public:
 
+    //=========================================================================
     // Constructor.
-    rmq_tree(const value_type *tab, std::uint64_t size) {
-      m_size = size;
-      m_tab = tab;
+    //=========================================================================
+    rmq_tree(
+        const value_type * const tab,
+        const std::uint64_t size)
+          : m_tab(tab),
+            m_size(size) {
+
+      // Compute the number of blocks.
       m_blocks = (size + block_size - 1) / block_size;
 
       if (m_blocks > 1) {
@@ -82,9 +92,9 @@ struct rmq_tree {
 
           // Check left child.
           if ((i << 1) < m_blocks) {
-            std::uint64_t block_id = (i << 1);
-            std::uint64_t block_beg = block_id * block_size;
-            std::uint64_t block_end =
+            const std::uint64_t block_id = (i << 1);
+            const std::uint64_t block_beg = block_id * block_size;
+            const std::uint64_t block_end =
               std::min(m_size, block_beg + block_size);
             left_pos = block_beg;
             left_val = m_tab[left_pos];
@@ -98,9 +108,9 @@ struct rmq_tree {
 
           // Check right child.
           if ((i << 1) + 1 < m_blocks) {
-            std::uint64_t block_id = (i << 1) + 1;
-            std::uint64_t block_beg = block_id * block_size;
-            std::uint64_t block_end =
+            const std::uint64_t block_id = (i << 1) + 1;
+            const std::uint64_t block_beg = block_id * block_size;
+            const std::uint64_t block_end =
               std::min(m_size, block_beg + block_size);
             right_pos = block_beg;
             right_val = m_tab[right_pos];
@@ -124,8 +134,8 @@ struct rmq_tree {
 
         // Encode remaining levels of the tree.
         for (std::uint64_t i = m_leaves2 - 1; i > 0; --i) {
-          std::uint64_t left = m_data[i << 1];
-          std::uint64_t right = m_data[(i << 1) + 1];
+          const std::uint64_t left = m_data[i << 1];
+          const std::uint64_t right = m_data[(i << 1) + 1];
           if (left > right) {
             m_data[i] = left;
             m_pos[i] = m_pos[i << 1];
@@ -137,22 +147,22 @@ struct rmq_tree {
       } else m_data = NULL;
     }
 
-    // Destructor.
-    ~rmq_tree() {
-      if (m_data != NULL) {
-        delete[] m_data;
-        delete[] m_pos;
-      }
-    }
-
+    //=========================================================================
     // Return the boolean value telling whether there is any item
     // in the range [beg..end) that is >= than given threshold.
-    inline bool geq(std::uint64_t beg, std::uint64_t end,
-        std::uint64_t threshold) const {
+    //=========================================================================
+    inline bool geq(
+        const std::uint64_t beg,
+        const std::uint64_t end,
+        const std::uint64_t threshold) const {
+
+      // Sanity check.
+      if (beg > m_size || end > m_size) {
+        fprintf(stderr, "\nError: values outside range in rmq_tree!\n");
+        std::exit(EXIT_FAILURE);
+      }
 
       // Handle special cases.
-      beg = std::min(beg, m_size);
-      end = std::min(end, m_size);
       if (beg >= end)
         return false;
       if (beg + 1 == end)
@@ -175,27 +185,26 @@ struct rmq_tree {
       {
 
         // Check leftmost block.
-        std::uint64_t left_block_beg = left_block_id * block_size;
-        std::uint64_t left_block_end = std::min(m_size,
+        const std::uint64_t left_block_beg = left_block_id * block_size;
+        const std::uint64_t left_block_end = std::min(m_size,
             left_block_beg + block_size);
-        left_block_beg = std::max(left_block_beg, beg);
-        for (std::uint64_t j = left_block_beg; j < left_block_end; ++j)
+        const std::uint64_t scan_beg = std::max(left_block_beg, beg);
+        for (std::uint64_t j = scan_beg; j < left_block_end; ++j)
           if ((std::uint64_t)m_tab[j] >= threshold)
             return true;
 
         // Check rightmost block.
-        std::uint64_t right_block_beg = right_block_id * block_size;
-        std::uint64_t right_block_end = std::min(m_size,
+        const std::uint64_t right_block_beg = right_block_id * block_size;
+        const std::uint64_t right_block_end = std::min(m_size,
             right_block_beg + block_size);
-        right_block_end = std::min(right_block_end, end);
-        for (std::uint64_t j = right_block_beg; j < right_block_end; ++j)
+        const std::uint64_t scan_end = std::min(right_block_end, end);
+        for (std::uint64_t j = right_block_beg; j < scan_end; ++j)
           if ((std::uint64_t)m_tab[j] >= threshold)
             return true;
       }
 
       // Prepare pointers in the tree.
-      std::uint64_t ret = 0;
-      std::uint64_t off = 2 * m_leaves2;
+      const std::uint64_t off = 2 * m_leaves2;
       left_block_id += off;
       right_block_id += off;
 
@@ -205,34 +214,36 @@ struct rmq_tree {
         // Process right sibling of the left pointer.
         if (!(left_block_id & 1)) {
           if (left_block_id >= off) {
-            std::uint64_t block_id = (left_block_id + 1) - off;
-            std::uint64_t block_beg = block_id * block_size;
-            std::uint64_t block_end = std::min(m_size,
+            const std::uint64_t block_id = (left_block_id + 1) - off;
+            const std::uint64_t block_beg = block_id * block_size;
+            const std::uint64_t block_end = std::min(m_size,
                 block_beg + block_size);
             for (std::uint64_t j = block_beg; j < block_end; ++j)
               if ((std::uint64_t)m_tab[j] >= threshold)
                 return true;
-          } else ret =
-            std::max(ret, (std::uint64_t)m_data[left_block_id + 1]);
+          } else {
+            std::uint64_t val = m_data[left_block_id + 1];
+            if (val >= threshold)
+              return true;
+          }
         }
 
         // Process left sibling of the right pointer.
         if (right_block_id & 1) {
           if (right_block_id >= off) {
-            std::uint64_t block_id = (right_block_id - 1) - off;
-            std::uint64_t block_beg = block_id * block_size;
-            std::uint64_t block_end = std::min(m_size,
+            const std::uint64_t block_id = (right_block_id - 1) - off;
+            const std::uint64_t block_beg = block_id * block_size;
+            const std::uint64_t block_end = std::min(m_size,
                 block_beg + block_size);
             for (std::uint64_t j = block_beg; j < block_end; ++j)
               if ((std::uint64_t)m_tab[j] >= threshold)
                 return true;
-          } else ret =
-            std::max(ret, (std::uint64_t)m_data[right_block_id - 1]);
+          } else {
+            std::uint64_t val = m_data[right_block_id - 1];
+            if (val >= threshold)
+              return true;
+          }
         }
-
-        // If know, return the answer.
-        if (ret >= threshold)
-          return true;
 
         // Update pointers.
         left_block_id >>= 1;
@@ -243,12 +254,20 @@ struct rmq_tree {
       return false;
     }
 
+    //=========================================================================
     // Return position of max in the range [beg..end).
-    inline std::uint64_t rmq(std::uint64_t beg, std::uint64_t end) const {
+    //=========================================================================
+    inline std::uint64_t rmq(
+        const std::uint64_t beg,
+        const std::uint64_t end) const {
+
+      // Sanity check.
+      if (beg > m_size || end > m_size) {
+        fprintf(stderr, "\nError: values outside range in rmq_tree!\n");
+        std::exit(EXIT_FAILURE);
+      }
 
       // Handle special cases.
-      beg = std::min(beg, m_size);
-      end = std::min(end, m_size);
       if (beg >= end)
         return m_size;
       if (beg + 1 == end)
@@ -278,13 +297,13 @@ struct rmq_tree {
       {
 
         // Check leftmost block.
-        std::uint64_t left_block_beg = left_block_id * block_size;
-        std::uint64_t left_block_end = std::min(m_size,
+        const std::uint64_t left_block_beg = left_block_id * block_size;
+        const std::uint64_t left_block_end = std::min(m_size,
             left_block_beg + block_size);
-        left_block_beg = std::max(left_block_beg, beg);
-        ret_val = m_tab[left_block_beg];
-        ret_pos = left_block_beg;
-        for (std::uint64_t j = left_block_beg + 1; j < left_block_end; ++j) {
+        const std::uint64_t scan_beg = std::max(left_block_beg, beg);
+        ret_val = m_tab[scan_beg];
+        ret_pos = scan_beg;
+        for (std::uint64_t j = scan_beg + 1; j < left_block_end; ++j) {
           if ((std::uint64_t)m_tab[j] > ret_val) {
             ret_val = m_tab[j];
             ret_pos = j;
@@ -292,11 +311,11 @@ struct rmq_tree {
         }
 
         // Check rightmost block.
-        std::uint64_t right_block_beg = right_block_id * block_size;
-        std::uint64_t right_block_end = std::min(m_size,
+        const std::uint64_t right_block_beg = right_block_id * block_size;
+        const std::uint64_t right_block_end = std::min(m_size,
             right_block_beg + block_size);
-        right_block_end = std::min(right_block_end, end);
-        for (std::uint64_t j = right_block_beg; j < right_block_end; ++j) {
+        const std::uint64_t scan_end = std::min(right_block_end, end);
+        for (std::uint64_t j = right_block_beg; j < scan_end; ++j) {
           if ((std::uint64_t)m_tab[j] > ret_val) {
             ret_val = m_tab[j];
             ret_pos = j;
@@ -305,7 +324,7 @@ struct rmq_tree {
       }
 
       // Prepare pointers in the tree.
-      std::uint64_t off = 2 * m_leaves2;
+      const std::uint64_t off = 2 * m_leaves2;
       left_block_id += off;
       right_block_id += off;
 
@@ -315,9 +334,9 @@ struct rmq_tree {
         // Process right sibling of the left pointer.
         if (!(left_block_id & 1)) {
           if (left_block_id >= off) {
-            std::uint64_t block_id = (left_block_id + 1) - off;
-            std::uint64_t block_beg = block_id * block_size;
-            std::uint64_t block_end = std::min(m_size,
+            const std::uint64_t block_id = (left_block_id + 1) - off;
+            const std::uint64_t block_beg = block_id * block_size;
+            const std::uint64_t block_end = std::min(m_size,
                 block_beg + block_size);
             for (std::uint64_t j = block_beg; j < block_end; ++j) {
               if ((std::uint64_t)m_tab[j] > ret_val) {
@@ -336,9 +355,9 @@ struct rmq_tree {
         // Process left sibling of the right pointer.
         if (right_block_id & 1) {
           if (right_block_id >= off) {
-            std::uint64_t block_id = (right_block_id - 1) - off;
-            std::uint64_t block_beg = block_id * block_size;
-            std::uint64_t block_end = std::min(m_size,
+            const std::uint64_t block_id = (right_block_id - 1) - off;
+            const std::uint64_t block_beg = block_id * block_size;
+            const std::uint64_t block_end = std::min(m_size,
                 block_beg + block_size);
             for (std::uint64_t j = block_beg; j < block_end; ++j) {
               if ((std::uint64_t)m_tab[j] > ret_val) {
@@ -361,6 +380,16 @@ struct rmq_tree {
 
       // Return the position of maximum.
       return ret_pos;
+    }
+
+    //=========================================================================
+    // Destructor.
+    //=========================================================================
+    ~rmq_tree() {
+      if (m_data != NULL) {
+        delete[] m_data;
+        delete[] m_pos;
+      }
     }
 };
 

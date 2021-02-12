@@ -2,7 +2,7 @@
  * @file    utils.hpp
  * @section LICENCE
  *
- * Copyright (C) 2012-2020
+ * Copyright (C) 2012-2021
  *   Dominik Kempa <dominik.kempa (at) gmail.com>
  *
  * Permission is hereby granted, free of charge, to any person

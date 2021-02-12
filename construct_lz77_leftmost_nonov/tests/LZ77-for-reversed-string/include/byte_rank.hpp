@@ -34,22 +34,25 @@
 #include <algorithm>
 
 
+//=============================================================================
 // With the default block size (1024), the data
 // structure uses a little over n bytes.
-template<std::uint64_t block_size_log = 10,
+//=============================================================================
+template<
+  std::uint64_t block_size_log = 10,
   std::uint64_t sblock_size_log = 32>
 struct byte_rank {
   static_assert(block_size_log <= sblock_size_log,
       "byte_rank requires: block_size_log <= sblock_size_log");
 
   private:
-    const std::uint8_t *m_text;
-    std::uint64_t m_length;
+    const std::uint8_t * const m_text;
+    const std::uint64_t m_length;
     std::uint64_t n_blocks;
     std::uint64_t n_sblocks;
-    std::uint64_t *m_count;
-    std::uint32_t *m_block_rank;
-    std::uint64_t *m_sblock_rank;
+    std::uint64_t * m_count;
+    std::uint32_t * m_block_rank;
+    std::uint64_t * m_sblock_rank;
 
     static const std::uint64_t block_size =
       ((std::uint64_t)1 << block_size_log);
@@ -58,37 +61,45 @@ struct byte_rank {
 
   public:
 
+    //=========================================================================
     // Constructor.
-    byte_rank(const std::uint8_t *text, std::uint64_t length) {
+    //=========================================================================
+    byte_rank(
+        const std::uint8_t * const text, 
+        const std::uint64_t length)
+          : m_text(text),
+            m_length(length) {
+
+      // Set alphabet size.
+      static const std::uint64_t k_sigma = 256;
 
       // Compute basic parameters.
-      m_text = text;
-      m_length = length;
       n_blocks = (m_length + block_size - 1) / block_size;
       n_sblocks = (m_length + sblock_size - 1) / sblock_size;
-      m_block_rank = new std::uint32_t[256 * n_blocks];
-      m_sblock_rank = new std::uint64_t[256 * n_sblocks];
-      m_count = new std::uint64_t[256];
+      m_block_rank = new std::uint32_t[k_sigma * n_blocks];
+      m_sblock_rank = new std::uint64_t[k_sigma * n_sblocks];
+      m_count = new std::uint64_t[k_sigma];
 
       // Process all blocks.
-      std::fill(m_count, m_count + 256, (std::uint64_t)0);
-      std::uint64_t blocks_per_sblock = sblock_size / block_size;
+      std::fill(m_count, m_count + k_sigma, (std::uint64_t)0);
+      const std::uint64_t blocks_per_sblock = sblock_size / block_size;
       std::uint64_t sblock_id = 0;
       for (std::uint64_t block_id = 0; block_id < n_blocks; ++block_id) {
-        std::uint64_t block_beg = block_id * block_size;
-        std::uint64_t block_end = std::min(m_length, block_beg + block_size);
+        const std::uint64_t block_beg = block_id * block_size;
+        const std::uint64_t block_end =
+          std::min(m_length, block_beg + block_size);
 
         // Update sblock counts.
         if ((block_id % blocks_per_sblock) == 0) {
-          for (std::uint64_t i = 0; i < 256; ++i)
-            m_sblock_rank[sblock_id * 256 + i] = m_count[i];
+          for (std::uint64_t i = 0; i < k_sigma; ++i)
+            m_sblock_rank[sblock_id * k_sigma + i] = m_count[i];
           ++sblock_id;
         }
 
         // Update block counts.
-        for (std::uint64_t i = 0; i < 256; ++i)
-          m_block_rank[block_id * 256 + i] =
-            m_count[i] - m_sblock_rank[(sblock_id - 1) * 256 + i];
+        for (std::uint64_t i = 0; i < k_sigma; ++i)
+          m_block_rank[block_id * k_sigma + i] =
+            m_count[i] - m_sblock_rank[(sblock_id - 1) * k_sigma + i];
 
         // Update symbol counts.
         for (std::uint64_t i = block_beg; i < block_end; ++i)
@@ -96,20 +107,24 @@ struct byte_rank {
       }
     }
 
+    //=========================================================================
     // Return number of occurrences of c in text[0..i).
-    inline std::uint64_t query(std::uint64_t i, std::uint8_t c) const {
+    //=========================================================================
+    inline std::uint64_t query(
+        const std::uint64_t i,
+        const std::uint8_t c) const {
 
       // Handle special case.
       if (i >= m_length)
         return m_count[c];
       
       // Compute rank at block and superblock boundary.
-      std::uint64_t block_id = (i >> block_size_log);
-      std::uint64_t block_beg = (block_id << block_size_log);
-      std::uint64_t sblock_id = (i >> sblock_size_log);
-      std::uint64_t block_offset = (i & (block_size - 1));
-      std::uint64_t sblock_rank = m_sblock_rank[(sblock_id << 8) + c];
-      std::uint64_t block_rank = m_block_rank[(block_id << 8) + c];
+      const std::uint64_t block_id = (i >> block_size_log);
+      const std::uint64_t block_beg = (block_id << block_size_log);
+      const std::uint64_t sblock_id = (i >> sblock_size_log);
+      const std::uint64_t block_offset = (i & (block_size - 1));
+      const std::uint64_t sblock_rank = m_sblock_rank[(sblock_id << 8) + c];
+      const std::uint64_t block_rank = m_block_rank[(block_id << 8) + c];
       std::uint64_t ret = 0;
 
       // Compute rank within block.
@@ -120,7 +135,9 @@ struct byte_rank {
       return sblock_rank + block_rank + ret;
     }
 
+    //=========================================================================
     // Destructor.
+    //=========================================================================
     ~byte_rank() {
       delete[] m_block_rank;
       delete[] m_sblock_rank;

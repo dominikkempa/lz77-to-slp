@@ -5,7 +5,7 @@
 #include <ctime>
 #include <unistd.h>
 
-#include "compute_leftmost_lz77.hpp"
+#include "../include/compute_leftmost_lz77.hpp"
 
 
 //=============================================================================
