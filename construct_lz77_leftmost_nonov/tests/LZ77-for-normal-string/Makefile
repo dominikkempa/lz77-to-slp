@@ -1,8 +1,7 @@
 SHELL = /bin/sh
-
 CC = g++
-CFLAGS = -Wall -Wextra -Wshadow -funroll-loops -DNDEBUG -O3 -pthread -std=c++0x -march=native
-CFLAGS_DEBUG = -Wall -Wextra -Wshadow -std=c++0x -g2
+CFLAGS = -Wall -Wextra -pedantic -Wshadow -funroll-loops -O3 -DNDEBUG -march=native -std=c++0x
+CFLAGS_DEBUG = -Wall -pedantic -Wextra -Wshadow -std=c++0x -g2
 
 all: test test_debug
 

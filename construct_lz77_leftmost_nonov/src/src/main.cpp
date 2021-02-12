@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "../include/utils.hpp"
-#include "../include/compute_lz77.hpp"
+#include "../include/compute_leftmost_lz77.hpp"
 
 
 int main(int argc, char **argv) {
@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
     long double parsing_start = utils::wclock();
 
     // Compute parsing.
-    compute_lz77<text_offset_type>(text, text_length, parsing);
+    compute_leftmost_lz77<text_offset_type>(text, text_length, parsing);
 
     // Print summary.
     long double parsing_time = utils::wclock() - parsing_start;

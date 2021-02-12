@@ -2,7 +2,7 @@
  * @file    compute_leftmost_lz77.hpp
  * @section LICENCE
  *
- * Copyright (C) 2017-2020
+ * Copyright (C) 2017-2021
  *   Dominik Kempa <dominik.kempa (at) gmail.com>
  *
  * Permission is hereby granted, free of charge, to any person
