@@ -165,6 +165,21 @@ void test_conversion(
         mersenne_hashes.size());
   }
 
+  // Compute the number of nodes in the pruned grammar.
+  {
+    fprintf(stderr, "Count nodes in the pruned grammar... ");
+    long double start = utils::wclock();
+    typedef avl_grammar_node<char_type> node_type;
+    hash_table<const node_type*, std::uint64_t> hashes;
+    hash_table<std::uint64_t, bool> seen_hashes;
+    std::uint64_t count = 0;
+    grammar->collect_mersenne_karp_rabin_hashes_2(hashes);
+    grammar->count_nodes_in_pruned_grammar(hashes, seen_hashes, count);
+    long double elapsed = utils::wclock() - start;
+    fprintf(stderr, "%.2Lfs\n", elapsed);
+    fprintf(stderr, "Number of nodes in the pruned grammar = %lu\n", count);
+  }
+
   // Check the number of different reachable nonterminals.
   {
     fprintf(stderr, "Collect reachable nonterminals... ");

@@ -7,6 +7,7 @@
 #include <vector>
 #include <algorithm>
 
+#include "hash_table.hpp"
 #include "karp_rabin_hashing.hpp"
 
 
@@ -147,7 +148,70 @@ struct avl_grammar_node {
       m_right->collect_nonterminal_pointers(pointers);
     }
   }
+
+  // Collect Mersenne Karp-Rabin hashes of all nonterminals.
+  std::uint64_t collect_mersenne_karp_rabin_hashes_2(
+      hash_table<const node_type*, std::uint64_t> &hashes,
+      const std::uint64_t hash_variable,
+      const std::uint64_t mersenne_prime_exponent) const {
+    if (m_height == 0) {
+      const std::uint64_t h = mod_mersenne(m_char, mersenne_prime_exponent);
+      hashes.insert(this, h);
+      return h;
+    } else {
+      const std::uint64_t left_hash =
+        m_left->collect_mersenne_karp_rabin_hashes_2(hashes,
+            hash_variable, mersenne_prime_exponent);
+      const std::uint64_t right_hash =
+        m_right->collect_mersenne_karp_rabin_hashes_2(hashes,
+            hash_variable, mersenne_prime_exponent);
+      std::uint64_t h = 0;
+      {
+        const std::uint64_t pow = pow_mod_mersenne(hash_variable,
+            m_right->m_exp_len, mersenne_prime_exponent);
+        const std::uint64_t tmp = mul_mod_meresenne(left_hash,
+            pow, mersenne_prime_exponent);
+        h = mod_mersenne(tmp + right_hash, mersenne_prime_exponent);
+      }
+      hashes.insert(this, h);
+      return h;
+    }
+  }
+
+  void count_nodes_in_pruned_grammar(
+      hash_table<const node_type*, std::uint64_t> &hashes,
+      hash_table<std::uint64_t, bool> &seen_hashes,
+      std::uint64_t &current_count) const {
+    if (m_height == 0) {
+      const std::uint64_t *h = hashes.find(this);
+      if (seen_hashes.find(*h) == NULL) {
+        seen_hashes.insert(*h, true);
+        ++current_count;
+      }
+    } else {
+      const std::uint64_t *h = hashes.find(this);
+      if (seen_hashes.find(*h) == NULL) {
+        seen_hashes.insert(*h, true);
+        ++current_count;
+        m_left->count_nodes_in_pruned_grammar(hashes,
+            seen_hashes, current_count);
+        m_right->count_nodes_in_pruned_grammar(hashes,
+            seen_hashes, current_count);
+      }
+    }
+  }
 };
+
+//=============================================================================
+// Hash function of a pointer of the appropriate type.
+// Used in the hash table used to prune the grammar.
+//=============================================================================
+typedef const avl_grammar_node<std::uint8_t>* get_hash_ptr_type;
+template<>
+std::uint64_t get_hash(const get_hash_ptr_type &x) {
+  return (std::uint64_t)x * (std::uint64_t)29996224275833;
+}
+
 
 //=============================================================================
 // A class storing AVL grammar.
@@ -206,6 +270,16 @@ struct avl_grammar {
         hash_variable, mersenne_prime_exponent);
   }
 
+  // Collect Mersenne Karp-Rabin hashes in a hash table.
+  // Allows specifying variable and prime exponent.
+  void collect_mersenne_karp_rabin_hashes_2(
+      hash_table<const node_type*, std::uint64_t> &hashes,
+      const std::uint64_t hash_variable,
+      const std::uint64_t mersenne_prime_exponent) const {
+    (void) m_root->collect_mersenne_karp_rabin_hashes_2(hashes,
+        hash_variable, mersenne_prime_exponent);
+  }
+
   // Collect Mersenne Karp_Rabin hashes in a vector.
   // Relies on automatic choice of variable and exponent.
   void collect_mersenne_karp_rabin_hashes(
@@ -217,6 +291,26 @@ struct avl_grammar {
         hash_variable, mersenne_prime_exponent);
   }
 
+  // Collect Mersenne Karp_Rabin hashes in a hash table.
+  // Relies on automatic choice of variable and exponent.
+  void collect_mersenne_karp_rabin_hashes_2(
+      hash_table<const node_type*, std::uint64_t> &hashes) const {
+    const std::uint64_t mersenne_prime_exponent = 61;
+    const std::uint64_t hash_variable = 
+      rand_mod_mersenne(mersenne_prime_exponent);
+    collect_mersenne_karp_rabin_hashes_2(hashes,
+        hash_variable, mersenne_prime_exponent);
+  }
+
+  // Count nodes in the pruned grammar.
+  void count_nodes_in_pruned_grammar(
+      hash_table<const node_type*, std::uint64_t> &hashes,
+      hash_table<std::uint64_t, bool> &seen_hashes,
+      std::uint64_t &current_count) const {
+    m_root->count_nodes_in_pruned_grammar(hashes,
+        seen_hashes, current_count);
+  }
+
   // Collect pointers to all nonterminals reachable from the root.
   void collect_nonterminal_pointers(
       std::vector<const node_type*> &pointers) const {
@@ -225,7 +319,7 @@ struct avl_grammar {
 };
 
 //=============================================================================
-// Givne two nonterminals `left' and `right' of the same grammar
+// Given two nonterminals `left' and `right' of the same grammar
 // expanding respectively to strings X and Y, add to grammar a
 // nonterminals that expands to XY, and return the pointer to it.
 // The root of the original grammar remains unchanged.
