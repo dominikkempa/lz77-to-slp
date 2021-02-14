@@ -203,15 +203,20 @@ struct avl_grammar_node {
 };
 
 //=============================================================================
-// Hash function of a pointer of the appropriate type.
+// Hash functions of the appropriate type.
 // Used in the hash table used to prune the grammar.
 //=============================================================================
 typedef const avl_grammar_node<std::uint8_t>* get_hash_ptr_type;
+
 template<>
 std::uint64_t get_hash(const get_hash_ptr_type &x) {
   return (std::uint64_t)x * (std::uint64_t)29996224275833;
 }
 
+template<>
+std::uint64_t get_hash(const std::uint64_t &x) {
+  return (std::uint64_t)x * (std::uint64_t)4972548694736365;
+}
 
 //=============================================================================
 // A class storing AVL grammar.
