@@ -8,9 +8,19 @@
 #include <unistd.h>
 #include <getopt.h>
 
+// #define MULTIROOT
+
 #include "../include/uint40.hpp"
 #include "../include/utils.hpp"
+#include "../include/hash_table.hpp"
+#include "../include/avl_grammar_node.hpp"
+#ifdef MULTIROOT
+#include "../include/avl_grammar_multiroot.hpp"
+#include "../include/convert_lz77_to_avl_grammar_multiroot.hpp"
+#else
 #include "../include/avl_grammar.hpp"
+#include "../include/convert_lz77_to_avl_grammar.hpp"
+#endif
 
 
 template<
@@ -22,7 +32,11 @@ void test_conversion(
 
   // Declare types.
   typedef std::pair<text_offset_type, text_offset_type> phrase_type;
+#ifdef MULTIROOT
+  typedef avl_grammar_multiroot<char_type> grammar_type;
+#else
   typedef avl_grammar<char_type> grammar_type;
+#endif
 
   // Turn paths absolute.
   text_filename = utils::absolute_path(text_filename);
@@ -56,8 +70,13 @@ void test_conversion(
   {
     fprintf(stderr, "Convert LZ77 to SLP... ");
     long double start = utils::wclock();
+#ifdef MULTIROOT
+    grammar =
+      convert_lz77_to_avl_grammar_multiroot<char_type, text_offset_type>(parsing);
+#else
     grammar =
       convert_lz77_to_avl_grammar<char_type, text_offset_type>(parsing);
+#endif
     long double elapsed = utils::wclock() - start;
     fprintf(stderr, "%.2Lfs\n", elapsed);
   }
