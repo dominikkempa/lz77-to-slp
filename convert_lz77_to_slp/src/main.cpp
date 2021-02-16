@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <getopt.h>
 
-// #define MULTIROOT
+#define MULTIROOT
 
 #include "../include/uint40.hpp"
 #include "../include/utils.hpp"
@@ -212,6 +212,13 @@ void test_conversion(
     pointers.erase(std::unique(pointers.begin(), pointers.end()), pointers.end());
     fprintf(stderr, "Number of unique nonterminals = %lu\n", pointers.size());
   }
+
+#ifdef MULTIROOT
+  {
+    fprintf(stderr, "Number of roots = %lu\n",
+        grammar->m_roots.size());
+  }
+#endif
 
   // Clean up.
   delete[] text;
