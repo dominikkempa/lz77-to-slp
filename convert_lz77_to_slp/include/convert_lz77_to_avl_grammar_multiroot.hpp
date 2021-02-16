@@ -5,7 +5,6 @@
 #include <cstdlib>
 #include <cstdint>
 #include <vector>
-#include <map>
 #include <algorithm>
 
 #include "avl_grammar_node.hpp"

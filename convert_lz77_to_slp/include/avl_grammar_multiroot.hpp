@@ -16,25 +16,27 @@
 
 
 //=============================================================================
-// A class storing AVL grammar.
+// A class storing multiroot AVL grammar.
 //=============================================================================
 template<typename char_type>
 struct avl_grammar_multiroot {
   typedef avl_grammar_node<char_type> node_type;
+  typedef std::uint64_t key_type;
+  typedef const node_type* value_type;
+  typedef typename std::map<key_type, value_type> map_type;
+  typedef typename map_type::const_iterator const_iter_type;
+  typedef typename map_type::iterator iter_type;
 
   // Class members.
   std::vector<const node_type*> m_nonterminals;
-  typedef std::uint64_t key_type;
-  typedef const node_type* value_type;
-  std::map<key_type, value_type> m_roots;
+  map_type m_roots;
 
   // Constructor.
   avl_grammar_multiroot() {}
 
   // Print the string encoded by the grammar.
   void print_expansion() const {
-    for (typename std::map<key_type, value_type>::const_iterator it =
-        m_roots.begin(); it != m_roots.end(); ++it)
+    for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
       it->second->print_expansion();
   }
 
@@ -48,13 +50,11 @@ struct avl_grammar_multiroot {
       char_type* &text,
       std::uint64_t &text_length) const {
     text_length = 0;
-    for (typename std::map<key_type, value_type>::const_iterator it =
-        m_roots.begin(); it != m_roots.end(); ++it)
+    for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
       text_length += it->second->m_exp_len;
     text = new char_type[text_length];
     std::uint64_t ptr = 0;
-    for (typename std::map<key_type, value_type>::const_iterator it =
-        m_roots.begin(); it != m_roots.end(); ++it) {
+    for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it) {
       it->second->write_expansion(text + ptr);
       ptr += it->second->m_exp_len;
     }
@@ -62,8 +62,7 @@ struct avl_grammar_multiroot {
 
   // Test the AVL property of all nonterminals.
   bool test_avl_property() const {
-    for (typename std::map<key_type, value_type>::const_iterator it =
-        m_roots.begin(); it != m_roots.end(); ++it)
+    for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
       if (it->second->test_avl_property() == false)
         return false;
     return true;
@@ -74,8 +73,7 @@ struct avl_grammar_multiroot {
       std::vector<std::uint64_t> &hashes,
       const std::uint64_t a = (std::uint64_t)999285268,
       const std::uint64_t p = (std::uint64_t)1000000009) const {
-    for (typename std::map<key_type, value_type>::const_iterator it =
-        m_roots.begin(); it != m_roots.end(); ++it)
+    for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
       (void) it->second->collect_karp_rabin_hashes(hashes, a, p);
   }
 
@@ -85,8 +83,7 @@ struct avl_grammar_multiroot {
       std::vector<std::uint64_t> &hashes,
       const std::uint64_t hash_variable,
       const std::uint64_t mersenne_prime_exponent) const {
-    for (typename std::map<key_type, value_type>::const_iterator it =
-        m_roots.begin(); it != m_roots.end(); ++it)
+    for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
       (void) it->second->collect_mersenne_karp_rabin_hashes(
           hashes, hash_variable, mersenne_prime_exponent);
   }
@@ -97,8 +94,7 @@ struct avl_grammar_multiroot {
       hash_table<const node_type*, std::uint64_t> &hashes,
       const std::uint64_t hash_variable,
       const std::uint64_t mersenne_prime_exponent) const {
-    for (typename std::map<key_type, value_type>::const_iterator it =
-        m_roots.begin(); it != m_roots.end(); ++it)
+    for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
       (void) it->second->collect_mersenne_karp_rabin_hashes_2(
           hashes, hash_variable, mersenne_prime_exponent);
   }
@@ -130,8 +126,7 @@ struct avl_grammar_multiroot {
       hash_table<const node_type*, std::uint64_t> &hashes,
       hash_table<std::uint64_t, bool> &seen_hashes,
       std::uint64_t &current_count) const {
-    for (typename std::map<key_type, value_type>::const_iterator it =
-        m_roots.begin(); it != m_roots.end(); ++it)
+    for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
       it->second->count_nodes_in_pruned_grammar(
           hashes, seen_hashes, current_count);
   }
@@ -139,8 +134,7 @@ struct avl_grammar_multiroot {
   // Collect pointers to all nonterminals reachable from the root.
   void collect_nonterminal_pointers(
       std::vector<const node_type*> &pointers) const {
-    for (typename std::map<key_type, value_type>::const_iterator it =
-        m_roots.begin(); it != m_roots.end(); ++it)
+    for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
       it->second->collect_nonterminal_pointers(pointers);
   }
 
@@ -155,9 +149,6 @@ struct avl_grammar_multiroot {
           "begin > end!\n");
       std::exit(EXIT_FAILURE);
     }
-
-    // Declare types.
-    typedef typename std::map<key_type, value_type>::iterator iter_type;
 
     // Handle special case.
     if (m_roots.empty())
@@ -253,18 +244,13 @@ struct avl_grammar_multiroot {
       std::exit(EXIT_FAILURE);
     }
 
-    // Declare types.
-    typedef typename std::map<key_type, value_type>::iterator iter_type;
-
     // First, ensure that [begin..end) overlaps
     // at most three roots of the grammar.
     merge_enclosed_nonterminals(begin, end);
 
     // Find the leftmost root whose expansion
     // overlaps or touches block T[begin..end).
-    typedef typename std::map<key_type, value_type>::iterator iter_type;
     iter_type it = m_roots.lower_bound(begin);
-
     --it; // delete me.
 
     // TODO
