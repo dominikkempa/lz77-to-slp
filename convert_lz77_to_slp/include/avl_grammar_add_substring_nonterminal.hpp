@@ -9,6 +9,7 @@
 
 #include "avl_grammar_node.hpp"
 #include "avl_grammar_add_concat_nonterminal.hpp"
+#include "hash_table.hpp"
 
 
 //=============================================================================
@@ -18,6 +19,7 @@
 //=============================================================================
 template<typename char_type>
 const avl_grammar_node<char_type> *add_substring_nonterminal(
+    hash_table<std::uint64_t, const avl_grammar_node<char_type>*> &hashes,
     std::vector<const avl_grammar_node<char_type> *> &nonterminals,
     const avl_grammar_node<char_type> * const root,
     const std::uint64_t begin,
@@ -99,7 +101,7 @@ const avl_grammar_node<char_type> *add_substring_nonterminal(
         grammars_to_merge.pop_back();
         grammars_to_merge.push_back(
             add_concat_nonterminal<char_type>(
-              nonterminals, left, right,
+              hashes, nonterminals, left, right,
               hash_variable, mersenne_prime_exponent));
       }
       left_grammar = grammars_to_merge.back();
@@ -134,7 +136,7 @@ const avl_grammar_node<char_type> *add_substring_nonterminal(
         grammars_to_merge.pop_back();
         grammars_to_merge.push_back(
             add_concat_nonterminal<char_type>(
-              nonterminals, left, right,
+              hashes, nonterminals, left, right,
               hash_variable, mersenne_prime_exponent));
       }
       right_grammar = grammars_to_merge.back();
@@ -144,7 +146,7 @@ const avl_grammar_node<char_type> *add_substring_nonterminal(
     // Both are guaranteed to be non-NULL.
     const node_type * const final_grammar =
       add_concat_nonterminal<char_type>(
-          nonterminals, left_grammar, right_grammar,
+          hashes, nonterminals, left_grammar, right_grammar,
           hash_variable, mersenne_prime_exponent);
 
     // Return the result.

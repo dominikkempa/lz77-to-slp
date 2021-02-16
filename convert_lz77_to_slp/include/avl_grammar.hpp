@@ -22,6 +22,7 @@ struct avl_grammar {
   typedef avl_grammar_node<char_type> node_type;
 
   // Class members.
+  hash_table<std::uint64_t, const node_type*> m_hashes;
   std::vector<const node_type*> m_nonterminals;
   const node_type *m_root;
   const std::uint64_t m_hash_variable;

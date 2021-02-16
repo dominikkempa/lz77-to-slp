@@ -28,6 +28,7 @@ struct avl_grammar_multiroot {
   typedef typename map_type::iterator iter_type;
 
   // Class members.
+  hash_table<std::uint64_t, const node_type*> m_hashes;
   std::vector<const node_type*> m_nonterminals;
   map_type m_roots;
   const std::uint64_t m_hash_variable;
@@ -211,7 +212,7 @@ struct avl_grammar_multiroot {
           // and the right one is not taller than the left
           // one. End result: merge with the right neighbor.
           value_type ret =
-            add_concat_nonterminal<char_type>(m_nonterminals,
+            add_concat_nonterminal<char_type>(m_hashes, m_nonterminals,
                 v[smallest_height_id], v[smallest_height_id + 1],
                 m_hash_variable, m_mersenne_prime_exponent);
           v.erase(v.begin() + smallest_height_id);
@@ -222,7 +223,7 @@ struct avl_grammar_multiroot {
           // and the left one is not taller than the
           // right one. End result: merge with left neighbor.
           value_type ret =
-            add_concat_nonterminal<char_type>(m_nonterminals,
+            add_concat_nonterminal<char_type>(m_hashes, m_nonterminals,
                 v[smallest_height_id - 1], v[smallest_height_id],
                 m_hash_variable, m_mersenne_prime_exponent);
           v.erase(v.begin() + (smallest_height_id - 1));
@@ -297,7 +298,7 @@ struct avl_grammar_multiroot {
           const node_type * const left = it_left->second;
           const node_type * const right =
             ::add_substring_nonterminal<char_type>(
-                m_nonterminals, it_right->second, rbegin, rend,
+                m_hashes, m_nonterminals, it_right->second, rbegin, rend,
                 m_hash_variable, m_mersenne_prime_exponent);
           ret_vec.push_back(left);
           ret_vec.push_back(right);
@@ -315,7 +316,7 @@ struct avl_grammar_multiroot {
         const std::uint64_t lend = end - begin;
         const node_type * const ret =
           ::add_substring_nonterminal<char_type>(
-              m_nonterminals, it_left->second, lbegin, lend,
+              m_hashes, m_nonterminals, it_left->second, lbegin, lend,
               m_hash_variable, m_mersenne_prime_exponent);
         ret_vec.push_back(ret);
         //return ret;
@@ -338,7 +339,7 @@ struct avl_grammar_multiroot {
         const std::uint64_t lend = end - it_exp_beg;
         const node_type * const ret =
           ::add_substring_nonterminal<char_type>(
-              m_nonterminals, it->second, lbegin, lend,
+              m_hashes, m_nonterminals, it->second, lbegin, lend,
               m_hash_variable, m_mersenne_prime_exponent);
         ret_vec.push_back(ret);
         //return ret;
@@ -354,7 +355,7 @@ struct avl_grammar_multiroot {
         const std::uint64_t lend = it_block_size;
         const node_type * const left_nonterminal =
           ::add_substring_nonterminal<char_type>(
-              m_nonterminals, it->second, lbegin, lend,
+              m_hashes, m_nonterminals, it->second, lbegin, lend,
               m_hash_variable, m_mersenne_prime_exponent);
 
         // We now have three cases: either the block [begin..end)
@@ -375,7 +376,7 @@ struct avl_grammar_multiroot {
           const std::uint64_t mend = end - it->first;
           const node_type * const mid_nonterminal =
             ::add_substring_nonterminal<char_type>(
-                m_nonterminals, it_mid->second, mbegin, mend,
+                m_hashes, m_nonterminals, it_mid->second, mbegin, mend,
                 m_hash_variable, m_mersenne_prime_exponent);
           //const node_type * const ret =
           //  add_concat_nonterminal<char_type>(m_nonterminals,
@@ -406,7 +407,7 @@ struct avl_grammar_multiroot {
           const std::uint64_t rend = end - it_mid->first;
           const node_type * const right_nonterminal =
             ::add_substring_nonterminal<char_type>(
-                m_nonterminals, it_right->second, rbegin, rend,
+                m_hashes, m_nonterminals, it_right->second, rbegin, rend,
                 m_hash_variable, m_mersenne_prime_exponent);
 
           // Merge in the way that minimizes the number of

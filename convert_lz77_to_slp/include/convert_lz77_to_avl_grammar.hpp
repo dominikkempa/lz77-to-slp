@@ -72,7 +72,8 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
         // nonterminal expanding to text[pos..prefix_length).
         const node_type * const suffix_nonterminal =
           add_substring_nonterminal<char_type>(
-              grammar->m_nonterminals, grammar->m_root, pos, prefix_length,
+              grammar->m_hashes, grammar->m_nonterminals,
+              grammar->m_root, pos, prefix_length,
               hash_variable, mersenne_prime_exponent);
 
         // Square the above nonterminal until
@@ -91,7 +92,8 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
         // Create a nonterminal expanding to the prefix
         // of exp(suffix_pow_nonterminal) of length len.
         phrase_root = add_substring_nonterminal<char_type>(
-            grammar->m_nonterminals, suffix_pow_nonterminal, 0, len,
+            grammar->m_hashes, grammar->m_nonterminals,
+            suffix_pow_nonterminal, 0, len,
             hash_variable, mersenne_prime_exponent);
       } else {
 
@@ -99,7 +101,8 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
         std::uint64_t begin = pos;
         std::uint64_t end = begin + len;
         phrase_root = add_substring_nonterminal<char_type>(
-            grammar->m_nonterminals, grammar->m_root, begin, end,
+            grammar->m_hashes, grammar->m_nonterminals,
+            grammar->m_root, begin, end,
             hash_variable, mersenne_prime_exponent);
       }
     }
@@ -110,7 +113,8 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
     else
       grammar->m_root =
         add_concat_nonterminal<char_type>(
-            grammar->m_nonterminals, grammar->m_root, phrase_root,
+            grammar->m_hashes, grammar->m_nonterminals,
+            grammar->m_root, phrase_root,
             hash_variable, mersenne_prime_exponent);
 
     // Update prefix_length.
