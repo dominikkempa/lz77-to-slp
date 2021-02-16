@@ -233,7 +233,7 @@ struct avl_grammar_multiroot {
   // There are many ways of doing this. For now we employ a simple
   // strategy, but in the future, this function will most likely
   // return the sequence of nonterminals, and not just one.
-  const node_type *add_substring_nonterminal(
+  std::vector<const node_type*> add_substring_nonterminal(
       const std::uint64_t begin,
       const std::uint64_t end) {
 
@@ -254,6 +254,7 @@ struct avl_grammar_multiroot {
 
     // Consider all possible cases in which the block
     // [begin..end) can overlap the roots of the grammar.
+    std::vector<const node_type*> ret_vec;
     if (begin == 0 || it->first == begin) {
 
       // If the block [begin..end) starts at the beginning
@@ -272,7 +273,8 @@ struct avl_grammar_multiroot {
           // Case I: the block [begin..end) is equal
           // to the expansion of the grammar root. No
           // need to merge anything.
-          return it_left->second;
+          ret_vec.push_back(it_left->second);
+          //return it_left->second;
         } else {
 
           // Case II: it_left->first > end. We need
@@ -288,10 +290,12 @@ struct avl_grammar_multiroot {
           const node_type * const right =
             ::add_substring_nonterminal<char_type>(m_nonterminals,
                 it_right->second, rbegin, rend);
-          const node_type * const ret =
-            add_concat_nonterminal<char_type>(m_nonterminals,
-                left, right);
-          return ret;
+          ret_vec.push_back(left);
+          ret_vec.push_back(right);
+          //const node_type * const ret =
+          //  add_concat_nonterminal<char_type>(m_nonterminals,
+          //      left, right);
+          //return ret;
         }
       } else {
 
@@ -303,7 +307,8 @@ struct avl_grammar_multiroot {
         const node_type * const ret =
           ::add_substring_nonterminal<char_type>(m_nonterminals,
               it_left->second, lbegin, lend);
-        return ret;
+        ret_vec.push_back(ret);
+        //return ret;
       }
     } else {
 
@@ -324,7 +329,8 @@ struct avl_grammar_multiroot {
         const node_type * const ret =
           ::add_substring_nonterminal<char_type>(m_nonterminals,
               it->second, lbegin, lend);
-        return ret;
+        ret_vec.push_back(ret);
+        //return ret;
       } else {
 
         // Case II: the expansion of it->first and block [begin..end)
@@ -358,19 +364,23 @@ struct avl_grammar_multiroot {
           const node_type * const mid_nonterminal =
             ::add_substring_nonterminal<char_type>(m_nonterminals,
                 it_mid->second, mbegin, mend);
-          const node_type * const ret =
-            add_concat_nonterminal<char_type>(m_nonterminals,
-                left_nonterminal, mid_nonterminal);
-          return ret;
+          //const node_type * const ret =
+          //  add_concat_nonterminal<char_type>(m_nonterminals,
+          //      left_nonterminal, mid_nonterminal);
+          //return ret;
+          ret_vec.push_back(left_nonterminal);
+          ret_vec.push_back(mid_nonterminal);
         } else if (end == it_mid->first) {
 
           // Case IIb: the block [begin..end) ends at the
           // expansion of it_mid->second. Thus, ut suffices
           // to merge left_nonterminal with it_mid->second.
-          const node_type * const ret =
-            add_concat_nonterminal<char_type>(m_nonterminals,
-                left_nonterminal, it_mid->second);
-          return ret;
+          //const node_type * const ret =
+          //  add_concat_nonterminal<char_type>(m_nonterminals,
+          //      left_nonterminal, it_mid->second);
+          //return ret;
+          ret_vec.push_back(left_nonterminal);
+          ret_vec.push_back(it_mid->second);
         } else {
 
           // Case IIc: the block [begin..end) overlaps (as
@@ -387,26 +397,30 @@ struct avl_grammar_multiroot {
 
           // Merge in the way that minimizes the number of
           // introduced nonterminals.
-          if (left_nonterminal->m_height <= right_nonterminal->m_height) {
-            const node_type * ret_first =
-              add_concat_nonterminal<char_type>(m_nonterminals,
-                  left_nonterminal, it_mid->second);
-            const node_type * ret_second =
-              add_concat_nonterminal<char_type>(m_nonterminals,
-                  ret_first, right_nonterminal);
-            return ret_second;
-          } else {
-            const node_type * ret_first =
-              add_concat_nonterminal<char_type>(m_nonterminals,
-                  it_mid->second, right_nonterminal);
-            const node_type * ret_second =
-              add_concat_nonterminal<char_type>(m_nonterminals,
-                  left_nonterminal, ret_first);
-            return ret_second;
-          }
+          //if (left_nonterminal->m_height <= right_nonterminal->m_height) {
+          //  const node_type * ret_first =
+          //    add_concat_nonterminal<char_type>(m_nonterminals,
+          //        left_nonterminal, it_mid->second);
+          //  const node_type * ret_second =
+          //    add_concat_nonterminal<char_type>(m_nonterminals,
+          //        ret_first, right_nonterminal);
+          //  return ret_second;
+          //} else {
+          //  const node_type * ret_first =
+          //    add_concat_nonterminal<char_type>(m_nonterminals,
+          //        it_mid->second, right_nonterminal);
+          //  const node_type * ret_second =
+          //    add_concat_nonterminal<char_type>(m_nonterminals,
+          //        left_nonterminal, ret_first);
+          //  return ret_second;
+          //}
+          ret_vec.push_back(left_nonterminal);
+          ret_vec.push_back(it_mid->second);
+          ret_vec.push_back(right_nonterminal);
         }
       }
     }
+    return ret_vec;
   }
 };
 
