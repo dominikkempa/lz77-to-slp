@@ -251,10 +251,162 @@ struct avl_grammar_multiroot {
     // Find the leftmost root whose expansion
     // overlaps or touches block T[begin..end).
     iter_type it = m_roots.lower_bound(begin);
-    --it; // delete me.
 
-    // TODO
-    return NULL;
+    // Consider all possible cases in which the block
+    // [begin..end) can overlap the roots of the grammar.
+    if (begin == 0 || it->first == begin) {
+
+      // If the block [begin..end) starts at the beginning
+      // of the expansion of the root in the grammar, there
+      // are three cases to consider. First, obtain the
+      // point to the grammar root whose expansion overlaps
+      // block [begin..end).
+      iter_type it_left = it;
+      if (begin > 0)
+        ++it_left;
+
+      // Consider all three cases.
+      if (it_left->first <= end) {
+        if (it_left->first == end) {
+
+          // Case I: the block [begin..end) is equal
+          // to the expansion of the grammar root. No
+          // need to merge anything.
+          return it_left->second;
+        } else {
+
+          // Case II: it_left->first > end. We need
+          // to create a nonterminal expanding to some
+          // propert prefix of the expansion of the right
+          // neighbor of it_left->second, and then merge
+          // it with it_left->second.
+          const std::uint64_t rbegin = 0;
+          const std::uint64_t rend = end - it_left->first;
+          iter_type it_right = it_left;
+          ++it_right;
+          const node_type * const left = it_left->second;
+          const node_type * const right =
+            ::add_substring_nonterminal<char_type>(m_nonterminals,
+                it_right->second, rbegin, rend);
+          const node_type * const ret =
+            add_concat_nonterminal<char_type>(m_nonterminals,
+                left, right);
+          return ret;
+        }
+      } else {
+
+        // Case III: block [begin..end) is entirely inside
+        // the expansion of it_left->second. It suffices to
+        // call add_substring_nonterminal.
+        const std::uint64_t lbegin = 0;
+        const std::uint64_t lend = end - begin;
+        const node_type * const ret =
+          ::add_substring_nonterminal<char_type>(m_nonterminals,
+              it_left->second, lbegin, lend);
+        return ret;
+      }
+    } else {
+
+      // It it->first > begin, then there are two subcases to
+      // consider. Either the block [begin..end) it entirely
+      // contain in the expansion of it->second, or not.
+      if (end <= it->first) {
+
+        // Case I: the block [begin..end) it entirely contained
+        // in the expansion of nonterminal it->second. Since
+        // we separately considered the case of begin = 0 before,
+        // we are not therefore quaranteed that it is moreover
+        // a proper substring.
+        const std::uint64_t it_exp_size = it->second->m_exp_len;
+        const std::uint64_t it_exp_beg = it->first - it_exp_size;
+        const std::uint64_t lbegin = begin - it_exp_beg;
+        const std::uint64_t lend = end - it_exp_beg;
+        const node_type * const ret =
+          ::add_substring_nonterminal<char_type>(m_nonterminals,
+              it->second, lbegin, lend);
+        return ret;
+      } else {
+
+        // Case II: the expansion of it->first and block [begin..end)
+        // overlap each other in the proper way (i.e., neither is
+        // contained inside the other one). Thus, we can already compute
+        // the nonterminal expanding to the proper prefix of [begin..end).
+        const std::uint64_t it_block_size = it->second->m_exp_len;
+        const std::uint64_t lsize = it->first - begin;
+        const std::uint64_t lbegin = it_block_size - lsize;
+        const std::uint64_t lend = it_block_size;
+        const node_type * const left_nonterminal =
+          ::add_substring_nonterminal<char_type>(m_nonterminals,
+              it->second, lbegin, lend);
+
+        // We now have three cases: either the block [begin..end)
+        // overlaps expansions of two grammar roots (and there there
+        // are two subcases, depending, on whether it perfectly ends
+        // at the end of the right one or not), or three. If three,
+        // then we are guaranteed that for the third one, we only
+        // overlap by the proper prefix.
+        iter_type it_mid = it;
+        ++it_mid;
+        if (end < it_mid->first) {
+
+          // Case IIa: the block [begin..end) properly overlaps
+          // the expansion of it_mid->second. We first create the
+          // nonterminal expanding to that prefix, and them merge
+          // it with left_nonterminal.
+          const std::uint64_t mbegin = 0;
+          const std::uint64_t mend = end - it->first;
+          const node_type * const mid_nonterminal =
+            ::add_substring_nonterminal<char_type>(m_nonterminals,
+                it_mid->second, mbegin, mend);
+          const node_type * const ret =
+            add_concat_nonterminal<char_type>(m_nonterminals,
+                left_nonterminal, mid_nonterminal);
+          return ret;
+        } else if (end == it_mid->first) {
+
+          // Case IIb: the block [begin..end) ends at the
+          // expansion of it_mid->second. Thus, ut suffices
+          // to merge left_nonterminal with it_mid->second.
+          const node_type * const ret =
+            add_concat_nonterminal<char_type>(m_nonterminals,
+                left_nonterminal, it_mid->second);
+          return ret;
+        } else {
+
+          // Case IIc: the block [begin..end) overlaps (as
+          // a proper prefix) the expansion of the grammar
+          // root to the right of it_mid. First, create the
+          // nonterminal expanding to that prefix.
+          iter_type it_right = it_mid;
+          ++it_right;
+          const std::uint64_t rbegin = 0;
+          const std::uint64_t rend = end - it_mid->first;
+          const node_type * const right_nonterminal =
+            ::add_substring_nonterminal<char_type>(m_nonterminals,
+                it_right->second, rbegin, rend);
+
+          // Merge in the way that minimizes the number of
+          // introduced nonterminals.
+          if (left_nonterminal->m_height <= right_nonterminal->m_height) {
+            const node_type * ret_first =
+              add_concat_nonterminal<char_type>(m_nonterminals,
+                  left_nonterminal, it_mid->second);
+            const node_type * ret_second =
+              add_concat_nonterminal<char_type>(m_nonterminals,
+                  ret_first, right_nonterminal);
+            return ret_second;
+          } else {
+            const node_type * ret_first =
+              add_concat_nonterminal<char_type>(m_nonterminals,
+                  it_mid->second, right_nonterminal);
+            const node_type * ret_second =
+              add_concat_nonterminal<char_type>(m_nonterminals,
+                  left_nonterminal, ret_first);
+            return ret_second;
+          }
+        }
+      }
+    }
   }
 };
 
