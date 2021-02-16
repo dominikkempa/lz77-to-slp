@@ -35,7 +35,8 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
 
       // Height are close. Just merge and return.
       const node_type * const newroot =
-        new node_type(left, right, hash_variable, mersenne_prime_exponent);
+        new node_type(left, right,
+            hash_variable, mersenne_prime_exponent);
       nonterminals.push_back(newroot);
       return newroot;
     } else {
