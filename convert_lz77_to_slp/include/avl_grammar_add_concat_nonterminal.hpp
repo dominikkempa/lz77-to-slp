@@ -21,7 +21,9 @@ template<typename char_type>
 const avl_grammar_node<char_type> *add_concat_nonterminal(
     std::vector<const avl_grammar_node<char_type> *> &nonterminals,
     const avl_grammar_node<char_type> * const left,
-    const avl_grammar_node<char_type> * const right) {
+    const avl_grammar_node<char_type> * const right,
+    const std::uint64_t hash_variable,
+    const std::uint64_t mersenne_prime_exponent) {
   
   // Declare type.
   typedef avl_grammar_node<char_type> node_type;
@@ -32,13 +34,15 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
     if (left->m_height - right->m_height <= 1) {
 
       // Height are close. Just merge and return.
-      const node_type * const newroot = new node_type(left, right);
+      const node_type * const newroot =
+        new node_type(left, right, hash_variable, mersenne_prime_exponent);
       nonterminals.push_back(newroot);
       return newroot;
     } else {
       const node_type * const newright =
         add_concat_nonterminal<char_type>(
-            nonterminals, left->m_right, right);
+            nonterminals, left->m_right, right,
+            hash_variable, mersenne_prime_exponent);
       if (newright->m_height > left->m_left->m_height &&
           newright->m_height - left->m_left->m_height > 1) {
         
@@ -47,10 +51,14 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
 
           // Double (right-left) rotation.
           const node_type * const X =
-            new node_type(left->m_left, newright->m_left->m_left);
+            new node_type(left->m_left, newright->m_left->m_left,
+                hash_variable, mersenne_prime_exponent);
           const node_type * const Z =
-            new node_type(newright->m_left->m_right, newright->m_right);
-          const node_type * const Y = new node_type(X, Z);
+            new node_type(newright->m_left->m_right, newright->m_right,
+                hash_variable, mersenne_prime_exponent);
+          const node_type * const Y =
+            new node_type(X, Z,
+                hash_variable, mersenne_prime_exponent);
           nonterminals.push_back(X);
           nonterminals.push_back(Y);
           nonterminals.push_back(Z);
@@ -59,8 +67,11 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
 
           // Single (left) rotation.
           const node_type * const X =
-            new node_type(left->m_left, newright->m_left);
-          const node_type * const Y = new node_type(X, newright->m_right);
+            new node_type(left->m_left, newright->m_left,
+                hash_variable, mersenne_prime_exponent);
+          const node_type * const Y =
+            new node_type(X, newright->m_right,
+                hash_variable, mersenne_prime_exponent);
           nonterminals.push_back(X);
           nonterminals.push_back(Y);
           return Y;
@@ -69,7 +80,8 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
 
         // No need to rebalance.
         const node_type * const newroot =
-          new node_type(left->m_left, newright);
+          new node_type(left->m_left, newright,
+              hash_variable, mersenne_prime_exponent);
         nonterminals.push_back(newroot);
         return newroot;
       }
@@ -78,12 +90,16 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
     if (right->m_height - left->m_height <= 1) {
 
       // Heights are close. Just merge and return.
-      const node_type * const newroot = new node_type(left, right);
+      const node_type * const newroot =
+        new node_type(left, right,
+            hash_variable, mersenne_prime_exponent);
       nonterminals.push_back(newroot);
       return newroot;
     } else {
       const node_type * const newleft =
-        add_concat_nonterminal<char_type>(nonterminals, left, right->m_left);
+        add_concat_nonterminal<char_type>(
+            nonterminals, left, right->m_left,
+            hash_variable, mersenne_prime_exponent);
       if (newleft->m_height > right->m_right->m_height &&
           newleft->m_height - right->m_right->m_height > 1) {
 
@@ -92,10 +108,14 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
 
           // Double (left-right) rotation.
           const node_type * const X =
-            new node_type(newleft->m_left, newleft->m_right->m_left);
+            new node_type(newleft->m_left, newleft->m_right->m_left,
+                hash_variable, mersenne_prime_exponent);
           const node_type * const Z =
-            new node_type(newleft->m_right->m_right, right->m_right);
-          const node_type * const Y = new node_type(X, Z);
+            new node_type(newleft->m_right->m_right, right->m_right,
+                hash_variable, mersenne_prime_exponent);
+          const node_type * const Y =
+            new node_type(X, Z,
+                hash_variable, mersenne_prime_exponent);
           nonterminals.push_back(X);
           nonterminals.push_back(Y);
           nonterminals.push_back(Z);
@@ -104,8 +124,11 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
 
           // Single (right) rotation.
           const node_type * const Y =
-            new node_type(newleft->m_right, right->m_right);
-          const node_type * const X = new node_type(newleft->m_left, Y);
+            new node_type(newleft->m_right, right->m_right,
+                hash_variable, mersenne_prime_exponent);
+          const node_type * const X =
+            new node_type(newleft->m_left, Y,
+                hash_variable, mersenne_prime_exponent);
           nonterminals.push_back(X);
           nonterminals.push_back(Y);
           return X;
@@ -114,7 +137,8 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
 
         // No need to rebalance.
         const node_type * const newroot =
-          new node_type(newleft, right->m_right);
+          new node_type(newleft, right->m_right,
+              hash_variable, mersenne_prime_exponent);
         nonterminals.push_back(newroot);
         return newroot;
       }

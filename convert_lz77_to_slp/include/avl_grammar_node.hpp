@@ -23,33 +23,50 @@ struct avl_grammar_node {
   const char_type m_char;
   const std::uint8_t m_height;
   const std::uint64_t m_exp_len;
+  const std::uint64_t m_kr_hash;
   const node_type * const m_left;
   const node_type * const m_right;
 
   // Default constructor.
   avl_grammar_node() :
-      m_char((char_type)0),
-      m_height(0),
-      m_exp_len(1),
-      m_left(NULL),
-      m_right(NULL) {}
+    m_char((char_type)0),
+    m_height(0),
+    m_exp_len(1),
+    m_kr_hash(0),
+    m_left(NULL),
+    m_right(NULL) {}
 
   // Constructor for a node expanding to a single symbol.
-  avl_grammar_node(const char_type c) :
-      m_char(c),
-      m_height(0),
-      m_exp_len(1),
-      m_left(NULL),
-      m_right(NULL) {}
+  avl_grammar_node(
+      const char_type c,
+      const std::uint64_t mersenne_prime_exponent) :
+    m_char(c),
+    m_height(0),
+    m_exp_len(1),
+    m_kr_hash(mod_mersenne(c, mersenne_prime_exponent)),
+    m_left(NULL),
+    m_right(NULL) {}
 
   // Constructor for a standard nonterminal
   // (expanding to two other nonterminals).
   avl_grammar_node(
       const node_type * const left,
-      const node_type * const right) :
+      const node_type * const right,
+      const std::uint64_t hash_variable,
+      const std::uint64_t mersenne_prime_exponent) :
         m_char((char_type)0),
         m_height(std::max(left->m_height, right->m_height) + 1),
         m_exp_len(left->m_exp_len + right->m_exp_len),
+        m_kr_hash(
+            mod_mersenne(
+              mul_mod_meresenne(
+                left->m_kr_hash,
+                pow_mod_mersenne(
+                  hash_variable,
+                  right->m_exp_len,
+                  mersenne_prime_exponent),
+                mersenne_prime_exponent) + right->m_kr_hash,
+              mersenne_prime_exponent)),
         m_left(left),
         m_right(right) {}
 

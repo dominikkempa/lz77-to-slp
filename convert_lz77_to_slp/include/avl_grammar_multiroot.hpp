@@ -30,9 +30,15 @@ struct avl_grammar_multiroot {
   // Class members.
   std::vector<const node_type*> m_nonterminals;
   map_type m_roots;
+  const std::uint64_t m_hash_variable;
+  const std::uint64_t m_mersenne_prime_exponent;
 
   // Constructor.
-  avl_grammar_multiroot() {}
+  avl_grammar_multiroot(
+      const std::uint64_t hash_variable,
+      const std::uint64_t mersenne_prime_exponent) :
+    m_hash_variable(hash_variable),
+    m_mersenne_prime_exponent(mersenne_prime_exponent) {}
 
   // Print the string encoded by the grammar.
   void print_expansion() const {
@@ -206,7 +212,8 @@ struct avl_grammar_multiroot {
           // one. End result: merge with the right neighbor.
           value_type ret =
             add_concat_nonterminal<char_type>(m_nonterminals,
-                v[smallest_height_id], v[smallest_height_id + 1]);
+                v[smallest_height_id], v[smallest_height_id + 1],
+                m_hash_variable, m_mersenne_prime_exponent);
           v.erase(v.begin() + smallest_height_id);
           v[smallest_height_id] = ret;
         } else {
@@ -216,7 +223,8 @@ struct avl_grammar_multiroot {
           // right one. End result: merge with left neighbor.
           value_type ret =
             add_concat_nonterminal<char_type>(m_nonterminals,
-                v[smallest_height_id - 1], v[smallest_height_id]);
+                v[smallest_height_id - 1], v[smallest_height_id],
+                m_hash_variable, m_mersenne_prime_exponent);
           v.erase(v.begin() + (smallest_height_id - 1));
           v[smallest_height_id - 1] = ret;
         }
@@ -288,8 +296,9 @@ struct avl_grammar_multiroot {
           ++it_right;
           const node_type * const left = it_left->second;
           const node_type * const right =
-            ::add_substring_nonterminal<char_type>(m_nonterminals,
-                it_right->second, rbegin, rend);
+            ::add_substring_nonterminal<char_type>(
+                m_nonterminals, it_right->second, rbegin, rend,
+                m_hash_variable, m_mersenne_prime_exponent);
           ret_vec.push_back(left);
           ret_vec.push_back(right);
           //const node_type * const ret =
@@ -305,8 +314,9 @@ struct avl_grammar_multiroot {
         const std::uint64_t lbegin = 0;
         const std::uint64_t lend = end - begin;
         const node_type * const ret =
-          ::add_substring_nonterminal<char_type>(m_nonterminals,
-              it_left->second, lbegin, lend);
+          ::add_substring_nonterminal<char_type>(
+              m_nonterminals, it_left->second, lbegin, lend,
+              m_hash_variable, m_mersenne_prime_exponent);
         ret_vec.push_back(ret);
         //return ret;
       }
@@ -327,8 +337,9 @@ struct avl_grammar_multiroot {
         const std::uint64_t lbegin = begin - it_exp_beg;
         const std::uint64_t lend = end - it_exp_beg;
         const node_type * const ret =
-          ::add_substring_nonterminal<char_type>(m_nonterminals,
-              it->second, lbegin, lend);
+          ::add_substring_nonterminal<char_type>(
+              m_nonterminals, it->second, lbegin, lend,
+              m_hash_variable, m_mersenne_prime_exponent);
         ret_vec.push_back(ret);
         //return ret;
       } else {
@@ -342,8 +353,9 @@ struct avl_grammar_multiroot {
         const std::uint64_t lbegin = it_block_size - lsize;
         const std::uint64_t lend = it_block_size;
         const node_type * const left_nonterminal =
-          ::add_substring_nonterminal<char_type>(m_nonterminals,
-              it->second, lbegin, lend);
+          ::add_substring_nonterminal<char_type>(
+              m_nonterminals, it->second, lbegin, lend,
+              m_hash_variable, m_mersenne_prime_exponent);
 
         // We now have three cases: either the block [begin..end)
         // overlaps expansions of two grammar roots (and there there
@@ -362,8 +374,9 @@ struct avl_grammar_multiroot {
           const std::uint64_t mbegin = 0;
           const std::uint64_t mend = end - it->first;
           const node_type * const mid_nonterminal =
-            ::add_substring_nonterminal<char_type>(m_nonterminals,
-                it_mid->second, mbegin, mend);
+            ::add_substring_nonterminal<char_type>(
+                m_nonterminals, it_mid->second, mbegin, mend,
+                m_hash_variable, m_mersenne_prime_exponent);
           //const node_type * const ret =
           //  add_concat_nonterminal<char_type>(m_nonterminals,
           //      left_nonterminal, mid_nonterminal);
@@ -392,8 +405,9 @@ struct avl_grammar_multiroot {
           const std::uint64_t rbegin = 0;
           const std::uint64_t rend = end - it_mid->first;
           const node_type * const right_nonterminal =
-            ::add_substring_nonterminal<char_type>(m_nonterminals,
-                it_right->second, rbegin, rend);
+            ::add_substring_nonterminal<char_type>(
+                m_nonterminals, it_right->second, rbegin, rend,
+                m_hash_variable, m_mersenne_prime_exponent);
 
           // Merge in the way that minimizes the number of
           // introduced nonterminals.

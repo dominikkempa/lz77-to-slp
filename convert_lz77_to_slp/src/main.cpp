@@ -213,6 +213,23 @@ void test_conversion(
     fprintf(stderr, "Number of unique nonterminals = %lu\n", pointers.size());
   }
 
+  // Check the number of different Mersenne hashes (method #2).
+  {
+    fprintf(stderr, "Collect Mersenne hashes (method #2)... ");
+    typedef avl_grammar_node<char_type> node_type;
+    long double start = utils::wclock();
+    std::vector<const node_type*> pointers;
+    std::vector<std::uint64_t> hashes;
+    grammar->collect_nonterminal_pointers(pointers);
+    for (std::uint64_t i = 0; i < pointers.size(); ++i)
+      hashes.push_back(pointers[i]->m_kr_hash);
+    long double elapsed = utils::wclock() - start;
+    fprintf(stderr, "%.2Lfs\n", elapsed);
+    std::sort(hashes.begin(), hashes.end());
+    hashes.erase(std::unique(hashes.begin(), hashes.end()), hashes.end());
+    fprintf(stderr, "Number of unique Mersenne hashes (method #2) = %lu\n", hashes.size());
+  }
+
 #ifdef MULTIROOT
   {
     fprintf(stderr, "Number of roots = %lu\n",

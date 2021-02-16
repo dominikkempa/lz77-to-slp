@@ -33,8 +33,14 @@ avl_grammar_multiroot<char_type> *convert_lz77_to_avl_grammar_multiroot(
   typedef avl_grammar_node<char_type> node_type;
   typedef avl_grammar_multiroot<char_type> grammar_type;
 
+  // Set hashing variables.
+  const std::uint64_t mersenne_prime_exponent = 61;
+  const std::uint64_t hash_variable =
+    rand_mod_mersenne(mersenne_prime_exponent);
+
   // Compute the AVL grammar expanding to T.
-  grammar_type *grammar = new grammar_type();
+  grammar_type *grammar = new grammar_type(
+      hash_variable, mersenne_prime_exponent);
   std::uint64_t prefix_length = 0;
   for (std::uint64_t phrase_id = 0;
       phrase_id < parsing.size(); ++phrase_id) {
@@ -44,7 +50,6 @@ avl_grammar_multiroot<char_type> *convert_lz77_to_avl_grammar_multiroot(
       parsing[phrase_id];
     std::uint64_t pos = p.first;
     std::uint64_t len = p.second;
-    std::uint64_t phrase_len = 0;
     
     // Compute the AVL grammar expanding to phrase p.
     const node_type *phrase_root = NULL;
@@ -52,12 +57,10 @@ avl_grammar_multiroot<char_type> *convert_lz77_to_avl_grammar_multiroot(
     if (len == 0) {
 
       // If this is a literal phrase, create a trivial grammar.
-      phrase_root = new node_type((char_type)pos);
+      phrase_root = new node_type((char_type)pos, mersenne_prime_exponent);
       grammar->m_nonterminals.push_back(phrase_root);
       phrase_roots.push_back(phrase_root);
-      phrase_len = 1;
     } else {
-      phrase_len = len;
 
       // We proceed differently, depending on whether
       // the phrase is self-overlapping. This part is

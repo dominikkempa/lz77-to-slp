@@ -21,7 +21,9 @@ const avl_grammar_node<char_type> *add_substring_nonterminal(
     std::vector<const avl_grammar_node<char_type> *> &nonterminals,
     const avl_grammar_node<char_type> * const root,
     const std::uint64_t begin,
-    const std::uint64_t end) {
+    const std::uint64_t end,
+    const std::uint64_t hash_variable,
+    const std::uint64_t mersenne_prime_exponent) {
 
   // Check input correctness.
   if (begin > end ||
@@ -96,7 +98,9 @@ const avl_grammar_node<char_type> *add_substring_nonterminal(
         const node_type * const right = grammars_to_merge.back();
         grammars_to_merge.pop_back();
         grammars_to_merge.push_back(
-            add_concat_nonterminal<char_type>(nonterminals, left, right));
+            add_concat_nonterminal<char_type>(
+              nonterminals, left, right,
+              hash_variable, mersenne_prime_exponent));
       }
       left_grammar = grammars_to_merge.back();
     }
@@ -129,7 +133,9 @@ const avl_grammar_node<char_type> *add_substring_nonterminal(
         const node_type * const left = grammars_to_merge.back();
         grammars_to_merge.pop_back();
         grammars_to_merge.push_back(
-            add_concat_nonterminal<char_type>(nonterminals, left, right));
+            add_concat_nonterminal<char_type>(
+              nonterminals, left, right,
+              hash_variable, mersenne_prime_exponent));
       }
       right_grammar = grammars_to_merge.back();
     }
@@ -137,8 +143,9 @@ const avl_grammar_node<char_type> *add_substring_nonterminal(
     // Merge left_grammar with right_grammar and return.
     // Both are guaranteed to be non-NULL.
     const node_type * const final_grammar =
-      add_concat_nonterminal<char_type>(nonterminals,
-          left_grammar, right_grammar);
+      add_concat_nonterminal<char_type>(
+          nonterminals, left_grammar, right_grammar,
+          hash_variable, mersenne_prime_exponent);
 
     // Return the result.
     return final_grammar;

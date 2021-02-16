@@ -24,10 +24,16 @@ struct avl_grammar {
   // Class members.
   std::vector<const node_type*> m_nonterminals;
   const node_type *m_root;
+  const std::uint64_t m_hash_variable;
+  const std::uint64_t m_mersenne_prime_exponent;
 
   // Constructor.
-  avl_grammar() :
-    m_root(NULL) {}
+  avl_grammar(
+      const std::uint64_t hash_variable,
+      const std::uint64_t mersenne_prime_exponent) :
+    m_root(NULL),
+    m_hash_variable(hash_variable),
+    m_mersenne_prime_exponent(mersenne_prime_exponent) {}
 
   // Print the string encoded by the grammar.
   void print_expansion() const {
