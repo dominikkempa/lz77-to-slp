@@ -19,7 +19,7 @@ std::vector<const avl_grammar_node<char_type>*> dp_grouping_algorithm(
     const std::uint64_t hash_variable,
     const std::uint64_t mersenne_prime_exponent) {
 
-#if 0
+#if 1
   // Create the vector to hold the solution.
   std::vector<const avl_grammar_node<char_type>*> ret;
 
