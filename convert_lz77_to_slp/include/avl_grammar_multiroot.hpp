@@ -213,23 +213,59 @@ struct avl_grammar_multiroot {
           // Only right neighbor exists, or both exist
           // and the right one is not taller than the left
           // one. End result: merge with the right neighbor.
-          value_type ret =
-            add_concat_nonterminal<char_type>(m_hashes, m_nonterminals,
-                v[smallest_height_id], v[smallest_height_id + 1],
-                m_hash_variable, m_mersenne_prime_exponent);
-          v.erase(v.begin() + smallest_height_id);
-          v[smallest_height_id] = ret;
+          std::uint64_t h_left = v[smallest_height_id]->m_kr_hash;
+          std::uint64_t h_right = v[smallest_height_id + 1]->m_kr_hash;
+          std::uint64_t len_right = v[smallest_height_id + 1]->m_exp_len;
+          std::uint64_t h =
+            mod_mersenne(
+                mul_mod_meresenne(
+                  h_left,
+                  pow_mod_mersenne(
+                    m_hash_variable,
+                    len_right,
+                    m_mersenne_prime_exponent),
+                  m_mersenne_prime_exponent) + h_right,
+                m_mersenne_prime_exponent);
+          if (m_hashes.find(h) != NULL) {
+            v.erase(v.begin() + smallest_height_id);
+            v[smallest_height_id] = *(m_hashes.find(h));
+          } else {
+            value_type ret =
+              add_concat_nonterminal<char_type>(m_hashes, m_nonterminals,
+                  v[smallest_height_id], v[smallest_height_id + 1],
+                  m_hash_variable, m_mersenne_prime_exponent);
+            v.erase(v.begin() + smallest_height_id);
+            v[smallest_height_id] = ret;
+          }
         } else {
 
           // Only left neighbor exists, or both exists
           // and the left one is not taller than the
           // right one. End result: merge with left neighbor.
-          value_type ret =
-            add_concat_nonterminal<char_type>(m_hashes, m_nonterminals,
-                v[smallest_height_id - 1], v[smallest_height_id],
-                m_hash_variable, m_mersenne_prime_exponent);
-          v.erase(v.begin() + (smallest_height_id - 1));
-          v[smallest_height_id - 1] = ret;
+          std::uint64_t h_left = v[smallest_height_id - 1]->m_kr_hash;
+          std::uint64_t h_right = v[smallest_height_id]->m_kr_hash;
+          std::uint64_t len_right = v[smallest_height_id]->m_exp_len;
+          std::uint64_t h =
+            mod_mersenne(
+                mul_mod_meresenne(
+                  h_left,
+                  pow_mod_mersenne(
+                    m_hash_variable,
+                    len_right,
+                    m_mersenne_prime_exponent),
+                  m_mersenne_prime_exponent) + h_right,
+                m_mersenne_prime_exponent);
+          if (m_hashes.find(h) != NULL) {
+            v.erase(v.begin() + (smallest_height_id - 1));
+            v[smallest_height_id - 1] = *(m_hashes.find(h));
+          } else {
+            value_type ret =
+              add_concat_nonterminal<char_type>(m_hashes, m_nonterminals,
+                  v[smallest_height_id - 1], v[smallest_height_id],
+                  m_hash_variable, m_mersenne_prime_exponent);
+            v.erase(v.begin() + (smallest_height_id - 1));
+            v[smallest_height_id - 1] = ret;
+          }
         }
       }
 
@@ -309,8 +345,9 @@ struct avl_grammar_multiroot {
             std::vector<const node_type*> right_decomposition =
               decomposition<char_type>(it_right->second, rbegin, rend);
             std::vector<const node_type*> right_opt_decomposition =
-              dp_grouping_algorithm<char_type>(m_hashes, right_decomposition,
-                  m_hash_variable, m_mersenne_prime_exponent);
+              //dp_grouping_algorithm<char_type>(m_hashes, right_decomposition,
+              //    m_hash_variable, m_mersenne_prime_exponent);
+              right_decomposition;
             ret_vec.insert(ret_vec.end(),
                 right_opt_decomposition.begin(),
                 right_opt_decomposition.end());
@@ -334,8 +371,9 @@ struct avl_grammar_multiroot {
           std::vector<const node_type*> ret_decomposition =
             decomposition<char_type>(it_left->second, lbegin, lend);
           std::vector<const node_type*> ret_opt_decomposition =
-            dp_grouping_algorithm<char_type>(m_hashes, ret_decomposition,
-                m_hash_variable, m_mersenne_prime_exponent);
+            //dp_grouping_algorithm<char_type>(m_hashes, ret_decomposition,
+            //    m_hash_variable, m_mersenne_prime_exponent);
+            ret_decomposition;
           ret_vec.insert(ret_vec.end(),
               ret_opt_decomposition.begin(),
               ret_opt_decomposition.end());
@@ -368,8 +406,9 @@ struct avl_grammar_multiroot {
           std::vector<const node_type*> ret_decomposition =
             decomposition<char_type>(it->second, lbegin, lend);
           std::vector<const node_type*> ret_opt_decomposition =
-            dp_grouping_algorithm<char_type>(m_hashes, ret_decomposition,
-                m_hash_variable, m_mersenne_prime_exponent);
+            //dp_grouping_algorithm<char_type>(m_hashes, ret_decomposition,
+            //    m_hash_variable, m_mersenne_prime_exponent);
+            ret_decomposition;
           ret_vec.insert(ret_vec.end(),
               ret_opt_decomposition.begin(),
               ret_opt_decomposition.end());
@@ -395,8 +434,9 @@ struct avl_grammar_multiroot {
           std::vector<const node_type*> left_decomposition =
             decomposition<char_type>(it->second, lbegin, lend);
           std::vector<const node_type*> left_opt_decomposition =
-            dp_grouping_algorithm<char_type>(m_hashes, left_decomposition,
-                m_hash_variable, m_mersenne_prime_exponent);
+            //dp_grouping_algorithm<char_type>(m_hashes, left_decomposition,
+            //    m_hash_variable, m_mersenne_prime_exponent);
+            left_decomposition;
           ret_vec.insert(ret_vec.end(),
               left_opt_decomposition.begin(),
               left_opt_decomposition.end());
@@ -429,8 +469,9 @@ struct avl_grammar_multiroot {
             std::vector<const node_type*> mid_decomposition =
               decomposition<char_type>(it_mid->second, mbegin, mend);
             std::vector<const node_type*> mid_opt_decomposition =
-              dp_grouping_algorithm<char_type>(m_hashes, mid_decomposition,
-                  m_hash_variable, m_mersenne_prime_exponent);
+              //dp_grouping_algorithm<char_type>(m_hashes, mid_decomposition,
+              //    m_hash_variable, m_mersenne_prime_exponent);
+              mid_decomposition;
             ret_vec.insert(ret_vec.end(),
                 mid_opt_decomposition.begin(),
                 mid_opt_decomposition.end());
@@ -463,8 +504,9 @@ struct avl_grammar_multiroot {
             std::vector<const node_type*> right_decomposition =
               decomposition<char_type>(it_right->second, rbegin, rend);
             std::vector<const node_type*> right_opt_decomposition =
-              dp_grouping_algorithm<char_type>(m_hashes, right_decomposition,
-                  m_hash_variable, m_mersenne_prime_exponent);
+              //dp_grouping_algorithm<char_type>(m_hashes, right_decomposition,
+              //    m_hash_variable, m_mersenne_prime_exponent);
+              right_decomposition;
             ret_vec.insert(ret_vec.end(),
                 right_opt_decomposition.begin(),
                 right_opt_decomposition.end());
@@ -472,7 +514,13 @@ struct avl_grammar_multiroot {
         }
       }
     }
-    return ret_vec;
+    {
+      std::vector<const node_type*> ret_vec_opt =
+        dp_grouping_algorithm<char_type>(m_hashes, ret_vec,
+            m_hash_variable, m_mersenne_prime_exponent);
+      return ret_vec_opt;
+    }
+    //return ret_vec;
   }
 };
 
