@@ -1,10 +1,14 @@
 #ifndef __HASH_TABLE_HPP_INCLUDED
 #define __HASH_TABLE_HPP_INCLUDED
 
+#include <cstdio>
+#include <cstdlib>
+#include <cstdint>
 #include <limits>
 #include <algorithm>
 
 #include "utils.hpp"
+
 
 template<typename key_type>
 std::uint64_t get_hash(const key_type &) {

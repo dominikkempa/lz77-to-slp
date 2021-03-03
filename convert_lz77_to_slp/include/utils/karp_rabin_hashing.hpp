@@ -1,6 +1,8 @@
 #ifndef __KARP_RABIN_HASHING_HPP_INCLUDED
 #define __KARP_RABIN_HASHING_HPP_INCLUDED
 
+#include <cstdint>
+
 
 //=============================================================================
 // Compute a^n (mod p) in O(log n) time.
