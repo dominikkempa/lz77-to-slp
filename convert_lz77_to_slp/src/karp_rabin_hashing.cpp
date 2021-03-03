@@ -4,8 +4,8 @@
 #include <vector>
 #include <algorithm>
 
-#include "../include/utils.hpp"
-#include "../include/karp_rabin_hashing.hpp"
+#include "../include/utils/utils.hpp"
+#include "../include/utils/karp_rabin_hashing.hpp"
 
 
 // Return (a * b) mod p, where p = (2^k) - 1.

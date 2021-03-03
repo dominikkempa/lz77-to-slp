@@ -8,7 +8,7 @@
 #include <algorithm>
 
 #include "avl_grammar_node.hpp"
-#include "hash_table.hpp"
+#include "../utils/hash_table.hpp"
 
 
 //=============================================================================

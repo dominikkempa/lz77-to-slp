@@ -8,8 +8,8 @@
 #include <map>
 #include <algorithm>
 
-#include "hash_table.hpp"
-#include "karp_rabin_hashing.hpp"
+#include "../utils/hash_table.hpp"
+#include "../utils/karp_rabin_hashing.hpp"
 
 
 //=============================================================================

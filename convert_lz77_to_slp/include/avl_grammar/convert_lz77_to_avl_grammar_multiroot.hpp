@@ -7,6 +7,7 @@
 #include <vector>
 #include <algorithm>
 
+#include "../utils/karp_rabin_hashing.hpp"
 #include "avl_grammar_node.hpp"
 #include "avl_grammar_multiroot.hpp"
 

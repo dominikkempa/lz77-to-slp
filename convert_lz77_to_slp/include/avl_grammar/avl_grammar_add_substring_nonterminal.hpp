@@ -9,7 +9,7 @@
 
 #include "avl_grammar_node.hpp"
 #include "avl_grammar_add_concat_nonterminal.hpp"
-#include "hash_table.hpp"
+#include "../utils/hash_table.hpp"
 
 
 //=============================================================================

@@ -7,8 +7,7 @@
 #include <vector>
 #include <algorithm>
 
-#include "hash_table.hpp"
-#include "karp_rabin_hashing.hpp"
+#include "../utils/karp_rabin_hashing.hpp"
 #include "avl_grammar_node.hpp"
 #include "avl_grammar_add_concat_nonterminal.hpp"
 #include "avl_grammar_add_substring_nonterminal.hpp"

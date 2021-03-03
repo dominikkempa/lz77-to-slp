@@ -15,7 +15,7 @@
 #include <algorithm>
 #include <limits>
 
-#include "../include/utils.hpp"
+#include "../include/utils/utils.hpp"
 
 
 namespace utils {
