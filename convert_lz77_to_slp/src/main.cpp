@@ -137,37 +137,6 @@ void test_conversion(
     fprintf(stderr, "AVL property = %s\n", result ? "TRUE" : "FALSE");
   }
 
-#if 0
-  // Check the number of different KR hashes.
-  {
-    fprintf(stderr, "Collect Karp-Rabin hashes... ");
-
-    // To make sure there is no colission, we use three
-    // sets of different Karp-Rabin hashes.
-    const std::uint64_t p1 = 1000000007;
-    const std::uint64_t p2 = 1000000009;
-    const std::uint64_t p3 = 1000000013;
-    const std::uint64_t a1 = 435725636;
-    const std::uint64_t a2 = 947758375;
-    const std::uint64_t a3 = 279584594;
-    std::vector<std::uint64_t> hashes1;
-    std::vector<std::uint64_t> hashes2;
-    std::vector<std::uint64_t> hashes3;
-    long double start = utils::wclock();
-    grammar->collect_karp_rabin_hashes(hashes1, a1, p1);
-    grammar->collect_karp_rabin_hashes(hashes2, a2, p2);
-    grammar->collect_karp_rabin_hashes(hashes3, a3, p3);
-    long double elapsed = utils::wclock() - start;
-    fprintf(stderr, "%.2Lfs\n", elapsed);
-    std::vector<std::pair<std::pair<std::uint64_t, std::uint64_t>, std::uint64_t> > good_hashes;
-    for (std::uint64_t i = 0; i < hashes1.size(); ++i)
-      good_hashes.push_back(std::make_pair(std::make_pair(hashes1[i], hashes2[i]), hashes3[i]));
-    std::sort(good_hashes.begin(), good_hashes.end());
-    good_hashes.erase(std::unique(good_hashes.begin(), good_hashes.end()), good_hashes.end());
-    fprintf(stderr, "Number of unique hashes = %lu\n", good_hashes.size());
-  }
-#endif
-
   // Check the number of different Mersenne KR hashes.
   // These hashes are much better, so there should no collisions.
   {

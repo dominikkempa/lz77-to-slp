@@ -60,14 +60,6 @@ struct avl_grammar {
     return m_root->test_avl_property();
   }
 
-  // Collect Karp-Rabin hashes in a vector.
-  void collect_karp_rabin_hashes(
-      std::vector<std::uint64_t> &hashes,
-      const std::uint64_t a = (std::uint64_t)999285268,
-      const std::uint64_t p = (std::uint64_t)1000000009) const {
-    (void) m_root->collect_karp_rabin_hashes(hashes, a, p);
-  }
-
   // Collect Mersenne Karp-Rabin hashes in a vector.
   // Allows specifying variable and prime exponent.
   void collect_mersenne_karp_rabin_hashes(

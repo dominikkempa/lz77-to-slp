@@ -106,28 +106,6 @@ struct avl_grammar_node {
     }
   }
 
-  // Collect Karp-Rabin hashes of all nonterminals.
-  std::uint64_t collect_karp_rabin_hashes(
-      std::vector<std::uint64_t> &hashes,
-      const std::uint64_t a,
-      const std::uint64_t p) const {
-    if (m_height == 0) {
-      const std::uint64_t h = m_char % p;
-      hashes.push_back(h);
-      return h;
-    } else {
-      const std::uint64_t left_hash =
-        m_left->collect_karp_rabin_hashes(hashes, a, p);
-      const std::uint64_t right_hash =
-        m_right->collect_karp_rabin_hashes(hashes, a, p);
-      std::uint64_t h =
-        (left_hash * mod_pow<std::uint64_t>(a, m_right->m_exp_len, p)) % p;
-      h = (h + right_hash) % p;
-      hashes.push_back(h);
-      return h;
-    }
-  }
-
   // Collect Mersenne Karp-Rabin hashes of all nonterminals.
   std::uint64_t collect_mersenne_karp_rabin_hashes(
       std::vector<std::uint64_t> &hashes,
