@@ -42,11 +42,20 @@ void test_conversion(
   text_filename = utils::absolute_path(text_filename);
   parsing_filename = utils::absolute_path(parsing_filename);
 
+  // Obtain some basic statistics about input.
+  std::uint64_t text_length =
+    utils::file_size(text_filename) / sizeof(char_type);
+  std::uint64_t parsing_size =
+      utils::file_size(parsing_filename) / sizeof(phrase_type);
+
   // Print parameters.
   fprintf(stderr, "Convert LZ77 to SLP\n");
   fprintf(stderr, "Timestamp = %s", utils::get_timestamp().c_str());
   fprintf(stderr, "Text filename = %s\n", text_filename.c_str());
   fprintf(stderr, "Parsing filename = %s\n", parsing_filename.c_str());
+  fprintf(stderr, "Text length = %lu (%.2LfMiB)\n",
+      text_length, (1.L * text_length * sizeof(char_type)) / (1 << 20));
+  fprintf(stderr, "Number of LZ77 phrases = %lu\n", parsing_size);
   fprintf(stderr, "sizeof(char_type) = %lu\n", sizeof(char_type));
   fprintf(stderr, "sizeof(text_offset_type) = %lu\n",
       sizeof(text_offset_type));
@@ -57,8 +66,6 @@ void test_conversion(
   {
     fprintf(stderr, "Read parsing... ");
     long double start = utils::wclock();
-    std::uint64_t parsing_size =
-      utils::file_size(parsing_filename) / sizeof(phrase_type);
     parsing.resize(parsing_size);
     utils::read_from_file(parsing.data(), parsing_size, parsing_filename);
     long double elapsed = utils::wclock() - start;
@@ -83,18 +90,20 @@ void test_conversion(
 
   // Print info. Note that the grammar may
   // still contain unused nonterminals.
-  fprintf(stderr, "Number of phrases = %lu\n", parsing.size());
   fprintf(stderr, "Grammar size = %lu\n", grammar->size());
+  fprintf(stderr, "\n");
+
+
+  // Run tests of correctness.
+  fprintf(stderr, "Tests of correctness:\n");
 
   // Check if the resulting grammar indeed expands to the text.
   // For this, we first read the original text. Note: the text
   // could be streamed, or I could simple decoded it from LZ77.
-  std::uint64_t text_length = 0;
   char_type *text = NULL;
   {
-    fprintf(stderr, "Read text... ");
+    fprintf(stderr, "  Read text... ");
     long double start = utils::wclock();
-    text_length = utils::file_size(text_filename) / sizeof(char_type);
     text = new char_type[text_length];
     utils::read_from_file(text, text_length, text_filename);
     long double elapsed = utils::wclock() - start;
@@ -105,16 +114,16 @@ void test_conversion(
   std::uint64_t decoded_text_length = 0;
   char_type *decoded_text = NULL;
   {
-    fprintf(stderr, "Decode text from grammar... ");
+    fprintf(stderr, "  Decode text from grammar... ");
     long double start = utils::wclock();
     grammar->decode(decoded_text, decoded_text_length);
     long double elapsed = utils::wclock() - start;
-    fprintf(stderr, "%.2Lf\n", elapsed);
+    fprintf(stderr, "%.2Lfs\n", elapsed);
   }
 
   // Compare text and decoded text.
   {
-    fprintf(stderr, "Compare texts... ");
+    fprintf(stderr, "  Compare the texts... ");
     long double start = utils::wclock();
     bool eq = true;
     if (text_length != decoded_text_length) eq = false;
@@ -123,39 +132,60 @@ void test_conversion(
         eq = false;
     }
     long double elapsed = utils::wclock() - start;
-    fprintf(stderr, "%.2Lfs\n", elapsed);
-    fprintf(stderr, "Result: %s\n", eq ? "OK" : "ERROR");
+    fprintf(stderr, "%.2Lfs ", elapsed);
+    fprintf(stderr, "%s\n", eq ? "(OK)" : "(FAILED)");
   }
 
   // Test AVL property.
   {
-    fprintf(stderr, "Test AVL property... ");
+    fprintf(stderr, "  Test AVL property... ");
     long double start = utils::wclock();
     bool result = grammar->test_avl_property();
     long double elapsed = utils::wclock() - start;
-    fprintf(stderr, "%.2Lfs\n", elapsed);
-    fprintf(stderr, "AVL property = %s\n", result ? "TRUE" : "FALSE");
+    fprintf(stderr, "%.2Lfs ", elapsed);
+    fprintf(stderr, "%s\n", result ? "(OK)" : "(FAILED)");
   }
+
+  // Collect various statistic about grammar.
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Additional statistics:\n");
 
   // Check the number of different Mersenne KR hashes.
   // These hashes are much better, so there should no collisions.
   {
-    fprintf(stderr, "Collect Mersenne Karp-Rabin hashes... ");
+    fprintf(stderr, "  Compute different Karp-Rabin hashes (method #1)... ");
     std::vector<std::uint64_t> mersenne_hashes;
     long double start = utils::wclock();
     grammar->collect_mersenne_karp_rabin_hashes(mersenne_hashes);
-    long double elapsed = utils::wclock() - start;
-    fprintf(stderr, "%.2Lfs\n", elapsed);
     std::sort(mersenne_hashes.begin(), mersenne_hashes.end());
     mersenne_hashes.erase(std::unique(mersenne_hashes.begin(),
           mersenne_hashes.end()), mersenne_hashes.end());
-    fprintf(stderr, "Number of unique hashes = %lu\n",
-        mersenne_hashes.size());
+    long double elapsed = utils::wclock() - start;
+    fprintf(stderr, "%.2Lfs ", elapsed);
+    fprintf(stderr, "(%lu)\n", mersenne_hashes.size());
   }
+
+  // Check the number of different Mersenne hashes (method #2).
+  {
+    fprintf(stderr, "  Compute different Karp-Rabin hashes (method #2)... ");
+    typedef avl_grammar_node<char_type> node_type;
+    long double start = utils::wclock();
+    std::vector<const node_type*> pointers;
+    std::vector<std::uint64_t> hashes;
+    grammar->collect_nonterminal_pointers(pointers);
+    for (std::uint64_t i = 0; i < pointers.size(); ++i)
+      hashes.push_back(pointers[i]->m_kr_hash);
+    std::sort(hashes.begin(), hashes.end());
+    hashes.erase(std::unique(hashes.begin(), hashes.end()), hashes.end());
+    long double elapsed = utils::wclock() - start;
+    fprintf(stderr, "%.2Lfs ", elapsed);
+    fprintf(stderr, "(%lu)\n", hashes.size());
+  }
+
 
   // Compute the number of nodes in the pruned grammar.
   {
-    fprintf(stderr, "Count nodes in the pruned grammar... ");
+    fprintf(stderr, "  Count nodes in the pruned grammar... ");
     long double start = utils::wclock();
     typedef avl_grammar_node<char_type> node_type;
     hash_table<const node_type*, std::uint64_t> hashes;
@@ -164,44 +194,27 @@ void test_conversion(
     grammar->collect_mersenne_karp_rabin_hashes_2(hashes);
     grammar->count_nodes_in_pruned_grammar(hashes, seen_hashes, count);
     long double elapsed = utils::wclock() - start;
-    fprintf(stderr, "%.2Lfs\n", elapsed);
-    fprintf(stderr, "Number of nodes in the pruned grammar = %lu\n", count);
+    fprintf(stderr, "%.2Lfs ", elapsed);
+    fprintf(stderr, "(%lu)\n", count);
   }
 
   // Check the number of different reachable nonterminals.
   {
-    fprintf(stderr, "Collect reachable nonterminals... ");
+    fprintf(stderr, "  Collect reachable nonterminals... ");
     typedef avl_grammar_node<char_type> node_type;
     long double start = utils::wclock();
     std::vector<const node_type*> pointers;
     grammar->collect_nonterminal_pointers(pointers);
-    long double elapsed = utils::wclock() - start;
-    fprintf(stderr, "%.2Lfs\n", elapsed);
     std::sort(pointers.begin(), pointers.end());
     pointers.erase(std::unique(pointers.begin(), pointers.end()), pointers.end());
-    fprintf(stderr, "Number of unique nonterminals = %lu\n", pointers.size());
-  }
-
-  // Check the number of different Mersenne hashes (method #2).
-  {
-    fprintf(stderr, "Collect Mersenne hashes (method #2)... ");
-    typedef avl_grammar_node<char_type> node_type;
-    long double start = utils::wclock();
-    std::vector<const node_type*> pointers;
-    std::vector<std::uint64_t> hashes;
-    grammar->collect_nonterminal_pointers(pointers);
-    for (std::uint64_t i = 0; i < pointers.size(); ++i)
-      hashes.push_back(pointers[i]->m_kr_hash);
     long double elapsed = utils::wclock() - start;
-    fprintf(stderr, "%.2Lfs\n", elapsed);
-    std::sort(hashes.begin(), hashes.end());
-    hashes.erase(std::unique(hashes.begin(), hashes.end()), hashes.end());
-    fprintf(stderr, "Number of unique Mersenne hashes (method #2) = %lu\n", hashes.size());
+    fprintf(stderr, "%.2Lfs ", elapsed);
+    fprintf(stderr, "(%lu)\n", pointers.size());
   }
 
 #ifdef MULTIROOT
   {
-    fprintf(stderr, "Number of roots = %lu\n",
+    fprintf(stderr, "  Number of roots = %lu\n",
         grammar->m_roots.size());
   }
 #endif

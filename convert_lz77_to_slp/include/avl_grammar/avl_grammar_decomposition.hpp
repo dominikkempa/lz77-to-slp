@@ -23,7 +23,7 @@ std::vector<const avl_grammar_node<char_type>*> decomposition(
   // Check input correctness.
   if (begin > end ||
       end > root->m_exp_len) {
-    fprintf(stderr, "\nError: extract: end > root->m_exp_len!\n");
+    fprintf(stderr, "\nError: decomposition: invalid range!\n");
     std::exit(EXIT_FAILURE);
   }
   
