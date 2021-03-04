@@ -65,15 +65,8 @@ std::vector<const avl_grammar_node<char_type>*> dp_grouping_algorithm(
         const std::uint64_t last = beg + leftlen - 1;
         
         // Update rolling hash.
-        h = mod_mersenne(
-            mul_mod_meresenne(
-              h,
-              pow_mod_mersenne(
-                hash_variable,
-                seq[last]->m_exp_len,
-                mersenne_prime_exponent),
-              mersenne_prime_exponent) + seq[last]->m_kr_hash,
-            mersenne_prime_exponent);
+        h = append_hash<char_type>(h, seq[last],
+            hash_variable, mersenne_prime_exponent);
 
         // If a nonterminal expanding to the substring with the
         // same hash already exists in the grammar, check if

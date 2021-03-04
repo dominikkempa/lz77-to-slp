@@ -77,15 +77,6 @@ struct avl_grammar_multiroot {
     return true;
   }
 
-  // Collect Karp-Rabin hashes in a vector.
-  void collect_karp_rabin_hashes(
-      std::vector<std::uint64_t> &hashes,
-      const std::uint64_t a = (std::uint64_t)999285268,
-      const std::uint64_t p = (std::uint64_t)1000000009) const {
-    for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
-      (void) it->second->collect_karp_rabin_hashes(hashes, a, p);
-  }
-
   // Collect Mersenne Karp-Rabin hashes in a vector.
   // Allows specifying variable and prime exponent.
   void collect_mersenne_karp_rabin_hashes(
@@ -213,27 +204,17 @@ struct avl_grammar_multiroot {
           // Only right neighbor exists, or both exist
           // and the right one is not taller than the left
           // one. End result: merge with the right neighbor.
-          std::uint64_t h_left = v[smallest_height_id]->m_kr_hash;
-          std::uint64_t h_right = v[smallest_height_id + 1]->m_kr_hash;
-          std::uint64_t len_right = v[smallest_height_id + 1]->m_exp_len;
-          std::uint64_t h =
-            mod_mersenne(
-                mul_mod_meresenne(
-                  h_left,
-                  pow_mod_mersenne(
-                    m_hash_variable,
-                    len_right,
-                    m_mersenne_prime_exponent),
-                  m_mersenne_prime_exponent) + h_right,
-                m_mersenne_prime_exponent);
+          const node_type * const left = v[smallest_height_id];
+          const node_type * const right = v[smallest_height_id + 1];
+          const std::uint64_t h = merge_hashes<char_type>(
+              left, right, m_hash_variable, m_mersenne_prime_exponent);
           if (m_hashes.find(h) != NULL) {
             v.erase(v.begin() + smallest_height_id);
             v[smallest_height_id] = *(m_hashes.find(h));
           } else {
-            value_type ret =
-              add_concat_nonterminal<char_type>(m_hashes, m_nonterminals,
-                  v[smallest_height_id], v[smallest_height_id + 1],
-                  m_hash_variable, m_mersenne_prime_exponent);
+            value_type ret = add_concat_nonterminal<char_type>(
+                m_hashes, m_nonterminals, left, right,
+                m_hash_variable, m_mersenne_prime_exponent);
             v.erase(v.begin() + smallest_height_id);
             v[smallest_height_id] = ret;
           }
@@ -242,27 +223,17 @@ struct avl_grammar_multiroot {
           // Only left neighbor exists, or both exists
           // and the left one is not taller than the
           // right one. End result: merge with left neighbor.
-          std::uint64_t h_left = v[smallest_height_id - 1]->m_kr_hash;
-          std::uint64_t h_right = v[smallest_height_id]->m_kr_hash;
-          std::uint64_t len_right = v[smallest_height_id]->m_exp_len;
-          std::uint64_t h =
-            mod_mersenne(
-                mul_mod_meresenne(
-                  h_left,
-                  pow_mod_mersenne(
-                    m_hash_variable,
-                    len_right,
-                    m_mersenne_prime_exponent),
-                  m_mersenne_prime_exponent) + h_right,
-                m_mersenne_prime_exponent);
+          const node_type * const left = v[smallest_height_id - 1];
+          const node_type * const right = v[smallest_height_id];
+          const std::uint64_t h = merge_hashes<char_type>(
+              left, right, m_hash_variable, m_mersenne_prime_exponent);
           if (m_hashes.find(h) != NULL) {
             v.erase(v.begin() + (smallest_height_id - 1));
             v[smallest_height_id - 1] = *(m_hashes.find(h));
           } else {
-            value_type ret =
-              add_concat_nonterminal<char_type>(m_hashes, m_nonterminals,
-                  v[smallest_height_id - 1], v[smallest_height_id],
-                  m_hash_variable, m_mersenne_prime_exponent);
+            value_type ret = add_concat_nonterminal<char_type>(
+                m_hashes, m_nonterminals, left, right,
+                m_hash_variable, m_mersenne_prime_exponent);
             v.erase(v.begin() + (smallest_height_id - 1));
             v[smallest_height_id - 1] = ret;
           }

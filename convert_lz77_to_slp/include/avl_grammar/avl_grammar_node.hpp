@@ -59,7 +59,7 @@ struct avl_grammar_node {
         m_exp_len(left->m_exp_len + right->m_exp_len),
         m_kr_hash(
             mod_mersenne(
-              mul_mod_meresenne(
+              mul_mod_mersenne(
                 left->m_kr_hash,
                 pow_mod_mersenne(
                   hash_variable,
@@ -126,7 +126,7 @@ struct avl_grammar_node {
       {
         const std::uint64_t pow = pow_mod_mersenne(hash_variable,
             m_right->m_exp_len, mersenne_prime_exponent);
-        const std::uint64_t tmp = mul_mod_meresenne(left_hash,
+        const std::uint64_t tmp = mul_mod_mersenne(left_hash,
             pow, mersenne_prime_exponent);
         h = mod_mersenne(tmp + right_hash, mersenne_prime_exponent);
       }
@@ -166,7 +166,7 @@ struct avl_grammar_node {
       {
         const std::uint64_t pow = pow_mod_mersenne(hash_variable,
             m_right->m_exp_len, mersenne_prime_exponent);
-        const std::uint64_t tmp = mul_mod_meresenne(left_hash,
+        const std::uint64_t tmp = mul_mod_mersenne(left_hash,
             pow, mersenne_prime_exponent);
         h = mod_mersenne(tmp + right_hash, mersenne_prime_exponent);
       }
@@ -214,6 +214,49 @@ std::uint64_t get_hash(const get_hash_ptr_type &x) {
 template<>
 std::uint64_t get_hash(const std::uint64_t &x) {
   return (std::uint64_t)x * (std::uint64_t)4972548694736365;
+}
+
+template<typename char_type>
+std::uint64_t merge_hashes(
+    const avl_grammar_node<char_type> * const left,
+    const avl_grammar_node<char_type> * const right,
+    const std::uint64_t hash_variable,
+    const std::uint64_t mersenne_prime_exponent) {
+  const std::uint64_t hash_left = left->m_kr_hash;
+  const std::uint64_t hash_right = right->m_kr_hash;
+  const std::uint64_t len_right = right->m_exp_len;
+  const std::uint64_t h =
+    mod_mersenne(
+        mul_mod_mersenne(
+          hash_left,
+          pow_mod_mersenne(
+            hash_variable,
+            len_right,
+            mersenne_prime_exponent),
+          mersenne_prime_exponent) + hash_right,
+        mersenne_prime_exponent);
+  return h;
+}
+
+template<typename char_type>
+std::uint64_t append_hash(
+    const std::uint64_t hash_left,
+    const avl_grammar_node<char_type> * const right,
+    const std::uint64_t hash_variable,
+    const std::uint64_t mersenne_prime_exponent) {
+  const std::uint64_t hash_right = right->m_kr_hash;
+  const std::uint64_t len_right = right->m_exp_len;
+  const std::uint64_t h =
+    mod_mersenne(
+        mul_mod_mersenne(
+          hash_left,
+          pow_mod_mersenne(
+            hash_variable,
+            len_right,
+            mersenne_prime_exponent),
+          mersenne_prime_exponent) + hash_right,
+        mersenne_prime_exponent);
+  return h;
 }
 
 #endif  // __AVL_GRAMMAR_NODE_HPP_INCLUDED

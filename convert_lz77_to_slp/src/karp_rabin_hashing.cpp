@@ -10,7 +10,7 @@
 
 // Return (a * b) mod p, where p = (2^k) - 1.
 // Requires a, b <= 2^k. Tested for k = 1, .., 63.
-std::uint64_t mul_mod_meresenne(
+std::uint64_t mul_mod_mersenne(
     const std::uint64_t a,
     const std::uint64_t b,
     const std::uint64_t k) {
@@ -67,8 +67,8 @@ std::uint64_t  pow_mod_mersenne(
   std::uint64_t ret = mod_mersenne(1, k);
   while (n > 0) {
     if (n & 1)
-      ret = mul_mod_meresenne(ret, pow, k);
-    pow = mul_mod_meresenne(pow, pow, k);
+      ret = mul_mod_mersenne(ret, pow, k);
+    pow = mul_mod_mersenne(pow, pow, k);
     n >>= 1;
   }
   return ret;
