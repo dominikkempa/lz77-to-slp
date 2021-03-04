@@ -261,21 +261,11 @@ struct avl_grammar_multiroot {
             const std::uint64_t rend = end - it_left->first;
             iter_type it_right = it_left;
             ++it_right;
-            //{
-              //const node_type * const right =
-              //  ::add_substring_nonterminal<char_type>(
-              //      m_hashes, m_nonterminals, it_right->second, rbegin, rend);
-              //ret_vec.push_back(right);
-            //}
             {
               std::vector<const node_type*> right_decomposition =
                 decomposition<char_type>(it_right->second, rbegin, rend);
-              std::vector<const node_type*> right_opt_decomposition =
-                //dp_grouping_algorithm<char_type>(m_hashes, right_decomposition);
-                right_decomposition;
-              ret_vec.insert(ret_vec.end(),
-                  right_opt_decomposition.begin(),
-                  right_opt_decomposition.end());
+              ret_vec.insert(ret_vec.end(), right_decomposition.begin(),
+                  right_decomposition.end());
             }
           }
         } else {
@@ -285,21 +275,11 @@ struct avl_grammar_multiroot {
           // call add_substring_nonterminal.
           const std::uint64_t lbegin = 0;
           const std::uint64_t lend = end - begin;
-          //{
-          //  const node_type * const ret =
-          //    ::add_substring_nonterminal<char_type>(
-          //        m_hashes, m_nonterminals, it_left->second, lbegin, lend);
-          //  ret_vec.push_back(ret);
-          //}
           {
             std::vector<const node_type*> ret_decomposition =
               decomposition<char_type>(it_left->second, lbegin, lend);
-            std::vector<const node_type*> ret_opt_decomposition =
-              //dp_grouping_algorithm<char_type>(m_hashes, ret_decomposition);
-              ret_decomposition;
-            ret_vec.insert(ret_vec.end(),
-                ret_opt_decomposition.begin(),
-                ret_opt_decomposition.end());
+            ret_vec.insert(ret_vec.end(), ret_decomposition.begin(),
+                ret_decomposition.end());
           }
         }
       } else {
@@ -318,21 +298,11 @@ struct avl_grammar_multiroot {
           const std::uint64_t it_exp_beg = it->first - it_exp_size;
           const std::uint64_t lbegin = begin - it_exp_beg;
           const std::uint64_t lend = end - it_exp_beg;
-          //{
-          //  const node_type * const ret =
-          //    ::add_substring_nonterminal<char_type>(
-          //        m_hashes, m_nonterminals, it->second, lbegin, lend);
-          //  ret_vec.push_back(ret);
-          //}
           {
             std::vector<const node_type*> ret_decomposition =
               decomposition<char_type>(it->second, lbegin, lend);
-            std::vector<const node_type*> ret_opt_decomposition =
-              //dp_grouping_algorithm<char_type>(m_hashes, ret_decomposition);
-              ret_decomposition;
-            ret_vec.insert(ret_vec.end(),
-                ret_opt_decomposition.begin(),
-                ret_opt_decomposition.end());
+            ret_vec.insert(ret_vec.end(), ret_decomposition.begin(),
+                ret_decomposition.end());
           }
         } else {
 
@@ -344,21 +314,11 @@ struct avl_grammar_multiroot {
           const std::uint64_t lsize = it->first - begin;
           const std::uint64_t lbegin = it_block_size - lsize;
           const std::uint64_t lend = it_block_size;
-          //{
-          //  const node_type * const left_nonterminal =
-          //    ::add_substring_nonterminal<char_type>(
-          //        m_hashes, m_nonterminals, it->second, lbegin, lend);
-          //  ret_vec.push_back(left_nonterminal);
-          //}
           {
             std::vector<const node_type*> left_decomposition =
               decomposition<char_type>(it->second, lbegin, lend);
-            std::vector<const node_type*> left_opt_decomposition =
-              //dp_grouping_algorithm<char_type>(m_hashes, left_decomposition);
-              left_decomposition;
-            ret_vec.insert(ret_vec.end(),
-                left_opt_decomposition.begin(),
-                left_opt_decomposition.end());
+            ret_vec.insert(ret_vec.end(), left_decomposition.begin(),
+                left_decomposition.end());
           }
 
           // We now have three cases: either the block [begin..end)
@@ -377,21 +337,11 @@ struct avl_grammar_multiroot {
             // it with left_nonterminal.
             const std::uint64_t mbegin = 0;
             const std::uint64_t mend = end - it->first;
-            //{
-            //  const node_type * const mid_nonterminal =
-            //    ::add_substring_nonterminal<char_type>(
-            //        m_hashes, m_nonterminals, it_mid->second, mbegin, mend);
-            //  ret_vec.push_back(mid_nonterminal);
-            //}
             {
               std::vector<const node_type*> mid_decomposition =
                 decomposition<char_type>(it_mid->second, mbegin, mend);
-              std::vector<const node_type*> mid_opt_decomposition =
-                //dp_grouping_algorithm<char_type>(m_hashes, mid_decomposition);
-                mid_decomposition;
-              ret_vec.insert(ret_vec.end(),
-                  mid_opt_decomposition.begin(),
-                  mid_opt_decomposition.end());
+              ret_vec.insert(ret_vec.end(), mid_decomposition.begin(),
+                  mid_decomposition.end());
             }
           } else if (end == it_mid->first) {
 
@@ -410,31 +360,20 @@ struct avl_grammar_multiroot {
             ++it_right;
             const std::uint64_t rbegin = 0;
             const std::uint64_t rend = end - it_mid->first;
-            //{
-            //  const node_type * const right_nonterminal =
-            //    ::add_substring_nonterminal<char_type>(
-            //        m_hashes, m_nonterminals, it_right->second, rbegin, rend);
-            //  ret_vec.push_back(right_nonterminal);
-            //}
             {
               std::vector<const node_type*> right_decomposition =
                 decomposition<char_type>(it_right->second, rbegin, rend);
-              std::vector<const node_type*> right_opt_decomposition =
-                //dp_grouping_algorithm<char_type>(m_hashes, right_decomposition);
-                right_decomposition;
               ret_vec.insert(ret_vec.end(),
-                  right_opt_decomposition.begin(),
-                  right_opt_decomposition.end());
+                  right_decomposition.begin(),
+                  right_decomposition.end());
             }
           }
         }
       }
-      {
-        std::vector<const node_type*> ret_vec_opt =
-          dp_grouping_algorithm<char_type>(m_hashes, ret_vec);
-        return ret_vec_opt;
-      }
-      //return ret_vec;
+
+      std::vector<const node_type*> ret_vec_opt =
+        dp_grouping_algorithm<char_type>(m_hashes, ret_vec);
+      return ret_vec_opt;
     }
 };
 
