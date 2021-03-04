@@ -38,8 +38,9 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
 
   // Set hashing variables.
   const std::uint64_t mersenne_prime_exponent = 61;
-  const std::uint64_t hash_variable =
-    rand_mod_mersenne(mersenne_prime_exponent);
+  const std::uint64_t hash_variable = 0; // XXX
+
+  karp_rabin_hashing::init();
 
   // Compute the AVL grammar expanding to T.
   grammar_type *grammar = new grammar_type(
@@ -56,7 +57,7 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
     if (len == 0) {
 
       // If this is a literal phrase, create a trivial grammar.
-      phrase_root = new node_type((char_type)pos, mersenne_prime_exponent);
+      phrase_root = new node_type((char_type)pos);
       grammar->m_nonterminals.push_back(phrase_root);
     } else {
 
@@ -81,8 +82,7 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
         std::uint64_t curlen = prefix_length - pos;
         while (curlen < len) {
           const node_type * const square =
-            new node_type(suffix_pow_nonterminal, suffix_pow_nonterminal,
-                hash_variable, mersenne_prime_exponent);
+            new node_type(suffix_pow_nonterminal, suffix_pow_nonterminal);
           grammar->m_nonterminals.push_back(square);
           curlen <<= 1;
           suffix_pow_nonterminal = square;

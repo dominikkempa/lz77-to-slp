@@ -36,8 +36,8 @@ avl_grammar_multiroot<char_type> *convert_lz77_to_avl_grammar_multiroot(
 
   // Set hashing variables.
   const std::uint64_t mersenne_prime_exponent = 61;
-  const std::uint64_t hash_variable =
-    rand_mod_mersenne(mersenne_prime_exponent);
+  const std::uint64_t hash_variable = 0;  // XXX
+  karp_rabin_hashing::init();
 
   // Compute the AVL grammar expanding to T.
   grammar_type *grammar = new grammar_type(
@@ -58,7 +58,7 @@ avl_grammar_multiroot<char_type> *convert_lz77_to_avl_grammar_multiroot(
     if (len == 0) {
 
       // If this is a literal phrase, create a trivial grammar.
-      phrase_root = new node_type((char_type)pos, mersenne_prime_exponent);
+      phrase_root = new node_type((char_type)pos);
       grammar->m_nonterminals.push_back(phrase_root);
       phrase_roots.push_back(phrase_root);
     } else {

@@ -36,9 +36,7 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
     if (left->m_height - right->m_height <= 1) {
 
       // Height are close. Just merge and return.
-      const node_type * const newroot =
-        new node_type(left, right,
-            hash_variable, mersenne_prime_exponent);
+      const node_type * const newroot = new node_type(left, right);
       nonterminals.push_back(newroot);
       hashes.insert(newroot->m_kr_hash, newroot);
       return newroot;
@@ -55,14 +53,10 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
 
           // Double (right-left) rotation.
           const node_type * const X =
-            new node_type(left->m_left, newright->m_left->m_left,
-                hash_variable, mersenne_prime_exponent);
+            new node_type(left->m_left, newright->m_left->m_left);
           const node_type * const Z =
-            new node_type(newright->m_left->m_right, newright->m_right,
-                hash_variable, mersenne_prime_exponent);
-          const node_type * const Y =
-            new node_type(X, Z,
-                hash_variable, mersenne_prime_exponent);
+            new node_type(newright->m_left->m_right, newright->m_right);
+          const node_type * const Y = new node_type(X, Z);
           nonterminals.push_back(X);
           nonterminals.push_back(Y);
           nonterminals.push_back(Z);
@@ -74,11 +68,9 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
 
           // Single (left) rotation.
           const node_type * const X =
-            new node_type(left->m_left, newright->m_left,
-                hash_variable, mersenne_prime_exponent);
+            new node_type(left->m_left, newright->m_left);
           const node_type * const Y =
-            new node_type(X, newright->m_right,
-                hash_variable, mersenne_prime_exponent);
+            new node_type(X, newright->m_right);
           nonterminals.push_back(X);
           nonterminals.push_back(Y);
           hashes.insert(X->m_kr_hash, X);
@@ -89,8 +81,7 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
 
         // No need to rebalance.
         const node_type * const newroot =
-          new node_type(left->m_left, newright,
-              hash_variable, mersenne_prime_exponent);
+          new node_type(left->m_left, newright);
         nonterminals.push_back(newroot);
         hashes.insert(newroot->m_kr_hash, newroot);
         return newroot;
@@ -101,8 +92,7 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
 
       // Heights are close. Just merge and return.
       const node_type * const newroot =
-        new node_type(left, right,
-            hash_variable, mersenne_prime_exponent);
+        new node_type(left, right);
       nonterminals.push_back(newroot);
       hashes.insert(newroot->m_kr_hash, newroot);
       return newroot;
@@ -119,14 +109,10 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
 
           // Double (left-right) rotation.
           const node_type * const X =
-            new node_type(newleft->m_left, newleft->m_right->m_left,
-                hash_variable, mersenne_prime_exponent);
+            new node_type(newleft->m_left, newleft->m_right->m_left);
           const node_type * const Z =
-            new node_type(newleft->m_right->m_right, right->m_right,
-                hash_variable, mersenne_prime_exponent);
-          const node_type * const Y =
-            new node_type(X, Z,
-                hash_variable, mersenne_prime_exponent);
+            new node_type(newleft->m_right->m_right, right->m_right);
+          const node_type * const Y = new node_type(X, Z);
           nonterminals.push_back(X);
           nonterminals.push_back(Y);
           nonterminals.push_back(Z);
@@ -138,11 +124,9 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
 
           // Single (right) rotation.
           const node_type * const Y =
-            new node_type(newleft->m_right, right->m_right,
-                hash_variable, mersenne_prime_exponent);
+            new node_type(newleft->m_right, right->m_right);
           const node_type * const X =
-            new node_type(newleft->m_left, Y,
-                hash_variable, mersenne_prime_exponent);
+            new node_type(newleft->m_left, Y);
           nonterminals.push_back(X);
           nonterminals.push_back(Y);
           hashes.insert(X->m_kr_hash, X);
@@ -153,8 +137,7 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
 
         // No need to rebalance.
         const node_type * const newroot =
-          new node_type(newleft, right->m_right,
-              hash_variable, mersenne_prime_exponent);
+          new node_type(newleft, right->m_right);
         nonterminals.push_back(newroot);
         hashes.insert(newroot->m_kr_hash, newroot);
         return newroot;

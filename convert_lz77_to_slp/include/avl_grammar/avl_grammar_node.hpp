@@ -37,13 +37,11 @@ struct avl_grammar_node {
     m_right(NULL) {}
 
   // Constructor for a node expanding to a single symbol.
-  avl_grammar_node(
-      const char_type c,
-      const std::uint64_t mersenne_prime_exponent) :
+  avl_grammar_node(const char_type c) :
     m_char(c),
     m_height(0),
     m_exp_len(1),
-    m_kr_hash(mod_mersenne(c, mersenne_prime_exponent)),
+    m_kr_hash(karp_rabin_hashing::hash_char(c)),
     m_left(NULL),
     m_right(NULL) {}
 
@@ -51,22 +49,15 @@ struct avl_grammar_node {
   // (expanding to two other nonterminals).
   avl_grammar_node(
       const node_type * const left,
-      const node_type * const right,
-      const std::uint64_t hash_variable,
-      const std::uint64_t mersenne_prime_exponent) :
+      const node_type * const right) :
         m_char((char_type)0),
         m_height(std::max(left->m_height, right->m_height) + 1),
         m_exp_len(left->m_exp_len + right->m_exp_len),
         m_kr_hash(
-            mod_mersenne(
-              mul_mod_mersenne(
-                left->m_kr_hash,
-                pow_mod_mersenne(
-                  hash_variable,
-                  right->m_exp_len,
-                  mersenne_prime_exponent),
-                mersenne_prime_exponent) + right->m_kr_hash,
-              mersenne_prime_exponent)),
+            karp_rabin_hashing::concat(
+              left->m_kr_hash,
+              right->m_kr_hash,
+              right->m_exp_len)),
         m_left(left),
         m_right(right) {}
 
@@ -108,28 +99,19 @@ struct avl_grammar_node {
 
   // Collect Mersenne Karp-Rabin hashes of all nonterminals.
   std::uint64_t collect_mersenne_karp_rabin_hashes(
-      std::vector<std::uint64_t> &hashes,
-      const std::uint64_t hash_variable,
-      const std::uint64_t mersenne_prime_exponent) const {
+      std::vector<std::uint64_t> &hashes) const {
     if (m_height == 0) {
-      const std::uint64_t h = mod_mersenne(m_char, mersenne_prime_exponent);
+      const std::uint64_t h = karp_rabin_hashing::hash_char(m_char);
       hashes.push_back(h);
       return h;
     } else {
       const std::uint64_t left_hash =
-        m_left->collect_mersenne_karp_rabin_hashes(hashes,
-            hash_variable, mersenne_prime_exponent);
+        m_left->collect_mersenne_karp_rabin_hashes(hashes);
       const std::uint64_t right_hash =
-        m_right->collect_mersenne_karp_rabin_hashes(hashes,
-            hash_variable, mersenne_prime_exponent);
-      std::uint64_t h = 0;
-      {
-        const std::uint64_t pow = pow_mod_mersenne(hash_variable,
-            m_right->m_exp_len, mersenne_prime_exponent);
-        const std::uint64_t tmp = mul_mod_mersenne(left_hash,
-            pow, mersenne_prime_exponent);
-        h = mod_mersenne(tmp + right_hash, mersenne_prime_exponent);
-      }
+        m_right->collect_mersenne_karp_rabin_hashes(hashes);
+      const std::uint64_t right_len = m_right->m_exp_len;
+      const std::uint64_t h = karp_rabin_hashing::concat(
+          left_hash, right_hash, right_len);
       hashes.push_back(h);
       return h;
     }
@@ -147,29 +129,19 @@ struct avl_grammar_node {
 
   // Collect Mersenne Karp-Rabin hashes of all nonterminals.
   std::uint64_t collect_mersenne_karp_rabin_hashes_2(
-      hash_table<const node_type*, std::uint64_t> &hashes,
-      const std::uint64_t hash_variable,
-      const std::uint64_t mersenne_prime_exponent) const {
+      hash_table<const node_type*, std::uint64_t> &hashes) const {
     if (m_height == 0) {
-      const std::uint64_t h =
-        mod_mersenne(m_char, mersenne_prime_exponent);
+      const std::uint64_t h = karp_rabin_hashing::hash_char(m_char);
       hashes.insert(this, h);
       return h;
     } else {
       const std::uint64_t left_hash =
-        m_left->collect_mersenne_karp_rabin_hashes_2(hashes,
-            hash_variable, mersenne_prime_exponent);
+        m_left->collect_mersenne_karp_rabin_hashes_2(hashes);
       const std::uint64_t right_hash =
-        m_right->collect_mersenne_karp_rabin_hashes_2(hashes,
-            hash_variable, mersenne_prime_exponent);
-      std::uint64_t h = 0;
-      {
-        const std::uint64_t pow = pow_mod_mersenne(hash_variable,
-            m_right->m_exp_len, mersenne_prime_exponent);
-        const std::uint64_t tmp = mul_mod_mersenne(left_hash,
-            pow, mersenne_prime_exponent);
-        h = mod_mersenne(tmp + right_hash, mersenne_prime_exponent);
-      }
+        m_right->collect_mersenne_karp_rabin_hashes_2(hashes);
+      const std::uint64_t right_len = m_right->m_exp_len;
+      const std::uint64_t h = karp_rabin_hashing::concat(
+          left_hash, right_hash, right_len);
       hashes.insert(this, h);
       return h;
     }
@@ -219,43 +191,23 @@ std::uint64_t get_hash(const std::uint64_t &x) {
 template<typename char_type>
 std::uint64_t merge_hashes(
     const avl_grammar_node<char_type> * const left,
-    const avl_grammar_node<char_type> * const right,
-    const std::uint64_t hash_variable,
-    const std::uint64_t mersenne_prime_exponent) {
+    const avl_grammar_node<char_type> * const right) {
   const std::uint64_t hash_left = left->m_kr_hash;
   const std::uint64_t hash_right = right->m_kr_hash;
   const std::uint64_t len_right = right->m_exp_len;
-  const std::uint64_t h =
-    mod_mersenne(
-        mul_mod_mersenne(
-          hash_left,
-          pow_mod_mersenne(
-            hash_variable,
-            len_right,
-            mersenne_prime_exponent),
-          mersenne_prime_exponent) + hash_right,
-        mersenne_prime_exponent);
+  const std::uint64_t h = karp_rabin_hashing::concat(
+      hash_left, hash_right, len_right);
   return h;
 }
 
 template<typename char_type>
 std::uint64_t append_hash(
     const std::uint64_t hash_left,
-    const avl_grammar_node<char_type> * const right,
-    const std::uint64_t hash_variable,
-    const std::uint64_t mersenne_prime_exponent) {
+    const avl_grammar_node<char_type> * const right) {
   const std::uint64_t hash_right = right->m_kr_hash;
   const std::uint64_t len_right = right->m_exp_len;
-  const std::uint64_t h =
-    mod_mersenne(
-        mul_mod_mersenne(
-          hash_left,
-          pow_mod_mersenne(
-            hash_variable,
-            len_right,
-            mersenne_prime_exponent),
-          mersenne_prime_exponent) + hash_right,
-        mersenne_prime_exponent);
+  const std::uint64_t h = karp_rabin_hashing::concat(
+      hash_left, hash_right, len_right);
   return h;
 }
 

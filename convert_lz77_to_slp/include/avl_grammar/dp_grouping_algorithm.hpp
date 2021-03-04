@@ -15,9 +15,7 @@
 template<typename char_type>
 std::vector<const avl_grammar_node<char_type>*> dp_grouping_algorithm(
     const hash_table<std::uint64_t, const avl_grammar_node<char_type>*> &hashes,
-    const std::vector<const avl_grammar_node<char_type>*> &seq,
-    const std::uint64_t hash_variable,
-    const std::uint64_t mersenne_prime_exponent) {
+    const std::vector<const avl_grammar_node<char_type>*> &seq) {
 
 #if 1
   // Create the vector to hold the solution.
@@ -65,8 +63,7 @@ std::vector<const avl_grammar_node<char_type>*> dp_grouping_algorithm(
         const std::uint64_t last = beg + leftlen - 1;
         
         // Update rolling hash.
-        h = append_hash<char_type>(h, seq[last],
-            hash_variable, mersenne_prime_exponent);
+        h = append_hash<char_type>(h, seq[last]);
 
         // If a nonterminal expanding to the substring with the
         // same hash already exists in the grammar, check if

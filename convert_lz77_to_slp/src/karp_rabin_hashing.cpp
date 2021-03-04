@@ -8,6 +8,11 @@
 #include "../include/utils/karp_rabin_hashing.hpp"
 
 
+namespace karp_rabin_hashing {
+
+std::uint64_t hash_variable;
+std::uint64_t mersenne_prime_exponent;
+
 // Return (a * b) mod p, where p = (2^k) - 1.
 // Requires a, b <= 2^k. Tested for k = 1, .., 63.
 std::uint64_t mul_mod_mersenne(
@@ -73,4 +78,24 @@ std::uint64_t  pow_mod_mersenne(
   }
   return ret;
 }
+
+std::uint64_t concat(
+    const std::uint64_t left_hash,
+    const std::uint64_t right_hash,
+    const std::uint64_t right_len) {
+  const std::uint64_t pow = pow_mod_mersenne(
+      hash_variable, right_len, mersenne_prime_exponent);
+  const std::uint64_t tmp = mul_mod_mersenne(
+      left_hash, pow, mersenne_prime_exponent);
+  const std::uint64_t ret = mod_mersenne(
+      tmp + right_hash, mersenne_prime_exponent);
+  return ret;
+}
+
+void init() {
+  mersenne_prime_exponent = 61;
+  hash_variable = rand_mod_mersenne(mersenne_prime_exponent);
+}
+
+}  // namespace karp_rabin_kashing
 

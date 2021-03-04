@@ -80,45 +80,17 @@ struct avl_grammar_multiroot {
   // Collect Mersenne Karp-Rabin hashes in a vector.
   // Allows specifying variable and prime exponent.
   void collect_mersenne_karp_rabin_hashes(
-      std::vector<std::uint64_t> &hashes,
-      const std::uint64_t hash_variable,
-      const std::uint64_t mersenne_prime_exponent) const {
+      std::vector<std::uint64_t> &hashes) const {
     for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
-      (void) it->second->collect_mersenne_karp_rabin_hashes(
-          hashes, hash_variable, mersenne_prime_exponent);
+      (void) it->second->collect_mersenne_karp_rabin_hashes(hashes);
   }
 
   // Collect Mersenne Karp-Rabin hashes in a hash table.
   // Allows specifying variable and prime exponent.
   void collect_mersenne_karp_rabin_hashes_2(
-      hash_table<const node_type*, std::uint64_t> &hashes,
-      const std::uint64_t hash_variable,
-      const std::uint64_t mersenne_prime_exponent) const {
-    for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
-      (void) it->second->collect_mersenne_karp_rabin_hashes_2(
-          hashes, hash_variable, mersenne_prime_exponent);
-  }
-
-  // Collect Mersenne Karp_Rabin hashes in a vector.
-  // Relies on automatic choice of variable and exponent.
-  void collect_mersenne_karp_rabin_hashes(
-      std::vector<std::uint64_t> &hashes) const {
-    const std::uint64_t mersenne_prime_exponent = 61;
-    const std::uint64_t hash_variable = 
-      rand_mod_mersenne(mersenne_prime_exponent);
-    collect_mersenne_karp_rabin_hashes(hashes,
-        hash_variable, mersenne_prime_exponent);
-  }
-
-  // Collect Mersenne Karp_Rabin hashes in a hash table.
-  // Relies on automatic choice of variable and exponent.
-  void collect_mersenne_karp_rabin_hashes_2(
       hash_table<const node_type*, std::uint64_t> &hashes) const {
-    const std::uint64_t mersenne_prime_exponent = 61;
-    const std::uint64_t hash_variable = 
-      rand_mod_mersenne(mersenne_prime_exponent);
-    collect_mersenne_karp_rabin_hashes_2(hashes,
-        hash_variable, mersenne_prime_exponent);
+    for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
+      (void) it->second->collect_mersenne_karp_rabin_hashes_2(hashes);
   }
 
   // Count nodes in the pruned grammar.
@@ -206,8 +178,7 @@ struct avl_grammar_multiroot {
           // one. End result: merge with the right neighbor.
           const node_type * const left = v[smallest_height_id];
           const node_type * const right = v[smallest_height_id + 1];
-          const std::uint64_t h = merge_hashes<char_type>(
-              left, right, m_hash_variable, m_mersenne_prime_exponent);
+          const std::uint64_t h = merge_hashes<char_type>(left, right);
           if (m_hashes.find(h) != NULL) {
             v.erase(v.begin() + smallest_height_id);
             v[smallest_height_id] = *(m_hashes.find(h));
@@ -225,8 +196,7 @@ struct avl_grammar_multiroot {
           // right one. End result: merge with left neighbor.
           const node_type * const left = v[smallest_height_id - 1];
           const node_type * const right = v[smallest_height_id];
-          const std::uint64_t h = merge_hashes<char_type>(
-              left, right, m_hash_variable, m_mersenne_prime_exponent);
+          const std::uint64_t h = merge_hashes<char_type>(left, right);
           if (m_hashes.find(h) != NULL) {
             v.erase(v.begin() + (smallest_height_id - 1));
             v[smallest_height_id - 1] = *(m_hashes.find(h));
@@ -316,8 +286,7 @@ struct avl_grammar_multiroot {
             std::vector<const node_type*> right_decomposition =
               decomposition<char_type>(it_right->second, rbegin, rend);
             std::vector<const node_type*> right_opt_decomposition =
-              //dp_grouping_algorithm<char_type>(m_hashes, right_decomposition,
-              //    m_hash_variable, m_mersenne_prime_exponent);
+              //dp_grouping_algorithm<char_type>(m_hashes, right_decomposition);
               right_decomposition;
             ret_vec.insert(ret_vec.end(),
                 right_opt_decomposition.begin(),
@@ -342,8 +311,7 @@ struct avl_grammar_multiroot {
           std::vector<const node_type*> ret_decomposition =
             decomposition<char_type>(it_left->second, lbegin, lend);
           std::vector<const node_type*> ret_opt_decomposition =
-            //dp_grouping_algorithm<char_type>(m_hashes, ret_decomposition,
-            //    m_hash_variable, m_mersenne_prime_exponent);
+            //dp_grouping_algorithm<char_type>(m_hashes, ret_decomposition);
             ret_decomposition;
           ret_vec.insert(ret_vec.end(),
               ret_opt_decomposition.begin(),
@@ -377,8 +345,7 @@ struct avl_grammar_multiroot {
           std::vector<const node_type*> ret_decomposition =
             decomposition<char_type>(it->second, lbegin, lend);
           std::vector<const node_type*> ret_opt_decomposition =
-            //dp_grouping_algorithm<char_type>(m_hashes, ret_decomposition,
-            //    m_hash_variable, m_mersenne_prime_exponent);
+            //dp_grouping_algorithm<char_type>(m_hashes, ret_decomposition);
             ret_decomposition;
           ret_vec.insert(ret_vec.end(),
               ret_opt_decomposition.begin(),
@@ -405,8 +372,7 @@ struct avl_grammar_multiroot {
           std::vector<const node_type*> left_decomposition =
             decomposition<char_type>(it->second, lbegin, lend);
           std::vector<const node_type*> left_opt_decomposition =
-            //dp_grouping_algorithm<char_type>(m_hashes, left_decomposition,
-            //    m_hash_variable, m_mersenne_prime_exponent);
+            //dp_grouping_algorithm<char_type>(m_hashes, left_decomposition);
             left_decomposition;
           ret_vec.insert(ret_vec.end(),
               left_opt_decomposition.begin(),
@@ -440,8 +406,7 @@ struct avl_grammar_multiroot {
             std::vector<const node_type*> mid_decomposition =
               decomposition<char_type>(it_mid->second, mbegin, mend);
             std::vector<const node_type*> mid_opt_decomposition =
-              //dp_grouping_algorithm<char_type>(m_hashes, mid_decomposition,
-              //    m_hash_variable, m_mersenne_prime_exponent);
+              //dp_grouping_algorithm<char_type>(m_hashes, mid_decomposition);
               mid_decomposition;
             ret_vec.insert(ret_vec.end(),
                 mid_opt_decomposition.begin(),
@@ -475,8 +440,7 @@ struct avl_grammar_multiroot {
             std::vector<const node_type*> right_decomposition =
               decomposition<char_type>(it_right->second, rbegin, rend);
             std::vector<const node_type*> right_opt_decomposition =
-              //dp_grouping_algorithm<char_type>(m_hashes, right_decomposition,
-              //    m_hash_variable, m_mersenne_prime_exponent);
+              //dp_grouping_algorithm<char_type>(m_hashes, right_decomposition);
               right_decomposition;
             ret_vec.insert(ret_vec.end(),
                 right_opt_decomposition.begin(),
@@ -487,8 +451,7 @@ struct avl_grammar_multiroot {
     }
     {
       std::vector<const node_type*> ret_vec_opt =
-        dp_grouping_algorithm<char_type>(m_hashes, ret_vec,
-            m_hash_variable, m_mersenne_prime_exponent);
+        dp_grouping_algorithm<char_type>(m_hashes, ret_vec);
       return ret_vec_opt;
     }
     //return ret_vec;

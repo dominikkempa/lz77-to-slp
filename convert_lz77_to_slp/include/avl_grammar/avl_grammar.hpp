@@ -63,43 +63,29 @@ struct avl_grammar {
   // Collect Mersenne Karp-Rabin hashes in a vector.
   // Allows specifying variable and prime exponent.
   void collect_mersenne_karp_rabin_hashes(
-      std::vector<std::uint64_t> &hashes,
-      const std::uint64_t hash_variable,
-      const std::uint64_t mersenne_prime_exponent) const {
-    (void) m_root->collect_mersenne_karp_rabin_hashes(hashes,
-        hash_variable, mersenne_prime_exponent);
+      std::vector<std::uint64_t> &hashes) const {
+    (void) m_root->collect_mersenne_karp_rabin_hashes(hashes);
   }
 
   // Collect Mersenne Karp-Rabin hashes in a hash table.
   // Allows specifying variable and prime exponent.
   void collect_mersenne_karp_rabin_hashes_2(
-      hash_table<const node_type*, std::uint64_t> &hashes,
-      const std::uint64_t hash_variable,
-      const std::uint64_t mersenne_prime_exponent) const {
-    (void) m_root->collect_mersenne_karp_rabin_hashes_2(hashes,
-        hash_variable, mersenne_prime_exponent);
+      hash_table<const node_type*, std::uint64_t> &hashes) const {
+    (void) m_root->collect_mersenne_karp_rabin_hashes_2(hashes);
   }
 
   // Collect Mersenne Karp_Rabin hashes in a vector.
   // Relies on automatic choice of variable and exponent.
   void collect_mersenne_karp_rabin_hashes(
       std::vector<std::uint64_t> &hashes) const {
-    const std::uint64_t mersenne_prime_exponent = 61;
-    const std::uint64_t hash_variable = 
-      rand_mod_mersenne(mersenne_prime_exponent);
-    collect_mersenne_karp_rabin_hashes(hashes,
-        hash_variable, mersenne_prime_exponent);
+    collect_mersenne_karp_rabin_hashes(hashes);
   }
 
   // Collect Mersenne Karp_Rabin hashes in a hash table.
   // Relies on automatic choice of variable and exponent.
   void collect_mersenne_karp_rabin_hashes_2(
       hash_table<const node_type*, std::uint64_t> &hashes) const {
-    const std::uint64_t mersenne_prime_exponent = 61;
-    const std::uint64_t hash_variable = 
-      rand_mod_mersenne(mersenne_prime_exponent);
-    collect_mersenne_karp_rabin_hashes_2(hashes,
-        hash_variable, mersenne_prime_exponent);
+    collect_mersenne_karp_rabin_hashes_2(hashes);
   }
 
   // Count nodes in the pruned grammar.
