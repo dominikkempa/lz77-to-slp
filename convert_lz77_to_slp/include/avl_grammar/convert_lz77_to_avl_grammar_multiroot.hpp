@@ -46,14 +46,13 @@ avl_grammar_multiroot<char_type> *convert_lz77_to_avl_grammar_multiroot(
     std::uint64_t len = p.second;
     
     // Compute the AVL grammar expanding to phrase p.
-    const node_type *phrase_root = NULL;
     std::vector<const node_type*> phrase_roots;
     if (len == 0) {
 
       // If this is a literal phrase, create a trivial grammar.
-      phrase_root = new node_type((char_type)pos);
-      grammar->m_nonterminals.push_back(phrase_root);
-      phrase_roots.push_back(phrase_root);
+      const node_type *root = new node_type((char_type)pos);
+      grammar->m_nonterminals.push_back(root);
+      phrase_roots.push_back(root);
     } else {
 
       // We proceed differently, depending on whether

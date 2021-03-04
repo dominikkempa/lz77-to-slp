@@ -41,8 +41,9 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
   for (std::uint64_t phrase_id = 0;
       phrase_id < parsing.size(); ++phrase_id) {
 
-    // Extract the next phrase.
-    std::pair<text_offset_type, text_offset_type> p = parsing[phrase_id];
+    // Get the next phrase len and pos values.
+    std::pair<text_offset_type, text_offset_type> p =
+      parsing[phrase_id];
     std::uint64_t pos = p.first;
     std::uint64_t len = p.second;
     
@@ -97,7 +98,8 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
       }
     }
 
-    // Update prefix_grammar to encode the longer prefix.
+    // Update prefix length and add new root to the grammar.
+    prefix_length += std::max(len, (std::uint64_t)1);
     if (grammar->m_root == NULL)
       grammar->m_root = phrase_root;
     else
@@ -105,9 +107,6 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
         add_concat_nonterminal<char_type>(
             grammar->m_hashes, grammar->m_nonterminals,
             grammar->m_root, phrase_root);
-
-    // Update prefix_length.
-    prefix_length += std::max(len, (std::uint64_t)1);
   }
 
   // Return the result.
