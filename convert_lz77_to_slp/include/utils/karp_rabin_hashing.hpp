@@ -22,7 +22,7 @@ void init();
 
 // Return the Karp-Rabin hash of the single symbol c.
 template<typename char_type>
-std::uint64_t hash_char(char_type c) {
+std::uint64_t hash_char(const char_type c) {
   return mod_mersenne((std::uint64_t)c, mersenne_prime_exponent);
 }
 

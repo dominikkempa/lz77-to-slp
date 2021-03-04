@@ -15,15 +15,11 @@
 
 
 //=============================================================================
-// Given the LZ77 parsing (consisting of z phrases) of text T, compute
-// the AVL grammar of size O(z log n) expanding to T.  The parsing is
-// given as a sequence of pairs (pos, len), where either len > 0 and
+// Given the LZ77-like parsing of size z of text T, compute the AVL
+// grammar of size O(z log n) expanding to T. The parsing is given
+// as a sequence of pairs (pos, len), where either len > 0 and
 // pos encodes the position of the previous occurrence in the string,
 // or len = 0 and then pos contain the text symbol.
-// TODO: the grammar at this point is guaranteed to be of size O(z log
-//       n), but there might be some unused nonterminals. They should
-//       be removed. Anyway, at this point, I just want to test the
-//       correctness of the conversion.
 //=============================================================================
 template<
   typename char_type,
@@ -42,8 +38,10 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
   // Compute the AVL grammar expanding to T.
   grammar_type *grammar = new grammar_type();
   std::uint64_t prefix_length = 0;
-  for (std::uint64_t phrase_id = 0; phrase_id < parsing.size();
-      ++phrase_id) {
+  for (std::uint64_t phrase_id = 0;
+      phrase_id < parsing.size(); ++phrase_id) {
+
+    // Extract the next phrase.
     std::pair<text_offset_type, text_offset_type> p = parsing[phrase_id];
     std::uint64_t pos = p.first;
     std::uint64_t len = p.second;
@@ -76,8 +74,8 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
         const node_type *suffix_pow_nonterminal = suffix_nonterminal;
         std::uint64_t curlen = prefix_length - pos;
         while (curlen < len) {
-          const node_type * const square =
-            new node_type(suffix_pow_nonterminal, suffix_pow_nonterminal);
+          const node_type * const square = new node_type(
+              suffix_pow_nonterminal, suffix_pow_nonterminal);
           grammar->m_nonterminals.push_back(square);
           curlen <<= 1;
           suffix_pow_nonterminal = square;

@@ -13,15 +13,11 @@
 
 
 //=============================================================================
-// Given the LZ77 parsing (consisting of z phrases) of text T, compute
-// the AVL grammar of size O(z log n) expanding to T.  The parsing is
-// given as a sequence of pairs (pos, len), where either len > 0 and
+// Given the LZ77-like parsing of size z of text T, compute the AVL
+// multi-root grammar of size O(z log n) expanding to T. The parsing
+// is given as a sequence of pairs (pos, len), where either len > 0 and
 // pos encodes the position of the previous occurrence in the string,
 // or len = 0 and then pos contain the text symbol.
-// TODO: the grammar at this point is guaranteed to be of size O(z log
-//       n), but there might be some unused nonterminals. They should
-//       be removed. Anyway, at this point, I just want to test the
-//       correctness of the conversion.
 //=============================================================================
 template<
   typename char_type,
@@ -81,9 +77,7 @@ avl_grammar_multiroot<char_type> *convert_lz77_to_avl_grammar_multiroot(
       }
     }
 
-    // Update prefix length and add new root to the grammar.
-    //prefix_length += phrase_len;
-    //grammar->m_roots[prefix_length] = phrase_root;
+    // Update prefix length and add new roots to the grammar.
     for (std::uint64_t t = 0; t < phrase_roots.size(); ++t) {
       prefix_length += phrase_roots[t]->m_exp_len;
       grammar->m_roots[prefix_length] = phrase_roots[t];

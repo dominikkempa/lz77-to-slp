@@ -176,15 +176,12 @@ struct avl_grammar_multiroot {
             const node_type * const left = v[smallest_height_id];
             const node_type * const right = v[smallest_height_id + 1];
             const std::uint64_t h = merge_hashes<char_type>(left, right);
-            if (m_hashes.find(h) != NULL) {
-              v.erase(v.begin() + smallest_height_id);
+            v.erase(v.begin() + smallest_height_id);
+            if (m_hashes.find(h) != NULL)
               v[smallest_height_id] = *(m_hashes.find(h));
-            } else {
-              value_type ret = add_concat_nonterminal<char_type>(
+            else
+              v[smallest_height_id] = add_concat_nonterminal<char_type>(
                   m_hashes, m_nonterminals, left, right);
-              v.erase(v.begin() + smallest_height_id);
-              v[smallest_height_id] = ret;
-            }
           } else {
 
             // Only left neighbor exists, or both exists
@@ -193,15 +190,12 @@ struct avl_grammar_multiroot {
             const node_type * const left = v[smallest_height_id - 1];
             const node_type * const right = v[smallest_height_id];
             const std::uint64_t h = merge_hashes<char_type>(left, right);
-            if (m_hashes.find(h) != NULL) {
-              v.erase(v.begin() + (smallest_height_id - 1));
+            v.erase(v.begin() + (smallest_height_id - 1));
+            if (m_hashes.find(h) != NULL)
               v[smallest_height_id - 1] = *(m_hashes.find(h));
-            } else {
-              value_type ret = add_concat_nonterminal<char_type>(
+            else
+              v[smallest_height_id - 1] = add_concat_nonterminal<char_type>(
                   m_hashes, m_nonterminals, left, right);
-              v.erase(v.begin() + (smallest_height_id - 1));
-              v[smallest_height_id - 1] = ret;
-            }
           }
         }
 
