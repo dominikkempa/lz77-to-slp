@@ -192,22 +192,22 @@ template<typename char_type>
 std::uint64_t merge_hashes(
     const avl_grammar_node<char_type> * const left,
     const avl_grammar_node<char_type> * const right) {
-  const std::uint64_t hash_left = left->m_kr_hash;
-  const std::uint64_t hash_right = right->m_kr_hash;
-  const std::uint64_t len_right = right->m_exp_len;
+  const std::uint64_t left_hash = left->m_kr_hash;
+  const std::uint64_t right_hash = right->m_kr_hash;
+  const std::uint64_t right_len = right->m_exp_len;
   const std::uint64_t h = karp_rabin_hashing::concat(
-      hash_left, hash_right, len_right);
+      left_hash, right_hash, right_len);
   return h;
 }
 
 template<typename char_type>
 std::uint64_t append_hash(
-    const std::uint64_t hash_left,
+    const std::uint64_t left_hash,
     const avl_grammar_node<char_type> * const right) {
-  const std::uint64_t hash_right = right->m_kr_hash;
-  const std::uint64_t len_right = right->m_exp_len;
+  const std::uint64_t right_hash = right->m_kr_hash;
+  const std::uint64_t right_len = right->m_exp_len;
   const std::uint64_t h = karp_rabin_hashing::concat(
-      hash_left, hash_right, len_right);
+      left_hash, right_hash, right_len);
   return h;
 }
 

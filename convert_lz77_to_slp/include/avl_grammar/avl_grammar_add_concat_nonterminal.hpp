@@ -23,9 +23,7 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
     hash_table<std::uint64_t, const avl_grammar_node<char_type>*> &hashes,
     std::vector<const avl_grammar_node<char_type> *> &nonterminals,
     const avl_grammar_node<char_type> * const left,
-    const avl_grammar_node<char_type> * const right,
-    const std::uint64_t hash_variable,
-    const std::uint64_t mersenne_prime_exponent) {
+    const avl_grammar_node<char_type> * const right) {
   
   // Declare type.
   typedef avl_grammar_node<char_type> node_type;
@@ -43,8 +41,7 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
     } else {
       const node_type * const newright =
         add_concat_nonterminal<char_type>(
-            hashes, nonterminals, left->m_right, right,
-            hash_variable, mersenne_prime_exponent);
+            hashes, nonterminals, left->m_right, right);
       if (newright->m_height > left->m_left->m_height &&
           newright->m_height - left->m_left->m_height > 1) {
         
@@ -99,8 +96,7 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
     } else {
       const node_type * const newleft =
         add_concat_nonterminal<char_type>(
-            hashes, nonterminals, left, right->m_left,
-            hash_variable, mersenne_prime_exponent);
+            hashes, nonterminals, left, right->m_left);
       if (newleft->m_height > right->m_right->m_height &&
           newleft->m_height - right->m_right->m_height > 1) {
 

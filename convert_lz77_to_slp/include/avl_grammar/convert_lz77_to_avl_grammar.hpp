@@ -36,15 +36,11 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
   typedef avl_grammar_node<char_type> node_type;
   typedef avl_grammar<char_type> grammar_type;
 
-  // Set hashing variables.
-  const std::uint64_t mersenne_prime_exponent = 61;
-  const std::uint64_t hash_variable = 0; // XXX
-
+  // Init Karp-Rabin hashing.
   karp_rabin_hashing::init();
 
   // Compute the AVL grammar expanding to T.
-  grammar_type *grammar = new grammar_type(
-      hash_variable, mersenne_prime_exponent);
+  grammar_type *grammar = new grammar_type();
   std::uint64_t prefix_length = 0;
   for (std::uint64_t phrase_id = 0; phrase_id < parsing.size();
       ++phrase_id) {
@@ -73,8 +69,7 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
         const node_type * const suffix_nonterminal =
           add_substring_nonterminal<char_type>(
               grammar->m_hashes, grammar->m_nonterminals,
-              grammar->m_root, pos, prefix_length,
-              hash_variable, mersenne_prime_exponent);
+              grammar->m_root, pos, prefix_length);
 
         // Square the above nonterminal until
         // it reaches length >= len.
@@ -92,8 +87,7 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
         // of exp(suffix_pow_nonterminal) of length len.
         phrase_root = add_substring_nonterminal<char_type>(
             grammar->m_hashes, grammar->m_nonterminals,
-            suffix_pow_nonterminal, 0, len,
-            hash_variable, mersenne_prime_exponent);
+            suffix_pow_nonterminal, 0, len);
       } else {
 
         // Add the nonterminal expanding to phrase p.
@@ -101,8 +95,7 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
         std::uint64_t end = begin + len;
         phrase_root = add_substring_nonterminal<char_type>(
             grammar->m_hashes, grammar->m_nonterminals,
-            grammar->m_root, begin, end,
-            hash_variable, mersenne_prime_exponent);
+            grammar->m_root, begin, end);
       }
     }
 
@@ -113,8 +106,7 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
       grammar->m_root =
         add_concat_nonterminal<char_type>(
             grammar->m_hashes, grammar->m_nonterminals,
-            grammar->m_root, phrase_root,
-            hash_variable, mersenne_prime_exponent);
+            grammar->m_root, phrase_root);
 
     // Update prefix_length.
     prefix_length += std::max(len, (std::uint64_t)1);

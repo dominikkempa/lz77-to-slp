@@ -33,15 +33,9 @@ struct avl_grammar_multiroot {
   hash_table<std::uint64_t, const node_type*> m_hashes;
   std::vector<const node_type*> m_nonterminals;
   map_type m_roots;
-  const std::uint64_t m_hash_variable;
-  const std::uint64_t m_mersenne_prime_exponent;
 
   // Constructor.
-  avl_grammar_multiroot(
-      const std::uint64_t hash_variable,
-      const std::uint64_t mersenne_prime_exponent) :
-    m_hash_variable(hash_variable),
-    m_mersenne_prime_exponent(mersenne_prime_exponent) {}
+  avl_grammar_multiroot() {}
 
   // Print the string encoded by the grammar.
   void print_expansion() const {
@@ -184,8 +178,7 @@ struct avl_grammar_multiroot {
             v[smallest_height_id] = *(m_hashes.find(h));
           } else {
             value_type ret = add_concat_nonterminal<char_type>(
-                m_hashes, m_nonterminals, left, right,
-                m_hash_variable, m_mersenne_prime_exponent);
+                m_hashes, m_nonterminals, left, right);
             v.erase(v.begin() + smallest_height_id);
             v[smallest_height_id] = ret;
           }
@@ -202,8 +195,7 @@ struct avl_grammar_multiroot {
             v[smallest_height_id - 1] = *(m_hashes.find(h));
           } else {
             value_type ret = add_concat_nonterminal<char_type>(
-                m_hashes, m_nonterminals, left, right,
-                m_hash_variable, m_mersenne_prime_exponent);
+                m_hashes, m_nonterminals, left, right);
             v.erase(v.begin() + (smallest_height_id - 1));
             v[smallest_height_id - 1] = ret;
           }
@@ -278,8 +270,7 @@ struct avl_grammar_multiroot {
           //{
             //const node_type * const right =
             //  ::add_substring_nonterminal<char_type>(
-            //      m_hashes, m_nonterminals, it_right->second, rbegin, rend,
-            //      m_hash_variable, m_mersenne_prime_exponent);
+            //      m_hashes, m_nonterminals, it_right->second, rbegin, rend);
             //ret_vec.push_back(right);
           //}
           {
@@ -303,8 +294,7 @@ struct avl_grammar_multiroot {
         //{
         //  const node_type * const ret =
         //    ::add_substring_nonterminal<char_type>(
-        //        m_hashes, m_nonterminals, it_left->second, lbegin, lend,
-        //        m_hash_variable, m_mersenne_prime_exponent);
+        //        m_hashes, m_nonterminals, it_left->second, lbegin, lend);
         //  ret_vec.push_back(ret);
         //}
         {
@@ -337,8 +327,7 @@ struct avl_grammar_multiroot {
         //{
         //  const node_type * const ret =
         //    ::add_substring_nonterminal<char_type>(
-        //        m_hashes, m_nonterminals, it->second, lbegin, lend,
-        //        m_hash_variable, m_mersenne_prime_exponent);
+        //        m_hashes, m_nonterminals, it->second, lbegin, lend);
         //  ret_vec.push_back(ret);
         //}
         {
@@ -364,8 +353,7 @@ struct avl_grammar_multiroot {
         //{
         //  const node_type * const left_nonterminal =
         //    ::add_substring_nonterminal<char_type>(
-        //        m_hashes, m_nonterminals, it->second, lbegin, lend,
-        //        m_hash_variable, m_mersenne_prime_exponent);
+        //        m_hashes, m_nonterminals, it->second, lbegin, lend);
         //  ret_vec.push_back(left_nonterminal);
         //}
         {
@@ -398,8 +386,7 @@ struct avl_grammar_multiroot {
           //{
           //  const node_type * const mid_nonterminal =
           //    ::add_substring_nonterminal<char_type>(
-          //        m_hashes, m_nonterminals, it_mid->second, mbegin, mend,
-          //        m_hash_variable, m_mersenne_prime_exponent);
+          //        m_hashes, m_nonterminals, it_mid->second, mbegin, mend);
           //  ret_vec.push_back(mid_nonterminal);
           //}
           {
@@ -432,8 +419,7 @@ struct avl_grammar_multiroot {
           //{
           //  const node_type * const right_nonterminal =
           //    ::add_substring_nonterminal<char_type>(
-          //        m_hashes, m_nonterminals, it_right->second, rbegin, rend,
-          //        m_hash_variable, m_mersenne_prime_exponent);
+          //        m_hashes, m_nonterminals, it_right->second, rbegin, rend);
           //  ret_vec.push_back(right_nonterminal);
           //}
           {

@@ -34,14 +34,11 @@ avl_grammar_multiroot<char_type> *convert_lz77_to_avl_grammar_multiroot(
   typedef avl_grammar_node<char_type> node_type;
   typedef avl_grammar_multiroot<char_type> grammar_type;
 
-  // Set hashing variables.
-  const std::uint64_t mersenne_prime_exponent = 61;
-  const std::uint64_t hash_variable = 0;  // XXX
+  // Init Karp-Rabin hashing.
   karp_rabin_hashing::init();
 
   // Compute the AVL grammar expanding to T.
-  grammar_type *grammar = new grammar_type(
-      hash_variable, mersenne_prime_exponent);
+  grammar_type *grammar = new grammar_type();
   std::uint64_t prefix_length = 0;
   for (std::uint64_t phrase_id = 0;
       phrase_id < parsing.size(); ++phrase_id) {

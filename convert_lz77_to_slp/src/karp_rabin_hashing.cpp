@@ -10,6 +10,7 @@
 
 namespace karp_rabin_hashing {
 
+// Base and exponent used in Karp-Rabin hashing.
 std::uint64_t hash_variable;
 std::uint64_t mersenne_prime_exponent;
 
@@ -79,6 +80,8 @@ std::uint64_t  pow_mod_mersenne(
   return ret;
 }
 
+// Given Karp-Rabin hashes of two substrings, return
+// the Karp-Rabin hash of their concatenation.
 std::uint64_t concat(
     const std::uint64_t left_hash,
     const std::uint64_t right_hash,
@@ -92,6 +95,7 @@ std::uint64_t concat(
   return ret;
 }
 
+// Initialize the base and exponent for Karp-Rabin hashing.
 void init() {
   mersenne_prime_exponent = 61;
   hash_variable = rand_mod_mersenne(mersenne_prime_exponent);

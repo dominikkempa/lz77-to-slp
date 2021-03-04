@@ -25,16 +25,10 @@ struct avl_grammar {
   hash_table<std::uint64_t, const node_type*> m_hashes;
   std::vector<const node_type*> m_nonterminals;
   const node_type *m_root;
-  const std::uint64_t m_hash_variable;
-  const std::uint64_t m_mersenne_prime_exponent;
 
   // Constructor.
-  avl_grammar(
-      const std::uint64_t hash_variable,
-      const std::uint64_t mersenne_prime_exponent) :
-    m_root(NULL),
-    m_hash_variable(hash_variable),
-    m_mersenne_prime_exponent(mersenne_prime_exponent) {}
+  avl_grammar() :
+    m_root(NULL) {}
 
   // Print the string encoded by the grammar.
   void print_expansion() const {
@@ -61,31 +55,15 @@ struct avl_grammar {
   }
 
   // Collect Mersenne Karp-Rabin hashes in a vector.
-  // Allows specifying variable and prime exponent.
   void collect_mersenne_karp_rabin_hashes(
       std::vector<std::uint64_t> &hashes) const {
     (void) m_root->collect_mersenne_karp_rabin_hashes(hashes);
   }
 
   // Collect Mersenne Karp-Rabin hashes in a hash table.
-  // Allows specifying variable and prime exponent.
   void collect_mersenne_karp_rabin_hashes_2(
       hash_table<const node_type*, std::uint64_t> &hashes) const {
     (void) m_root->collect_mersenne_karp_rabin_hashes_2(hashes);
-  }
-
-  // Collect Mersenne Karp_Rabin hashes in a vector.
-  // Relies on automatic choice of variable and exponent.
-  void collect_mersenne_karp_rabin_hashes(
-      std::vector<std::uint64_t> &hashes) const {
-    collect_mersenne_karp_rabin_hashes(hashes);
-  }
-
-  // Collect Mersenne Karp_Rabin hashes in a hash table.
-  // Relies on automatic choice of variable and exponent.
-  void collect_mersenne_karp_rabin_hashes_2(
-      hash_table<const node_type*, std::uint64_t> &hashes) const {
-    collect_mersenne_karp_rabin_hashes_2(hashes);
   }
 
   // Count nodes in the pruned grammar.
