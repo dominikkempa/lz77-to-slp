@@ -56,6 +56,8 @@ void test_conversion(
   fprintf(stderr, "Text length = %lu (%.2LfMiB)\n",
       text_length, (1.L * text_length * sizeof(char_type)) / (1 << 20));
   fprintf(stderr, "Number of LZ77 phrases = %lu\n", parsing_size);
+  fprintf(stderr, "Average phrase length = %.2Lf\n",
+      (long double)text_length / parsing_size);
   fprintf(stderr, "sizeof(char_type) = %lu\n", sizeof(char_type));
   fprintf(stderr, "sizeof(text_offset_type) = %lu\n",
       sizeof(text_offset_type));
