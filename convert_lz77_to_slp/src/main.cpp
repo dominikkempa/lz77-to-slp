@@ -28,7 +28,9 @@ template<
   typename char_type = std::uint8_t,
   typename text_offset_type = std::uint64_t>
 void test_conversion(
+#ifdef TEST_CORRECTNESS
     std::string text_filename,
+#endif
     std::string parsing_filename) {
 
   // Declare types.
@@ -242,29 +244,34 @@ void test_conversion(
 }
 
 int main(int argc, char **argv) {
-#ifndef TEST_CORRECTNESS
-  if (argc != 2)
-    std::exit(EXIT_FAILURE);
-#else
+#ifdef TEST_CORRECTNESS
   if (argc != 3)
     std::exit(EXIT_FAILURE);
+#else
+  if (argc != 2)
+    std::exit(EXIT_FAILURE);
 #endif
+
+  // Initialize runtime statistics.
+  utils::initialize_stats();
 
   // Declare types.
   typedef std::uint8_t char_type;
   typedef uint40 text_offset_type;
 
   // Obtain filenames.
-#ifndef TEST_CORRECTNESS
-  std::string text_filename = "";
-  std::string parsing_filename = argv[1];
-#else
+#ifdef TEST_CORRECTNESS
   std::string text_filename = argv[1];
+  std::string parsing_filename = argv[2];
+#else
   std::string parsing_filename = argv[2];
 #endif
 
   // Run the algorithm.
   test_conversion<char_type, text_offset_type>(
-      text_filename, parsing_filename);
+#ifdef TEST_CORRECTNESS
+      text_filename,
+#endif
+      parsing_filename);
 }
 

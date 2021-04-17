@@ -105,7 +105,7 @@ struct avl_grammar_multiroot {
         it->second->collect_nonterminal_pointers(pointers);
     }
 
-  private:
+  public:
 
     // Merge nonterminals enclosed in the interval [begin..end).
     void merge_enclosed_nonterminals(
@@ -208,10 +208,13 @@ struct avl_grammar_multiroot {
 
   public:
 
-    // Add the nonterminals expanding to the string T[begin..end).
-    std::vector<const node_type*> add_substring_nonterminal(
+    // Get the sequence of nonterminals expanding to T[begin..end).
+    // Right now this function assumes that we called
+    // merge_enclosed_nonterminals(begin, end) right before,
+    // but this is not necessary. TODO(fix this!) 
+    std::vector<const node_type*> decomposition(
         const std::uint64_t begin,
-        const std::uint64_t end) {
+        const std::uint64_t end) const {
 
       // Check arguments.
       if (begin > end) {
@@ -219,12 +222,9 @@ struct avl_grammar_multiroot {
         std::exit(EXIT_FAILURE);
       }
 
-      // Ensure [begin..end) overlaps at most three roots.
-      merge_enclosed_nonterminals(begin, end);
-
       // Find the leftmost root whose expansion
       // overlaps or touches block T[begin..end).
-      iter_type it = m_roots.lower_bound(begin);
+      const_iter_type it = m_roots.lower_bound(begin);
 
       // Consider all possible cases in which the block
       // [begin..end) can overlap the roots of the grammar.
@@ -236,7 +236,7 @@ struct avl_grammar_multiroot {
         // are three cases to consider. First, obtain the
         // point to the grammar root whose expansion overlaps
         // block [begin..end).
-        iter_type it_left = it;
+        const_iter_type it_left = it;
         if (begin > 0)
           ++it_left;
 
@@ -250,20 +250,19 @@ struct avl_grammar_multiroot {
             ret_vec.push_back(it_left->second);
           } else {
 
-            // Case II: it_left->first > end. We need
-            // to create a nonterminal expanding to some
-            // propert prefix of the expansion of the right
-            // neighbor of it_left->second, and then merge
-            // it with it_left->second.
+            // Case II: it_left->first > end. We need to create a nonterminal
+            // expanding to some proper prefix of the expansion of some
+            // nonterminal to the right of it_left->second, and merge with
+            // it_left->second and all nonterminals in between.
             const node_type * const left = it_left->second;
             ret_vec.push_back(left);
             const std::uint64_t rbegin = 0;
             const std::uint64_t rend = end - it_left->first;
-            iter_type it_right = it_left;
+            const_iter_type it_right = it_left;
             ++it_right;
             {
               std::vector<const node_type*> right_decomposition =
-                decomposition<char_type>(it_right->second, rbegin, rend);
+                ::decomposition<char_type>(it_right->second, rbegin, rend);
               ret_vec.insert(ret_vec.end(), right_decomposition.begin(),
                   right_decomposition.end());
             }
@@ -277,7 +276,7 @@ struct avl_grammar_multiroot {
           const std::uint64_t lend = end - begin;
           {
             std::vector<const node_type*> ret_decomposition =
-              decomposition<char_type>(it_left->second, lbegin, lend);
+              ::decomposition<char_type>(it_left->second, lbegin, lend);
             ret_vec.insert(ret_vec.end(), ret_decomposition.begin(),
                 ret_decomposition.end());
           }
@@ -300,7 +299,7 @@ struct avl_grammar_multiroot {
           const std::uint64_t lend = end - it_exp_beg;
           {
             std::vector<const node_type*> ret_decomposition =
-              decomposition<char_type>(it->second, lbegin, lend);
+              ::decomposition<char_type>(it->second, lbegin, lend);
             ret_vec.insert(ret_vec.end(), ret_decomposition.begin(),
                 ret_decomposition.end());
           }
@@ -316,7 +315,7 @@ struct avl_grammar_multiroot {
           const std::uint64_t lend = it_block_size;
           {
             std::vector<const node_type*> left_decomposition =
-              decomposition<char_type>(it->second, lbegin, lend);
+              ::decomposition<char_type>(it->second, lbegin, lend);
             ret_vec.insert(ret_vec.end(), left_decomposition.begin(),
                 left_decomposition.end());
           }
@@ -327,7 +326,7 @@ struct avl_grammar_multiroot {
           // at the end of the right one or not), or three. If three,
           // then we are guaranteed that for the third one, we only
           // overlap by the proper prefix.
-          iter_type it_mid = it;
+          const_iter_type it_mid = it;
           ++it_mid;
           if (end < it_mid->first) {
 
@@ -339,7 +338,7 @@ struct avl_grammar_multiroot {
             const std::uint64_t mend = end - it->first;
             {
               std::vector<const node_type*> mid_decomposition =
-                decomposition<char_type>(it_mid->second, mbegin, mend);
+                ::decomposition<char_type>(it_mid->second, mbegin, mend);
               ret_vec.insert(ret_vec.end(), mid_decomposition.begin(),
                   mid_decomposition.end());
             }
@@ -356,13 +355,13 @@ struct avl_grammar_multiroot {
             // root to the right of it_mid. First, create the
             // nonterminal expanding to that prefix.
             ret_vec.push_back(it_mid->second);
-            iter_type it_right = it_mid;
+            const_iter_type it_right = it_mid;
             ++it_right;
             const std::uint64_t rbegin = 0;
             const std::uint64_t rend = end - it_mid->first;
             {
               std::vector<const node_type*> right_decomposition =
-                decomposition<char_type>(it_right->second, rbegin, rend);
+                ::decomposition<char_type>(it_right->second, rbegin, rend);
               ret_vec.insert(ret_vec.end(),
                   right_decomposition.begin(),
                   right_decomposition.end());
