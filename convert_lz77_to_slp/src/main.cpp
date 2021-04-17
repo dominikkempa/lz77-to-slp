@@ -9,6 +9,7 @@
 #include <getopt.h>
 
 #define MULTIROOT
+//#define TEST_CORRECTNESS
 
 #include "../include/types/uint40.hpp"
 #include "../include/utils/utils.hpp"
@@ -39,25 +40,31 @@ void test_conversion(
 #endif
 
   // Turn paths absolute.
+#ifdef TEST_CORRECTNESS
   text_filename = utils::absolute_path(text_filename);
+#endif
   parsing_filename = utils::absolute_path(parsing_filename);
 
   // Obtain some basic statistics about input.
+#ifdef TEST_CORRECTNESS
   std::uint64_t text_length =
     utils::file_size(text_filename) / sizeof(char_type);
+#endif  // TEST_CORRECTNESS
   std::uint64_t parsing_size =
       utils::file_size(parsing_filename) / sizeof(phrase_type);
 
   // Print parameters.
   fprintf(stderr, "Convert LZ77 to SLP\n");
   fprintf(stderr, "Timestamp = %s", utils::get_timestamp().c_str());
-  fprintf(stderr, "Text filename = %s\n", text_filename.c_str());
   fprintf(stderr, "Parsing filename = %s\n", parsing_filename.c_str());
+#ifdef TEST_CORRECTNESS
+  fprintf(stderr, "Text filename = %s\n", text_filename.c_str());
   fprintf(stderr, "Text length = %lu (%.2LfMiB)\n",
       text_length, (1.L * text_length * sizeof(char_type)) / (1 << 20));
-  fprintf(stderr, "Number of LZ77 phrases = %lu\n", parsing_size);
   fprintf(stderr, "Average phrase length = %.2Lf\n",
       (long double)text_length / parsing_size);
+#endif  // TEST_CORRECTNESS
+  fprintf(stderr, "Number of LZ77 phrases = %lu\n", parsing_size);
   fprintf(stderr, "sizeof(char_type) = %lu\n", sizeof(char_type));
   fprintf(stderr, "sizeof(text_offset_type) = %lu\n",
       sizeof(text_offset_type));
@@ -95,6 +102,8 @@ void test_conversion(
   fprintf(stderr, "Grammar size = %lu\n", grammar->size());
   fprintf(stderr, "\n");
 
+
+#ifdef TEST_CORRECTNESS
 
   // Run tests of correctness.
   fprintf(stderr, "Tests of correctness:\n");
@@ -214,6 +223,12 @@ void test_conversion(
     fprintf(stderr, "(%lu)\n", pointers.size());
   }
 
+  // Clean up.
+  delete[] text;
+  delete[] decoded_text;
+
+#endif  // TEST_CORRECTNESS
+
 #ifdef MULTIROOT
   {
     fprintf(stderr, "  Number of roots = %lu\n",
@@ -222,23 +237,31 @@ void test_conversion(
 #endif
 
   // Clean up.
-  delete[] text;
-  delete[] decoded_text;
   for (std::uint64_t i = 0; i < grammar->m_nonterminals.size(); ++i)
     delete grammar->m_nonterminals[i];
 }
 
 int main(int argc, char **argv) {
+#ifndef TEST_CORRECTNESS
+  if (argc != 2)
+    std::exit(EXIT_FAILURE);
+#else
   if (argc != 3)
     std::exit(EXIT_FAILURE);
+#endif
 
   // Declare types.
   typedef std::uint8_t char_type;
   typedef uint40 text_offset_type;
 
   // Obtain filenames.
+#ifndef TEST_CORRECTNESS
+  std::string text_filename = "";
+  std::string parsing_filename = argv[1];
+#else
   std::string text_filename = argv[1];
   std::string parsing_filename = argv[2];
+#endif
 
   // Run the algorithm.
   test_conversion<char_type, text_offset_type>(
