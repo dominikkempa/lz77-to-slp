@@ -21,6 +21,8 @@
 //=============================================================================
 template<typename char_type>
 struct avl_grammar_multiroot {
+
+  // Declare typedefs
   typedef avl_grammar_node<char_type> node_type;
   typedef std::uint64_t key_type;
   typedef const node_type* value_type;
@@ -139,8 +141,6 @@ struct avl_grammar_multiroot {
           it->second->collect_nonterminal_pointers(pointers);
     }
 
-  public:
-
     // Merge nonterminals enclosed in the interval [begin..end).
     void merge_enclosed_nonterminals(
         const std::uint64_t begin,
@@ -232,8 +232,6 @@ struct avl_grammar_multiroot {
         m_roots[key] = val;
       }
     }
-
-  public:
 
     // Get the sequence of nonterminals expanding to T[begin..end).
     std::vector<const node_type*> decomposition(
