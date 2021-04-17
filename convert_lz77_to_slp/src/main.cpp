@@ -9,7 +9,7 @@
 #include <getopt.h>
 
 #define MULTIROOT
-//#define TEST_CORRECTNESS
+#define TEST_CORRECTNESS
 
 #include "../include/types/uint40.hpp"
 #include "../include/utils/utils.hpp"
@@ -234,7 +234,7 @@ void test_conversion(
 #ifdef MULTIROOT
   {
     fprintf(stderr, "  Number of roots = %lu\n",
-        grammar->m_roots.size());
+        grammar->number_of_roots());
   }
 #endif
 

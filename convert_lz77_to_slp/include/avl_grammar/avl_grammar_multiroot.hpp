@@ -38,17 +38,25 @@ struct avl_grammar_multiroot {
   public:
   
     // Constructor.
-    avl_grammar_multiroot() {}
+    avl_grammar_multiroot() {
+      m_roots.insert(std::make_pair(0, (value_type)NULL));
+    }
 
     // Print the string encoded by the grammar.
     void print_expansion() const {
       for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
-        it->second->print_expansion();
+        if ((std::uint64_t)it->first != 0)
+          it->second->print_expansion();
     }
 
     // Return the number of nonterminals.
     std::uint64_t size() const {
       return m_nonterminals.size();
+    }
+
+    // Return the number of roots.
+    std::uint64_t number_of_roots() const {
+      return m_roots.size() - 1;
     }
 
     // Decode the text and write to a given array.
@@ -57,19 +65,23 @@ struct avl_grammar_multiroot {
         std::uint64_t &text_length) const {
       text_length = 0;
       for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
-        text_length += it->second->m_exp_len;
+        if ((std::uint64_t)it->first != 0)
+          text_length += it->second->m_exp_len;
       text = new char_type[text_length];
       std::uint64_t ptr = 0;
       for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it) {
-        it->second->write_expansion(text + ptr);
-        ptr += it->second->m_exp_len;
+        if ((std::uint64_t)it->first != 0) {
+          it->second->write_expansion(text + ptr);
+          ptr += it->second->m_exp_len;
+        }
       }
     }
 
     // Test the AVL property of all nonterminals.
     bool test_avl_property() const {
       for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
-        if (it->second->test_avl_property() == false)
+        if ((std::uint64_t)it->first != 0 &&
+            it->second->test_avl_property() == false)
           return false;
       return true;
     }
@@ -78,14 +90,16 @@ struct avl_grammar_multiroot {
     void collect_mersenne_karp_rabin_hashes(
         std::vector<std::uint64_t> &hashes) const {
       for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
-        (void) it->second->collect_mersenne_karp_rabin_hashes(hashes);
+        if ((std::uint64_t)it->first != 0)
+          (void) it->second->collect_mersenne_karp_rabin_hashes(hashes);
     }
 
     // Collect Mersenne Karp-Rabin hashes in a hash table.
     void collect_mersenne_karp_rabin_hashes_2(
         hash_table<const node_type*, std::uint64_t> &hashes) const {
       for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
-        (void) it->second->collect_mersenne_karp_rabin_hashes_2(hashes);
+        if ((std::uint64_t)it->first != 0)
+          (void) it->second->collect_mersenne_karp_rabin_hashes_2(hashes);
     }
 
     // Count nodes in the pruned grammar.
@@ -94,15 +108,17 @@ struct avl_grammar_multiroot {
         hash_table<std::uint64_t, bool> &seen_hashes,
         std::uint64_t &current_count) const {
       for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
-        it->second->count_nodes_in_pruned_grammar(
-            hashes, seen_hashes, current_count);
+        if ((std::uint64_t)it->first != 0)
+          it->second->count_nodes_in_pruned_grammar(
+              hashes, seen_hashes, current_count);
     }
 
     // Collect pointers to all nonterminals reachable from the root.
     void collect_nonterminal_pointers(
         std::vector<const node_type*> &pointers) const {
       for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
-        it->second->collect_nonterminal_pointers(pointers);
+        if ((std::uint64_t)it->first != 0)
+          it->second->collect_nonterminal_pointers(pointers);
     }
 
   public:
@@ -119,25 +135,18 @@ struct avl_grammar_multiroot {
         std::exit(EXIT_FAILURE);
       }
 
-      // Handle special case.
-      if (m_roots.empty())
-        return;
-
-      // Find the range [it_begin..it_end)
-      // of nonterminals to merge.
-      iter_type it_begin = m_roots.end();
+      // Initialize length of previous nonterminals.
       std::uint64_t prev_nonterminals_total_length = 0;
-      if (begin == 0) {
-        it_begin = m_roots.begin();
-        prev_nonterminals_total_length = 0;
-      } else {
-        it_begin = m_roots.lower_bound(begin);
-        prev_nonterminals_total_length = it_begin->first;
-        ++it_begin;
-      }
+
+      // Find range [it_begin..it_end) of roots to merge.
+      iter_type it_begin = m_roots.end();
+      it_begin = m_roots.lower_bound(begin);
+      prev_nonterminals_total_length = it_begin->first;
+      ++it_begin;
+
+      // Now find it_end.
       iter_type it_end = it_begin;
-      while (it_end != m_roots.end() &&
-          it_end->first <= end)
+      while (it_end != m_roots.end() && it_end->first <= end)
         ++it_end;
 
       // Merge nonterminals in [it_begin..it_end).
@@ -229,7 +238,7 @@ struct avl_grammar_multiroot {
       // Consider all possible cases in which the block
       // [begin..end) can overlap the roots of the grammar.
       std::vector<const node_type*> ret_vec;
-      if (begin == 0 || it->first == begin) {
+      if (it->first == begin) {
 
         // If the block [begin..end) starts at the beginning
         // of the expansion of the root in the grammar, there
@@ -237,8 +246,7 @@ struct avl_grammar_multiroot {
         // point to the grammar root whose expansion overlaps
         // block [begin..end).
         const_iter_type it_left = it;
-        if (begin > 0)
-          ++it_left;
+        ++it_left;
 
         // Consider all three cases.
         if (it_left->first <= end) {
