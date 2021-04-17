@@ -28,18 +28,24 @@ struct avl_grammar_multiroot {
   typedef typename map_type::const_iterator const_iter_type;
   typedef typename map_type::iterator iter_type;
 
-  public:
+  private:
 
     // Class members.
-    hash_table<std::uint64_t, const node_type*> m_hashes;
-    std::vector<const node_type*> m_nonterminals;
     map_type m_roots;
+    std::vector<const node_type*> m_nonterminals;
+    hash_table<std::uint64_t, const node_type*> m_hashes;
 
   public:
   
     // Constructor.
     avl_grammar_multiroot() {
       m_roots.insert(std::make_pair(0, (value_type)NULL));
+    }
+
+    // Destructor.
+    ~avl_grammar_multiroot() {
+      for (std::uint64_t i = 0; i < m_nonterminals.size(); ++i)
+        delete m_nonterminals[i];
     }
 
     // Print the string encoded by the grammar.
@@ -57,6 +63,18 @@ struct avl_grammar_multiroot {
     // Return the number of roots.
     std::uint64_t number_of_roots() const {
       return m_roots.size() - 1;
+    }
+
+    // Add a root.
+    void add_root(
+        const key_type pos,
+        const value_type ptr) {
+      m_roots[pos] = ptr;
+    }
+
+    // Add a nonterminal.
+    void add_nonterminal(const node_type* nonterm) {
+      m_nonterminals.push_back(nonterm);
     }
 
     // Decode the text and write to a given array.
@@ -218,169 +236,50 @@ struct avl_grammar_multiroot {
   public:
 
     // Get the sequence of nonterminals expanding to T[begin..end).
-    // Right now this function assumes that we called
-    // merge_enclosed_nonterminals(begin, end) right before,
-    // but this is not necessary. TODO(fix this!) 
     std::vector<const node_type*> decomposition(
-        const std::uint64_t begin,
-        const std::uint64_t end) const {
+        std::uint64_t begin,
+        std::uint64_t end) const {
 
-      // Check arguments.
-      if (begin > end) {
-        fprintf(stderr, "n\nError: add_substring_nonterminal: beg > end!\n");
-        std::exit(EXIT_FAILURE);
-      }
-
-      // Find the leftmost root whose expansion
-      // overlaps or touches block T[begin..end).
+      // Find leftmost root whose expansion overlaps/touches T[begin..end).
       const_iter_type it = m_roots.lower_bound(begin);
 
-      // Consider all possible cases in which the block
-      // [begin..end) can overlap the roots of the grammar.
-      std::vector<const node_type*> ret_vec;
-      if (it->first == begin) {
-
-        // If the block [begin..end) starts at the beginning
-        // of the expansion of the root in the grammar, there
-        // are three cases to consider. First, obtain the
-        // point to the grammar root whose expansion overlaps
-        // block [begin..end).
-        const_iter_type it_left = it;
-        ++it_left;
-
-        // Consider all three cases.
-        if (it_left->first <= end) {
-          if (it_left->first == end) {
-
-            // Case I: the block [begin..end) is equal
-            // to the expansion of the grammar root. No
-            // need to merge anything.
-            ret_vec.push_back(it_left->second);
-          } else {
-
-            // Case II: it_left->first > end. We need to create a nonterminal
-            // expanding to some proper prefix of the expansion of some
-            // nonterminal to the right of it_left->second, and merge with
-            // it_left->second and all nonterminals in between.
-            const node_type * const left = it_left->second;
-            ret_vec.push_back(left);
-            const std::uint64_t rbegin = 0;
-            const std::uint64_t rend = end - it_left->first;
-            const_iter_type it_right = it_left;
-            ++it_right;
-            {
-              std::vector<const node_type*> right_decomposition =
-                ::decomposition<char_type>(it_right->second, rbegin, rend);
-              ret_vec.insert(ret_vec.end(), right_decomposition.begin(),
-                  right_decomposition.end());
-            }
-          }
-        } else {
-
-          // Case III: block [begin..end) is entirely inside
-          // the expansion of it_left->second. It suffices to
-          // call add_substring_nonterminal.
-          const std::uint64_t lbegin = 0;
-          const std::uint64_t lend = end - begin;
-          {
-            std::vector<const node_type*> ret_decomposition =
-              ::decomposition<char_type>(it_left->second, lbegin, lend);
-            ret_vec.insert(ret_vec.end(), ret_decomposition.begin(),
-                ret_decomposition.end());
-          }
-        }
-      } else {
-
-        // It it->first > begin, then there are two subcases to
-        // consider. Either the block [begin..end) it entirely
-        // contain in the expansion of it->second, or not.
-        if (end <= it->first) {
-
-          // Case I: the block [begin..end) it entirely contained
-          // in the expansion of nonterminal it->second. Since
-          // we separately considered the case of begin = 0 before,
-          // we are not therefore quaranteed that it is moreover
-          // a proper substring.
-          const std::uint64_t it_exp_size = it->second->m_exp_len;
-          const std::uint64_t it_exp_beg = it->first - it_exp_size;
-          const std::uint64_t lbegin = begin - it_exp_beg;
-          const std::uint64_t lend = end - it_exp_beg;
-          {
-            std::vector<const node_type*> ret_decomposition =
-              ::decomposition<char_type>(it->second, lbegin, lend);
-            ret_vec.insert(ret_vec.end(), ret_decomposition.begin(),
-                ret_decomposition.end());
-          }
-        } else {
-
-          // Case II: the expansion of it->first and block [begin..end)
-          // overlap each other in the proper way (i.e., neither is
-          // contained inside the other one). Thus, we can already compute
-          // the nonterminal expanding to the proper prefix of [begin..end).
-          const std::uint64_t it_block_size = it->second->m_exp_len;
-          const std::uint64_t lsize = it->first - begin;
-          const std::uint64_t lbegin = it_block_size - lsize;
-          const std::uint64_t lend = it_block_size;
-          {
-            std::vector<const node_type*> left_decomposition =
-              ::decomposition<char_type>(it->second, lbegin, lend);
-            ret_vec.insert(ret_vec.end(), left_decomposition.begin(),
-                left_decomposition.end());
-          }
-
-          // We now have three cases: either the block [begin..end)
-          // overlaps expansions of two grammar roots (and there there
-          // are two subcases, depending, on whether it perfectly ends
-          // at the end of the right one or not), or three. If three,
-          // then we are guaranteed that for the third one, we only
-          // overlap by the proper prefix.
-          const_iter_type it_mid = it;
-          ++it_mid;
-          if (end < it_mid->first) {
-
-            // Case IIa: the block [begin..end) properly overlaps
-            // the expansion of it_mid->second. We first create the
-            // nonterminal expanding to that prefix, and them merge
-            // it with left_nonterminal.
-            const std::uint64_t mbegin = 0;
-            const std::uint64_t mend = end - it->first;
-            {
-              std::vector<const node_type*> mid_decomposition =
-                ::decomposition<char_type>(it_mid->second, mbegin, mend);
-              ret_vec.insert(ret_vec.end(), mid_decomposition.begin(),
-                  mid_decomposition.end());
-            }
-          } else if (end == it_mid->first) {
-
-            // Case IIb: the block [begin..end) ends at the
-            // expansion of it_mid->second. Thus, ut suffices
-            // to merge left_nonterminal with it_mid->second.
-            ret_vec.push_back(it_mid->second);
-          } else {
-
-            // Case IIc: the block [begin..end) overlaps (as
-            // a proper prefix) the expansion of the grammar
-            // root to the right of it_mid. First, create the
-            // nonterminal expanding to that prefix.
-            ret_vec.push_back(it_mid->second);
-            const_iter_type it_right = it_mid;
-            ++it_right;
-            const std::uint64_t rbegin = 0;
-            const std::uint64_t rend = end - it_mid->first;
-            {
-              std::vector<const node_type*> right_decomposition =
-                ::decomposition<char_type>(it_right->second, rbegin, rend);
-              ret_vec.insert(ret_vec.end(),
-                  right_decomposition.begin(),
-                  right_decomposition.end());
-            }
-          }
-        }
+      // Proper substring or suffix of expansion of `it'.
+      std::vector<const node_type*> ret;
+      if (begin < it->first) {
+        const std::uint64_t it_exp_size = it->second->m_exp_len;
+        const std::uint64_t it_exp_beg = it->first - it_exp_size;
+        const std::uint64_t local_beg = begin - it_exp_beg;
+        const std::uint64_t local_end = std::min(it->first, end) - it_exp_beg;
+        const std::uint64_t local_size = local_end - local_beg;
+        std::vector<const node_type*> dec =
+          ::decomposition<char_type>(it->second, local_beg, local_end);
+        ret.insert(ret.end(), dec.begin(), dec.end());
+        begin += local_size;
       }
 
-      std::vector<const node_type*> ret_vec_opt =
-        dp_grouping_algorithm<char_type>(m_hashes, ret_vec);
-      return ret_vec_opt;
+      // Full expansions of nonterminals.
+      ++it;
+      while (begin < end && it->first <= end) {
+        ret.push_back(it->second);
+        begin = it->first;
+        ++it;
+      }
+
+      // Proper suffix of of expansion of `it'.
+      if (begin < end) {
+        const std::uint64_t it_exp_size = it->second->m_exp_len;
+        const std::uint64_t it_exp_beg = it->first - it_exp_size;
+        const std::uint64_t local_end = end - it_exp_beg;
+        std::vector<const node_type*> dec =
+          ::decomposition(it->second, 0, local_end);
+        ret.insert(ret.end(), dec.begin(), dec.end());
+        begin = end;
+      }
+
+      // Return shorter equivalent sequence of nonterminals.
+      std::vector<const node_type*> ret_opt =
+        dp_grouping_algorithm<char_type>(m_hashes, ret);
+      return ret_opt;
     }
 };
 

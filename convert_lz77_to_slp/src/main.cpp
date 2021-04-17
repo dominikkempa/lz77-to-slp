@@ -239,8 +239,7 @@ void test_conversion(
 #endif
 
   // Clean up.
-  for (std::uint64_t i = 0; i < grammar->m_nonterminals.size(); ++i)
-    delete grammar->m_nonterminals[i];
+  delete grammar;
 }
 
 int main(int argc, char **argv) {

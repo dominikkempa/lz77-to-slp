@@ -51,7 +51,7 @@ avl_grammar_multiroot<char_type> *convert_lz77_to_avl_grammar_multiroot(
 
       // If this is a literal phrase, create a trivial grammar.
       const node_type *root = new node_type((char_type)pos);
-      grammar->m_nonterminals.push_back(root);
+      grammar->add_nonterminal(root);
       phrase_roots.push_back(root);
     } else {
 
@@ -79,7 +79,7 @@ avl_grammar_multiroot<char_type> *convert_lz77_to_avl_grammar_multiroot(
     // Update prefix length and add new roots to the grammar.
     for (std::uint64_t t = 0; t < phrase_roots.size(); ++t) {
       prefix_length += phrase_roots[t]->m_exp_len;
-      grammar->m_roots[prefix_length] = phrase_roots[t];
+      grammar->add_root(prefix_length, phrase_roots[t]);
     }
   }
 
