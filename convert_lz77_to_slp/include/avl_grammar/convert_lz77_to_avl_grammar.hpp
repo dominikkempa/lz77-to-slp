@@ -10,7 +10,6 @@
 #include "../utils/karp_rabin_hashing.hpp"
 #include "avl_grammar_node.hpp"
 #include "avl_grammar_add_concat_nonterminal.hpp"
-#include "avl_grammar_add_substring_nonterminal.hpp"
 #include "avl_grammar.hpp"
 
 
@@ -56,57 +55,45 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
       grammar->add_nonterminal(phrase_root);
     } else {
 
-      // We proceed differently, depending on whether
-      // the phrase is self-overlapping. This part is
-      // unadressed in the original Rytter's paper. The
-      // solution is described in the proof of Theorem 6.1
-      // in https://arxiv.org/abs/1910.10631v3.
+      // Self-overlapping phrases are unadressed in Rytter's paper.
+      // We follow Theorem 6.1 in https://arxiv.org/abs/1910.10631v3.
       if (pos + len > prefix_length) {
 
         // If the phase is self-overlapping, we create the
         // nonterminal expanding to text[pos..prefix_length).
-        const node_type * const suffix_nonterminal =
-          add_substring_nonterminal<char_type>(
-              grammar->m_hashes, grammar->m_nonterminals,
-              grammar->m_root, pos, prefix_length);
+        const node_type * const suffix_nonterm =
+          grammar->add_substring_nonterminal(pos, prefix_length);
 
-        // Square the above nonterminal until
-        // it reaches length >= len.
-        const node_type *suffix_pow_nonterminal = suffix_nonterminal;
+        // Square the nonterminal until it reaches length >= len.
+        const node_type *suffix_pow_nonterm = suffix_nonterm;
         std::uint64_t curlen = prefix_length - pos;
         while (curlen < len) {
           const node_type * const square = new node_type(
-              suffix_pow_nonterminal, suffix_pow_nonterminal);
+              suffix_pow_nonterm, suffix_pow_nonterm);
           grammar->add_nonterminal(square);
           curlen <<= 1;
           suffix_pow_nonterminal = square;
         }
 
-        // Create a nonterminal expanding to the prefix
-        // of exp(suffix_pow_nonterminal) of length len.
-        phrase_root = add_substring_nonterminal<char_type>(
-            grammar->m_hashes, grammar->m_nonterminals,
-            suffix_pow_nonterminal, 0, len);
+        // Create a nonterminal expanding to the prefix length len.
+        phrase_root = grammar->add_substring_nonterminal(
+            suffix_pow_nonterm, 0, len);
       } else {
 
         // Add the nonterminal expanding to phrase p.
         std::uint64_t begin = pos;
         std::uint64_t end = begin + len;
-        phrase_root = add_substring_nonterminal<char_type>(
-            grammar->m_hashes, grammar->m_nonterminals,
-            grammar->m_root, begin, end);
+        phrase_root = grammar->add_substring_nonterminal(begin, end);
       }
     }
 
     // Update prefix length and add new root to the grammar.
     prefix_length += std::max(len, (std::uint64_t)1);
-    if (grammar->m_root == NULL)
-      grammar->m_root = phrase_root;
-    else
-      grammar->m_root =
-        add_concat_nonterminal<char_type>(
-            grammar->m_hashes, grammar->m_nonterminals,
-            grammar->m_root, phrase_root);
+    if (grammar->m_root == NULL) grammar->m_root = phrase_root;
+    else grammar->m_root =
+      add_concat_nonterminal<char_type>(
+          grammar->m_hashes, grammar->m_nonterminals,
+          grammar->m_root, phrase_root);
   }
 
   // Return the result.
