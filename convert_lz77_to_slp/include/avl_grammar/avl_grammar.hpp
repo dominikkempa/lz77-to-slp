@@ -9,6 +9,7 @@
 
 #include "../utils/hash_table.hpp"
 #include "avl_grammar_node.hpp"
+#include "avl_grammar_add_concat_nonterminal.hpp"
 
 
 //=============================================================================
@@ -137,7 +138,6 @@ struct avl_grammar {
           // one. End result: merge with the right neighbor.
           const node_type * const left = seq[smallest_height_id];
           const node_type * const right = seq[smallest_height_id + 1];
-          const std::uint64_t h = merge_hashes<char_type>(left, right);
           seq.erase(seq.begin() + smallest_height_id);
           seq[smallest_height_id] = add_concat_nonterminal<char_type>(
               m_hashes, m_nonterminals, left, right);
@@ -148,7 +148,6 @@ struct avl_grammar {
           // right one. End result: merge with left neighbor.
           const node_type * const left = seq[smallest_height_id - 1];
           const node_type * const right = seq[smallest_height_id];
-          const std::uint64_t h = merge_hashes<char_type>(left, right);
           seq.erase(seq.begin() + (smallest_height_id - 1));
           seq[smallest_height_id - 1] = add_concat_nonterminal<char_type>(
               m_hashes, m_nonterminals, left, right);

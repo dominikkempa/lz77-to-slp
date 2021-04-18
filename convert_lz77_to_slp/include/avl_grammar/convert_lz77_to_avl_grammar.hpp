@@ -72,7 +72,7 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
               suffix_pow_nonterm, suffix_pow_nonterm);
           grammar->add_nonterminal(square);
           curlen <<= 1;
-          suffix_pow_nonterminal = square;
+          suffix_pow_nonterm = square;
         }
 
         // Create a nonterminal expanding to the prefix length len.
