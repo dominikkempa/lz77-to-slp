@@ -58,28 +58,6 @@ avl_grammar_multiroot<char_type> *convert_lz77_to_avl_grammar_multiroot(
       // Self-overlapping phrases are unadressed in Rytter's paper.
       // We follow Theorem 6.1 in https://arxiv.org/abs/1910.10631v3.
       if (pos + len > prefix_length) {
-
-#if 0
-        // If the phase is self-overlapping, we create the
-        // nonterminal expanding to text[pos..prefix_length).
-        const node_type * const suffix_nonterm =
-          grammar->add_substring_nonterminal(pos, prefix_length);
-
-        // Square the nonterminal until it reaches length >= len.
-        const node_type *suffix_pow_nonterm = suffix_nonterm;
-        std::uint64_t curlen = prefix_length - pos;
-        while (curlen < len) {
-          const node_type * const square = new node_type(
-              suffix_pow_nonterm, suffix_pow_nonterm);
-          grammar->add_nonterminal(square);
-          curlen <<= 1;
-          suffix_pow_nonterm = square;
-        }
-
-        // Create a nonterminal expanding to the prefix length len.
-        phrase_roots = suffix_pow_nonterm->decomposition(0, len);
-        phrase_roots = grammar->find_equivalent_seq(phrase_roots);
-#else
         std::uint64_t left = len;
         std::uint64_t exist = prefix_length - pos;
         while (left > 0) {
@@ -98,7 +76,6 @@ avl_grammar_multiroot<char_type> *convert_lz77_to_avl_grammar_multiroot(
           left -= next;
         }
         continue;
-#endif
       } else {
 
         // Add the nonterminal expanding to phrase p.
