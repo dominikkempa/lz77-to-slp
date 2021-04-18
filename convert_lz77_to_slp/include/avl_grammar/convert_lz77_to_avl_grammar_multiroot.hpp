@@ -71,7 +71,7 @@ avl_grammar_multiroot<char_type> *convert_lz77_to_avl_grammar_multiroot(
         // Add the nonterminal expanding to phrase p.
         std::uint64_t begin = pos;
         std::uint64_t end = begin + len;
-        grammar->merge_enclosed_nonterminals(begin, end);
+        grammar->merge_enclosed_roots(begin, end);
         phrase_roots = grammar->decomposition(begin, end);
       }
     }
