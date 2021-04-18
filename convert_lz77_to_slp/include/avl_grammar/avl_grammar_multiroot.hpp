@@ -9,9 +9,9 @@
 #include <algorithm>
 
 #include "../utils/hash_table.hpp"
+#include "../utils/karp_rabin_hashing.hpp"
 #include "avl_grammar_node.hpp"
 #include "avl_grammar_add_concat_nonterminal.hpp"
-#include "dp_grouping_algorithm.hpp"
 
 
 //=============================================================================
@@ -209,16 +209,14 @@ struct avl_grammar_multiroot {
       }
 
       // Return shorter equivalent sequence of nonterminals.
-      std::vector<const node_type*> ret_opt =
-        dp_grouping_algorithm<char_type>(m_hashes, ret);
-      return ret_opt;
+      std::vector<const node_type*> ret2 = rewrite(ret);
+      return ret2;
     }
 
   private:
 
     // Merge greedily (shortest first) sequence of nonterminals.
-    const node_type* greedy_merge(
-        std::vector<const node_type*> &seq) {
+    const node_type* greedy_merge(std::vector<const node_type*> &seq) {
       while (seq.size() > 1) {
 
         // Find the nonterminal with the smallest height.
@@ -264,6 +262,87 @@ struct avl_grammar_multiroot {
         }
       }
       return seq[0];
+    }
+
+    // Return the sequence of nonterminals with the same expansion as seq.
+    std::vector<const node_type*> rewrite(
+      const std::vector<const node_type*> &seq) const {
+
+      // Create the vector to hold the solution.
+      typedef const node_type* ptr_type;
+      std::vector<ptr_type> ret;
+
+      // Handle special case.
+      if (seq.empty())
+        return ret;
+
+      // Allocate the DP array.
+      std::uint64_t length = seq.size();
+      std::uint64_t **dp = new std::uint64_t*[length];
+      std::uint64_t **dp_sol = new std::uint64_t*[length];
+      ptr_type **dp_nonterm = new ptr_type*[length];
+      for (std::uint64_t i = 0; i < length; ++i) {
+        dp[i] = new std::uint64_t[length];
+        dp_sol[i] = new std::uint64_t[length];
+        dp_nonterm[i] = new ptr_type[length];
+      }
+
+      // Fill in the array for len = 1.
+      for (std::uint64_t i = 0; i < length; ++i) {
+        dp[i][i] = 1;
+        dp_sol[i][i] = 1;
+        dp_nonterm[i][i] = seq[i];
+      }
+
+      // Solve for subarray of length > 1.
+      for (std::uint64_t len = 2; len <= length; ++len) {
+        for (std::uint64_t beg = 0; beg <= length - len; ++beg) {
+          const std::uint64_t end = beg + len - 1;
+
+          // Initialize to solution to initial choice.
+          dp[beg][end] = 1 + dp[beg + 1][end];
+          dp_sol[beg][end] = 1;
+          dp_nonterm[beg][end] = seq[beg];
+
+          // Try all other possible choices.
+          std::uint64_t h = seq[beg]->m_kr_hash;
+          for (std::uint64_t leftlen = 2;
+              leftlen <= len; ++leftlen) {
+            const std::uint64_t last = beg + leftlen - 1;
+            h = append_hash<char_type>(h, seq[last]);
+            const ptr_type *nonterm = m_hashes.find(h);
+            if (nonterm != NULL) {
+              std::uint64_t sol_cost = 1;
+              if (leftlen < len) sol_cost += dp[last + 1][end];
+              if (sol_cost < dp[beg][end]) {
+                dp[beg][end] = sol_cost;
+                dp_sol[beg][end] = leftlen;
+                dp_nonterm[beg][end] = *nonterm;
+              }
+            }
+          }
+        }
+      }
+
+      // Restore the optimal solution.
+      std::uint64_t prefix_length = 0;
+      while (prefix_length < length) {
+        ret.push_back(dp_nonterm[prefix_length][length - 1]);
+        prefix_length += dp_sol[prefix_length][length - 1];
+      }
+
+      // Clean up.
+      for (std::uint64_t i = 0; i < length; ++i) {
+        delete[] dp[i];
+        delete[] dp_sol[i];
+        delete[] dp_nonterm[i];
+      }
+      delete[] dp;
+      delete[] dp_sol;
+      delete[] dp_nonterm;
+
+      // Return the result.
+      return ret;
     }
 };
 
