@@ -53,7 +53,7 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
 
       // If this is a literal phrase, create a trivial grammar.
       phrase_root = new node_type((char_type)pos);
-      grammar->m_nonterminals.push_back(phrase_root);
+      grammar->add_nonterminal(phrase_root);
     } else {
 
       // We proceed differently, depending on whether
@@ -77,7 +77,7 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
         while (curlen < len) {
           const node_type * const square = new node_type(
               suffix_pow_nonterminal, suffix_pow_nonterminal);
-          grammar->m_nonterminals.push_back(square);
+          grammar->add_nonterminal(square);
           curlen <<= 1;
           suffix_pow_nonterminal = square;
         }

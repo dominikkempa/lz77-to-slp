@@ -26,15 +26,21 @@ struct avl_grammar {
   public:
 
     // Class members.
-    hash_table<std::uint64_t, const node_type*> m_hashes;
     std::vector<const node_type*> m_nonterminals;
     const node_type *m_root;
+    hash_table<std::uint64_t, const node_type*> m_hashes;
 
   public:
 
     // Constructor.
     avl_grammar() :
       m_root(NULL) {}
+
+    // Destructor.
+    ~avl_grammar() {
+      for (std::uint64_t i = 0; i < m_nonterminals.size(); ++i)
+        delete m_nonterminals[i];
+    }
 
     // Print the string encoded by the grammar.
     void print_expansion() const {
@@ -44,6 +50,11 @@ struct avl_grammar {
     // Return the number of nonterminals.
     std::uint64_t size() const {
       return m_nonterminals.size();
+    }
+
+    // Add a nonterminal.
+    void add_nonterminal(const node_type* nonterm) {
+      m_nonterminals.push_back(nonterm);
     }
 
     // Decode the text and write to a given array.

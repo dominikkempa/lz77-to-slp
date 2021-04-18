@@ -36,7 +36,7 @@ struct avl_grammar_multiroot {
     hash_table<std::uint64_t, const node_type*> m_hashes;
 
   public:
-  
+
     // Constructor.
     avl_grammar_multiroot() {
       m_roots.insert(std::make_pair(0, (value_type)NULL));
