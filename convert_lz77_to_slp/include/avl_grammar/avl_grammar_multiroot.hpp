@@ -208,64 +208,12 @@ struct avl_grammar_multiroot {
         begin = end;
       }
 
-      // Return shorter equivalent sequence of nonterminals.
-      std::vector<const node_type*> ret2 = rewrite(ret);
-      return ret2;
-    }
-
-  private:
-
-    // Merge greedily (shortest first) sequence of nonterminals.
-    const node_type* greedy_merge(std::vector<const node_type*> &seq) {
-      while (seq.size() > 1) {
-
-        // Find the nonterminal with the smallest height.
-        std::uint64_t smallest_height_id = 0;
-        for (std::uint64_t i = 1; i < seq.size(); ++i) {
-          if (seq[i]->m_height < seq[smallest_height_id]->m_height)
-            smallest_height_id = i;
-        }
-
-        // Merge the nonterminal with the smaller height with
-        // one of its beighbors (whichever is shorter).
-        if (smallest_height_id == 0 ||
-            (smallest_height_id + 1 < seq.size() &&
-             seq[smallest_height_id + 1]->m_height <=
-             seq[smallest_height_id - 1]->m_height)) {
-
-          // Only right neighbor exists, or both exist
-          // and the right one is not taller than the left
-          // one. End result: merge with the right neighbor.
-          const node_type * const left = seq[smallest_height_id];
-          const node_type * const right = seq[smallest_height_id + 1];
-          const std::uint64_t h = merge_hashes<char_type>(left, right);
-          seq.erase(seq.begin() + smallest_height_id);
-          if (m_hashes.find(h) != NULL)
-            seq[smallest_height_id] = *(m_hashes.find(h));
-          else
-            seq[smallest_height_id] = add_concat_nonterminal<char_type>(
-                m_hashes, m_nonterminals, left, right);
-        } else {
-
-          // Only left neighbor exists, or both exists
-          // and the left one is not taller than the
-          // right one. End result: merge with left neighbor.
-          const node_type * const left = seq[smallest_height_id - 1];
-          const node_type * const right = seq[smallest_height_id];
-          const std::uint64_t h = merge_hashes<char_type>(left, right);
-          seq.erase(seq.begin() + (smallest_height_id - 1));
-          if (m_hashes.find(h) != NULL)
-            seq[smallest_height_id - 1] = *(m_hashes.find(h));
-          else
-            seq[smallest_height_id - 1] = add_concat_nonterminal<char_type>(
-                m_hashes, m_nonterminals, left, right);
-        }
-      }
-      return seq[0];
+      // Return result.
+      return ret;
     }
 
     // Return the sequence of nonterminals with the same expansion as seq.
-    std::vector<const node_type*> rewrite(
+    std::vector<const node_type*> find_equivalent_seq(
       const std::vector<const node_type*> &seq) const {
 
       // Create the vector to hold the solution.
@@ -343,6 +291,57 @@ struct avl_grammar_multiroot {
 
       // Return the result.
       return ret;
+    }
+
+  private:
+
+    // Merge greedily (shortest first) sequence of nonterminals.
+    const node_type* greedy_merge(std::vector<const node_type*> &seq) {
+      while (seq.size() > 1) {
+
+        // Find the nonterminal with the smallest height.
+        std::uint64_t smallest_height_id = 0;
+        for (std::uint64_t i = 1; i < seq.size(); ++i) {
+          if (seq[i]->m_height < seq[smallest_height_id]->m_height)
+            smallest_height_id = i;
+        }
+
+        // Merge the nonterminal with the smaller height with
+        // one of its beighbors (whichever is shorter).
+        if (smallest_height_id == 0 ||
+            (smallest_height_id + 1 < seq.size() &&
+             seq[smallest_height_id + 1]->m_height <=
+             seq[smallest_height_id - 1]->m_height)) {
+
+          // Only right neighbor exists, or both exist
+          // and the right one is not taller than the left
+          // one. End result: merge with the right neighbor.
+          const node_type * const left = seq[smallest_height_id];
+          const node_type * const right = seq[smallest_height_id + 1];
+          const std::uint64_t h = merge_hashes<char_type>(left, right);
+          seq.erase(seq.begin() + smallest_height_id);
+          if (m_hashes.find(h) != NULL)
+            seq[smallest_height_id] = *(m_hashes.find(h));
+          else
+            seq[smallest_height_id] = add_concat_nonterminal<char_type>(
+                m_hashes, m_nonterminals, left, right);
+        } else {
+
+          // Only left neighbor exists, or both exists
+          // and the left one is not taller than the
+          // right one. End result: merge with left neighbor.
+          const node_type * const left = seq[smallest_height_id - 1];
+          const node_type * const right = seq[smallest_height_id];
+          const std::uint64_t h = merge_hashes<char_type>(left, right);
+          seq.erase(seq.begin() + (smallest_height_id - 1));
+          if (m_hashes.find(h) != NULL)
+            seq[smallest_height_id - 1] = *(m_hashes.find(h));
+          else
+            seq[smallest_height_id - 1] = add_concat_nonterminal<char_type>(
+                m_hashes, m_nonterminals, left, right);
+        }
+      }
+      return seq[0];
     }
 };
 

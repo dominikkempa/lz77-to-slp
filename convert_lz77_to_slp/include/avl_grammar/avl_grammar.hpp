@@ -9,8 +9,6 @@
 
 #include "../utils/hash_table.hpp"
 #include "avl_grammar_node.hpp"
-#include "avl_grammar_add_concat_nonterminal.hpp"
-#include "avl_grammar_add_substring_nonterminal.hpp"
 
 
 //=============================================================================
