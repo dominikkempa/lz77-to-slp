@@ -55,17 +55,50 @@ avl_grammar_multiroot<char_type> *convert_lz77_to_avl_grammar_multiroot(
       phrase_roots.push_back(root);
     } else {
 
-      // We proceed differently, depending on whether
-      // the phrase is self-overlapping. This part is
-      // unadressed in the original Rytter's paper. The
-      // solution is described in the proof of Theorem 6.1
-      // in https://arxiv.org/abs/1910.10631v3.
+      // Self-overlapping phrases are unadressed in Rytter's paper.
+      // We follow Theorem 6.1 in https://arxiv.org/abs/1910.10631v3.
       if (pos + len > prefix_length) {
-        fprintf(stderr, "\nSelf-overlapping phrase detected!\n");
-        std::exit(EXIT_FAILURE);
 
-        // TODO: implement handling of
-        // self-overlapping phrases.
+#if 0
+        // If the phase is self-overlapping, we create the
+        // nonterminal expanding to text[pos..prefix_length).
+        const node_type * const suffix_nonterm =
+          grammar->add_substring_nonterminal(pos, prefix_length);
+
+        // Square the nonterminal until it reaches length >= len.
+        const node_type *suffix_pow_nonterm = suffix_nonterm;
+        std::uint64_t curlen = prefix_length - pos;
+        while (curlen < len) {
+          const node_type * const square = new node_type(
+              suffix_pow_nonterm, suffix_pow_nonterm);
+          grammar->add_nonterminal(square);
+          curlen <<= 1;
+          suffix_pow_nonterm = square;
+        }
+
+        // Create a nonterminal expanding to the prefix length len.
+        phrase_roots = suffix_pow_nonterm->decomposition(0, len);
+        phrase_roots = grammar->find_equivalent_seq(phrase_roots);
+#else
+        std::uint64_t left = len;
+        std::uint64_t exist = prefix_length - pos;
+        while (left > 0) {
+
+          std::uint64_t next = std::min(left, exist);
+          grammar->merge_enclosed_roots(pos, pos + next);
+          std::vector<const node_type*> v =
+            grammar->decomposition(pos, pos + next);
+          v = grammar->find_equivalent_seq(v);
+
+          for (std::uint64_t t = 0; t < v.size(); ++t) {
+            prefix_length += v[t]->m_exp_len;
+            grammar->add_root(prefix_length, v[t]);
+          }
+          exist += next;
+          left -= next;
+        }
+        continue;
+#endif
       } else {
 
         // Add the nonterminal expanding to phrase p.

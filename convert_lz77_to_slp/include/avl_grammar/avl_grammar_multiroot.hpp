@@ -75,6 +75,7 @@ struct avl_grammar_multiroot {
     // Add a nonterminal.
     void add_nonterminal(const node_type* nonterm) {
       m_nonterminals.push_back(nonterm);
+      m_hashes.insert(nonterm->m_kr_hash, nonterm);
     }
 
     // Decode the text and write to a given array.
@@ -165,6 +166,24 @@ struct avl_grammar_multiroot {
         std::uint64_t end2 = begin2 + newroot->m_exp_len;
         m_roots[end2] = newroot;
       }
+    }
+
+    // Add a nonterminal expanding to a substring of a given nonterminal.
+    const node_type* add_substring_nonterminal(
+        const node_type *x,
+        const std::uint64_t begin,
+        const std::uint64_t end) {
+      std::vector<const node_type*> v = x->decomposition(begin, end);
+      return greedy_merge(v);
+    }
+
+    // Add a substring expanding to a substring of grammar.
+    const node_type* add_substring_nonterminal(
+        const std::uint64_t begin,
+        const std::uint64_t end) {
+      merge_enclosed_roots(begin, end);
+      std::vector<const node_type*> v = decomposition(begin, end);
+      return greedy_merge(v);
     }
 
     // Get the sequence of nonterminals expanding to T[begin..end).
