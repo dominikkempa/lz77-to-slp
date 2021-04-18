@@ -11,8 +11,6 @@
 #include "../utils/hash_table.hpp"
 #include "avl_grammar_node.hpp"
 #include "avl_grammar_add_concat_nonterminal.hpp"
-#include "avl_grammar_add_substring_nonterminal.hpp"
-#include "avl_grammar_decomposition.hpp"
 #include "dp_grouping_algorithm.hpp"
 
 
@@ -168,7 +166,6 @@ struct avl_grammar_multiroot {
         ++it_end;
 
       // Merge nonterminals in [it_begin..it_end).
-      // TODO: reduce complexity from O(n^2) to O(n log n).
       if (it_begin != it_end) {
 
         // Collect the sequence of pointers into a vector.
@@ -250,7 +247,7 @@ struct avl_grammar_multiroot {
         const std::uint64_t local_end = std::min(it->first, end) - it_exp_beg;
         const std::uint64_t local_size = local_end - local_beg;
         std::vector<const node_type*> dec =
-          ::decomposition<char_type>(it->second, local_beg, local_end);
+          it->second->decomposition(local_beg, local_end);
         ret.insert(ret.end(), dec.begin(), dec.end());
         begin += local_size;
       }
@@ -269,7 +266,7 @@ struct avl_grammar_multiroot {
         const std::uint64_t it_exp_beg = it->first - it_exp_size;
         const std::uint64_t local_end = end - it_exp_beg;
         std::vector<const node_type*> dec =
-          ::decomposition(it->second, 0, local_end);
+          it->second->decomposition(0, local_end);
         ret.insert(ret.end(), dec.begin(), dec.end());
         begin = end;
       }

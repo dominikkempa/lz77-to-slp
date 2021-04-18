@@ -165,6 +165,94 @@ struct avl_grammar_node {
         }
       }
     }
+
+    // Assuming S is the expansions of the nontermnal, return the
+    // sequence of nonterminals expanding to S[begin..end).
+    std::vector<const node_type*> decomposition(
+        const std::uint64_t begin,
+        const std::uint64_t end) const {
+
+      // Check input correctness.
+      if (begin > end || end > m_exp_len) {
+        fprintf(stderr, "\nError: decomposition: invalid range!\n");
+        std::exit(EXIT_FAILURE);
+      }
+
+      // Declare the vector storing the result.
+      std::vector<const node_type*> ret;
+
+      // Handle boundary case.
+      if (begin == end)
+        return ret;
+
+      // Find the deepest node in the parse tree containing the range
+      // [begin..end).
+      const node_type *x = this;
+      std::uint64_t cur_range_beg = 0;
+      std::uint64_t cur_range_end = x->m_exp_len;
+      while (x->m_height > 0 &&
+          (end <= cur_range_beg + x->m_left->m_exp_len ||
+           begin >= cur_range_beg + x->m_left->m_exp_len)) {
+        if (end <= cur_range_beg + x->m_left->m_exp_len) {
+          cur_range_end = cur_range_beg + x->m_left->m_exp_len;
+          x = x->m_left;
+        } else {
+          cur_range_beg += x->m_left->m_exp_len;
+          x = x->m_right;
+        }
+      }
+
+      // Check if the range of x is exactly [begin..end).
+      if (cur_range_beg == begin && cur_range_end == end) {
+
+        // If yes, return x as the answer.
+        ret.push_back(x);
+      } else {
+
+        // Otherwise, we perform two traversals in the tree.
+        {
+          const std::uint64_t left_range_end =
+            cur_range_beg + x->m_left->m_exp_len;
+          std::uint64_t suffix_length = left_range_end - begin;
+          const node_type *y = x->m_left;
+          while (suffix_length > 0) {
+            if (y->m_exp_len == suffix_length) {
+              ret.push_back(y);
+              suffix_length -= y->m_exp_len;
+            } else if (suffix_length > y->m_right->m_exp_len) {
+              ret.push_back(y->m_right);
+              suffix_length -= y->m_right->m_exp_len;
+              y = y->m_left;
+            } else y = y->m_right;
+          }
+        }
+
+        // Reverse the first sequence of nonterminals
+        // collected during the left downward traversal.
+        std::reverse(ret.begin(), ret.end());
+
+        // Perform the analogous operation for the right side.
+        {
+          const std::uint64_t right_range_beg =
+            cur_range_beg + x->m_left->m_exp_len;
+          std::uint64_t prefix_length = end - right_range_beg;
+          const node_type *y = x->m_right;
+          while (prefix_length > 0) {
+            if (y->m_exp_len == prefix_length) {
+              ret.push_back(y);
+              prefix_length -= y->m_exp_len;
+            } else if (prefix_length > y->m_left->m_exp_len) {
+              ret.push_back(y->m_left);
+              prefix_length -= y->m_left->m_exp_len;
+              y = y->m_right;
+            } else y = y->m_left;
+          }
+        }
+      }
+
+      // Return the result.
+      return ret;
+    }
 };
 
 //=============================================================================
