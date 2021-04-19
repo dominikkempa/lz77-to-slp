@@ -8,7 +8,6 @@
 #include <algorithm>
 
 #include "avl_grammar_node.hpp"
-#include "../utils/hash_table.hpp"
 
 
 //=============================================================================
@@ -20,7 +19,6 @@
 //=============================================================================
 template<typename char_type>
 const avl_grammar_node<char_type> *add_concat_nonterminal(
-    hash_table<std::uint64_t, const avl_grammar_node<char_type>*> &hashes,
     std::vector<const avl_grammar_node<char_type> *> &nonterminals,
     const avl_grammar_node<char_type> * const left,
     const avl_grammar_node<char_type> * const right) {
@@ -36,12 +34,11 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
       // Height are close. Just merge and return.
       const node_type * const newroot = new node_type(left, right);
       nonterminals.push_back(newroot);
-      hashes.insert(newroot->m_kr_hash, newroot);
       return newroot;
     } else {
       const node_type * const newright =
         add_concat_nonterminal<char_type>(
-            hashes, nonterminals, left->m_right, right);
+            nonterminals, left->m_right, right);
       if (newright->m_height > left->m_left->m_height &&
           newright->m_height - left->m_left->m_height > 1) {
         
@@ -57,9 +54,6 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
           nonterminals.push_back(X);
           nonterminals.push_back(Y);
           nonterminals.push_back(Z);
-          hashes.insert(X->m_kr_hash, X);
-          hashes.insert(Y->m_kr_hash, Y);
-          hashes.insert(Z->m_kr_hash, Z);
           return Y;
         } else {
 
@@ -70,8 +64,6 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
             new node_type(X, newright->m_right);
           nonterminals.push_back(X);
           nonterminals.push_back(Y);
-          hashes.insert(X->m_kr_hash, X);
-          hashes.insert(Y->m_kr_hash, Y);
           return Y;
         }
       } else {
@@ -80,7 +72,6 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
         const node_type * const newroot =
           new node_type(left->m_left, newright);
         nonterminals.push_back(newroot);
-        hashes.insert(newroot->m_kr_hash, newroot);
         return newroot;
       }
     }
@@ -91,12 +82,11 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
       const node_type * const newroot =
         new node_type(left, right);
       nonterminals.push_back(newroot);
-      hashes.insert(newroot->m_kr_hash, newroot);
       return newroot;
     } else {
       const node_type * const newleft =
         add_concat_nonterminal<char_type>(
-            hashes, nonterminals, left, right->m_left);
+            nonterminals, left, right->m_left);
       if (newleft->m_height > right->m_right->m_height &&
           newleft->m_height - right->m_right->m_height > 1) {
 
@@ -112,9 +102,6 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
           nonterminals.push_back(X);
           nonterminals.push_back(Y);
           nonterminals.push_back(Z);
-          hashes.insert(X->m_kr_hash, X);
-          hashes.insert(Y->m_kr_hash, Y);
-          hashes.insert(Z->m_kr_hash, Z);
           return Y;
         } else {
 
@@ -125,8 +112,6 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
             new node_type(newleft->m_left, Y);
           nonterminals.push_back(X);
           nonterminals.push_back(Y);
-          hashes.insert(X->m_kr_hash, X);
-          hashes.insert(Y->m_kr_hash, Y);
           return X;
         }
       } else {
@@ -135,7 +120,6 @@ const avl_grammar_node<char_type> *add_concat_nonterminal(
         const node_type * const newroot =
           new node_type(newleft, right->m_right);
         nonterminals.push_back(newroot);
-        hashes.insert(newroot->m_kr_hash, newroot);
         return newroot;
       }
     }

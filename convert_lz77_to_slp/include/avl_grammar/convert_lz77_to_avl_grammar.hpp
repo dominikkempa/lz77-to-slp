@@ -92,7 +92,7 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
     if (grammar->m_root == NULL) grammar->m_root = phrase_root;
     else grammar->m_root =
       add_concat_nonterminal<char_type>(
-          grammar->m_hashes, grammar->m_nonterminals,
+          grammar->m_nonterminals,
           grammar->m_root, phrase_root);
   }
 
