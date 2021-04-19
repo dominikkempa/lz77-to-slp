@@ -17,14 +17,17 @@
 //=============================================================================
 template<typename char_type>
 struct avl_grammar_node {
-  private:
 
-    // Declare typedefs.
-    typedef avl_grammar_node<char_type> node_type;
+  //===========================================================================
+  // Declare typedefs.
+  //===========================================================================
+  typedef avl_grammar_node<char_type> node_type;
 
   public:
 
+    //=========================================================================
     // Class members.
+    //=========================================================================
     const char_type m_char;
     const std::uint8_t m_height;
     const std::uint64_t m_exp_len;
@@ -32,7 +35,9 @@ struct avl_grammar_node {
     const node_type * const m_left;
     const node_type * const m_right;
 
+    //=========================================================================
     // Default constructor.
+    //=========================================================================
     avl_grammar_node() :
       m_char((char_type)0),
       m_height(0),
@@ -41,7 +46,9 @@ struct avl_grammar_node {
       m_left(NULL),
       m_right(NULL) {}
 
+    //=========================================================================
     // Constructor for a node expanding to a single symbol.
+    //=========================================================================
     avl_grammar_node(const char_type c) :
       m_char(c),
       m_height(0),
@@ -50,7 +57,9 @@ struct avl_grammar_node {
       m_left(NULL),
       m_right(NULL) {}
 
+    //=========================================================================
     // Constructor for non-single-symbol nonterminal.
+    //=========================================================================
     avl_grammar_node(
         const node_type * const left,
         const node_type * const right) :
@@ -65,7 +74,9 @@ struct avl_grammar_node {
           m_left(left),
           m_right(right) {}
 
+    //=========================================================================
     // Print the string encoded by the grammar.
+    //=========================================================================
     void print_expansion() const {
       if (m_height == 0)
         fprintf(stderr, "%c", (char)m_char);
@@ -75,7 +86,9 @@ struct avl_grammar_node {
       }
     }
 
+    //=========================================================================
     // Write the expansion into the given array.
+    //=========================================================================
     void write_expansion(char_type * const text) const {
       if (m_height == 0)
         text[0] = m_char;
@@ -85,7 +98,9 @@ struct avl_grammar_node {
       }
     }
 
+    //=========================================================================
     // Test the AVL propert of a subtree.
+    //=========================================================================
     bool test_avl_property() const {
       if (m_height > 0 &&
           ((!(m_left->test_avl_property())) ||
@@ -98,7 +113,9 @@ struct avl_grammar_node {
       return true;
     }
 
+    //=========================================================================
     // Collect Mersenne Karp-Rabin hashes of all nonterminals.
+    //=========================================================================
     std::uint64_t collect_mersenne_karp_rabin_hashes(
         std::vector<std::uint64_t> &hashes) const {
       if (m_height == 0) {
@@ -118,7 +135,9 @@ struct avl_grammar_node {
       }
     }
 
+    //=========================================================================
     // Collect reachable nonterminals.
+    //=========================================================================
     void collect_nonterminal_pointers(
         std::vector<const node_type*> &pointers) const {
       pointers.push_back(this);
@@ -128,7 +147,9 @@ struct avl_grammar_node {
       }
     }
 
+    //=========================================================================
     // Collect Mersenne Karp-Rabin hashes of all nonterminals.
+    //=========================================================================
     std::uint64_t collect_mersenne_karp_rabin_hashes_2(
         hash_table<const node_type*, std::uint64_t> &hashes) const {
       if (m_height == 0) {
@@ -148,7 +169,9 @@ struct avl_grammar_node {
       }
     }
 
+    //=========================================================================
     // Compute the number of nodes in the pruned grammar.
+    //=========================================================================
     void count_nodes_in_pruned_grammar(
         hash_table<const node_type*, std::uint64_t> &hashes,
         hash_table<std::uint64_t, bool> &seen_hashes,
@@ -166,8 +189,10 @@ struct avl_grammar_node {
       }
     }
 
+    //=========================================================================
     // Assuming S is the expansions of the nontermnal, return the
     // sequence of nonterminals expanding to S[begin..end).
+    //=========================================================================
     std::vector<const node_type*> decomposition(
         const std::uint64_t begin,
         const std::uint64_t end) const {

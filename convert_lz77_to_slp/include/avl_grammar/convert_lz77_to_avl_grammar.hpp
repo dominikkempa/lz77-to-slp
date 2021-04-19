@@ -9,7 +9,6 @@
 
 #include "../utils/karp_rabin_hashing.hpp"
 #include "avl_grammar_node.hpp"
-#include "avl_grammar_add_concat_nonterminal.hpp"
 #include "avl_grammar.hpp"
 
 
@@ -36,6 +35,7 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
 
   // Compute the AVL grammar expanding to T.
   grammar_type *grammar = new grammar_type();
+  const node_type *root = NULL;
   std::uint64_t prefix_length = 0;
   for (std::uint64_t phrase_id = 0;
       phrase_id < parsing.size(); ++phrase_id) {
@@ -89,11 +89,13 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
 
     // Update prefix length and add new root to the grammar.
     prefix_length += std::max(len, (std::uint64_t)1);
-    if (grammar->m_root == NULL) grammar->m_root = phrase_root;
-    else grammar->m_root =
-      add_concat_nonterminal<char_type>(
-          grammar->m_nonterminals,
-          grammar->m_root, phrase_root);
+    if (phrase_id == 0) {
+      root = phrase_root;
+      grammar->set_root(root);
+    } else {
+      root = grammar->add_concat_nonterminal(root, phrase_root);
+      grammar->set_root(root);
+    }
   }
 
   // Return the result.
