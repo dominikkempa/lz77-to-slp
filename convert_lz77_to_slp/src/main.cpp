@@ -255,7 +255,7 @@ int main(int argc, char **argv) {
 
   // Initialize runtime statistics and randomness.
   utils::initialize_stats();
-  srand(time(0) + getpid());
+  //srand(time(0) + getpid());
 
   // Declare types.
   typedef std::uint8_t char_type;
