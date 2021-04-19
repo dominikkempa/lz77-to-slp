@@ -10,7 +10,7 @@
 
 #include "../utils/hash_table.hpp"
 #include "../utils/karp_rabin_hashing.hpp"
-#include "avl_grammar_node.hpp"
+#include "nonterminal.hpp"
 
 
 //=============================================================================
@@ -22,9 +22,9 @@ struct avl_grammar_multiroot {
   //===========================================================================
   // Declare typedefs
   //===========================================================================
-  typedef avl_grammar_node<char_type> node_type;
+  typedef nonterminal<char_type> nonterminal_type;
   typedef std::uint64_t key_type;
-  typedef const node_type* value_type;
+  typedef const nonterminal_type* value_type;
   typedef typename std::map<key_type, value_type> map_type;
   typedef typename map_type::const_iterator const_iter_type;
   typedef typename map_type::iterator iter_type;
@@ -35,8 +35,8 @@ struct avl_grammar_multiroot {
     // Class members.
     //=========================================================================
     map_type m_roots;
-    std::vector<const node_type*> m_nonterminals;
-    hash_table<std::uint64_t, const node_type*> m_hashes;
+    std::vector<const nonterminal_type*> m_nonterminals;
+    hash_table<std::uint64_t, const nonterminal_type*> m_hashes;
 
   public:
 
@@ -90,7 +90,7 @@ struct avl_grammar_multiroot {
     //=========================================================================
     // Add a nonterminal.
     //=========================================================================
-    void add_nonterminal(const node_type* nonterm) {
+    void add_nonterminal(const nonterminal_type* nonterm) {
       m_nonterminals.push_back(nonterm);
       if (utils::random_int<std::uint64_t>(
             (std::uint64_t)0,
@@ -143,22 +143,22 @@ struct avl_grammar_multiroot {
     // Collect Mersenne Karp-Rabin hashes in a hash table.
     //=========================================================================
     void collect_mersenne_karp_rabin_hashes_2(
-        hash_table<const node_type*, std::uint64_t> &hashes) const {
+        hash_table<const nonterminal_type*, std::uint64_t> &hashes) const {
       for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
         if ((std::uint64_t)it->first != 0)
           (void) it->second->collect_mersenne_karp_rabin_hashes_2(hashes);
     }
 
     //=========================================================================
-    // Count nodes in the pruned grammar.
+    // Count nonterminals in the pruned grammar.
     //=========================================================================
-    void count_nodes_in_pruned_grammar(
-        hash_table<const node_type*, std::uint64_t> &hashes,
+    void count_nonterminals_in_pruned_grammar(
+        hash_table<const nonterminal_type*, std::uint64_t> &hashes,
         hash_table<std::uint64_t, bool> &seen_hashes,
         std::uint64_t &current_count) const {
       for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
         if ((std::uint64_t)it->first != 0)
-          it->second->count_nodes_in_pruned_grammar(
+          it->second->count_nonterminals_in_pruned_grammar(
               hashes, seen_hashes, current_count);
     }
 
@@ -166,7 +166,7 @@ struct avl_grammar_multiroot {
     // Collect pointers to all nonterminals reachable from the root.
     //=========================================================================
     void collect_nonterminal_pointers(
-        std::vector<const node_type*> &pointers) const {
+        std::vector<const nonterminal_type*> &pointers) const {
       for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
         if ((std::uint64_t)it->first != 0)
           it->second->collect_nonterminal_pointers(pointers);
@@ -193,7 +193,7 @@ struct avl_grammar_multiroot {
         std::vector<value_type> v;
         for (iter_type it = it_begin; it != it_end; ++it)
           v.push_back(it->second);
-        const node_type *newroot = greedy_merge(v);
+        const nonterminal_type *newroot = greedy_merge(v);
 
         // Update roots.
         m_roots.erase(it_begin, it_end);
@@ -205,22 +205,22 @@ struct avl_grammar_multiroot {
     //=========================================================================
     // Add a nonterminal expanding to a substring of a given nonterminal.
     //=========================================================================
-    const node_type* add_substring_nonterminal(
-        const node_type *x,
+    const nonterminal_type* add_substring_nonterminal(
+        const nonterminal_type *x,
         const std::uint64_t begin,
         const std::uint64_t end) {
-      std::vector<const node_type*> v = x->decomposition(begin, end);
+      std::vector<const nonterminal_type*> v = x->decomposition(begin, end);
       return greedy_merge(v);
     }
 
     //=========================================================================
     // Add a substring expanding to a substring of grammar.
     //=========================================================================
-    const node_type* add_substring_nonterminal(
+    const nonterminal_type* add_substring_nonterminal(
         const std::uint64_t begin,
         const std::uint64_t end) {
       merge_enclosed_roots(begin, end);
-      std::vector<const node_type*> v = decomposition(begin, end);
+      std::vector<const nonterminal_type*> v = decomposition(begin, end);
       return greedy_merge(v);
     }
 
@@ -228,9 +228,9 @@ struct avl_grammar_multiroot {
     // Given two nonterminals `left' and `right' expanding to X and Y, add
     // nonterminals that expands to XY, and return the pointer to it.
     //=========================================================================
-    const node_type *add_concat_nonterminal(
-        const node_type * const left,
-        const node_type * const right) {
+    const nonterminal_type *add_concat_nonterminal(
+        const nonterminal_type * const left,
+        const nonterminal_type * const right) {
 
       // Consider two cases, depending on whether
       // left of right nonterminal is taller.
@@ -238,11 +238,12 @@ struct avl_grammar_multiroot {
         if (left->m_height - right->m_height <= 1) {
 
           // Height are close. Just merge and return.
-          const node_type * const newroot = new node_type(left, right);
+          const nonterminal_type * const newroot =
+            new nonterminal_type(left, right);
           add_nonterminal(newroot);
           return newroot;
       } else {
-          const node_type * const newright =
+          const nonterminal_type * const newright =
             add_concat_nonterminal(left->m_right, right);
           if (newright->m_height > left->m_left->m_height &&
               newright->m_height - left->m_left->m_height > 1) {
@@ -251,11 +252,11 @@ struct avl_grammar_multiroot {
             if (newright->m_left->m_height > newright->m_right->m_height) {
 
               // Double (right-left) rotation.
-              const node_type * const X =
-                new node_type(left->m_left, newright->m_left->m_left);
-              const node_type * const Z =
-                new node_type(newright->m_left->m_right, newright->m_right);
-              const node_type * const Y = new node_type(X, Z);
+              const nonterminal_type * const X = new nonterminal_type(
+                  left->m_left, newright->m_left->m_left);
+              const nonterminal_type * const Z = new nonterminal_type(
+                  newright->m_left->m_right, newright->m_right);
+              const nonterminal_type * const Y = new nonterminal_type(X, Z);
               add_nonterminal(X);
               add_nonterminal(Y);
               add_nonterminal(Z);
@@ -263,10 +264,10 @@ struct avl_grammar_multiroot {
             } else {
 
               // Single (left) rotation.
-              const node_type * const X =
-                new node_type(left->m_left, newright->m_left);
-              const node_type * const Y =
-                new node_type(X, newright->m_right);
+              const nonterminal_type * const X =
+                new nonterminal_type(left->m_left, newright->m_left);
+              const nonterminal_type * const Y =
+                new nonterminal_type(X, newright->m_right);
               add_nonterminal(X);
               add_nonterminal(Y);
               return Y;
@@ -274,8 +275,8 @@ struct avl_grammar_multiroot {
           } else {
 
             // No need to rebalance.
-            const node_type * const newroot =
-              new node_type(left->m_left, newright);
+            const nonterminal_type * const newroot =
+              new nonterminal_type(left->m_left, newright);
             add_nonterminal(newroot);
             return newroot;
           }
@@ -284,12 +285,12 @@ struct avl_grammar_multiroot {
         if (right->m_height - left->m_height <= 1) {
 
           // Heights are close. Just merge and return.
-          const node_type * const newroot =
-            new node_type(left, right);
+          const nonterminal_type * const newroot =
+            new nonterminal_type(left, right);
           add_nonterminal(newroot);
           return newroot;
         } else {
-          const node_type * const newleft =
+          const nonterminal_type * const newleft =
             add_concat_nonterminal(left, right->m_left);
           if (newleft->m_height > right->m_right->m_height &&
               newleft->m_height - right->m_right->m_height > 1) {
@@ -298,11 +299,11 @@ struct avl_grammar_multiroot {
             if (newleft->m_right->m_height > newleft->m_left->m_height) {
 
               // Double (left-right) rotation.
-              const node_type * const X =
-                new node_type(newleft->m_left, newleft->m_right->m_left);
-              const node_type * const Z =
-                new node_type(newleft->m_right->m_right, right->m_right);
-              const node_type * const Y = new node_type(X, Z);
+              const nonterminal_type * const X = new nonterminal_type(
+                  newleft->m_left, newleft->m_right->m_left);
+              const nonterminal_type * const Z = new nonterminal_type(
+                  newleft->m_right->m_right, right->m_right);
+              const nonterminal_type * const Y = new nonterminal_type(X, Z);
               add_nonterminal(X);
               add_nonterminal(Y);
               add_nonterminal(Z);
@@ -310,10 +311,10 @@ struct avl_grammar_multiroot {
             } else {
 
               // Single (right) rotation.
-              const node_type * const Y =
-                new node_type(newleft->m_right, right->m_right);
-              const node_type * const X =
-                new node_type(newleft->m_left, Y);
+              const nonterminal_type * const Y =
+                new nonterminal_type(newleft->m_right, right->m_right);
+              const nonterminal_type * const X =
+                new nonterminal_type(newleft->m_left, Y);
               add_nonterminal(X);
               add_nonterminal(Y);
               return X;
@@ -321,8 +322,8 @@ struct avl_grammar_multiroot {
           } else {
 
             // No need to rebalance.
-            const node_type * const newroot =
-              new node_type(newleft, right->m_right);
+            const nonterminal_type * const newroot =
+              new nonterminal_type(newleft, right->m_right);
             add_nonterminal(newroot);
             return newroot;
           }
@@ -333,7 +334,7 @@ struct avl_grammar_multiroot {
     //=========================================================================
     // Get the sequence of nonterminals expanding to T[begin..end).
     //=========================================================================
-    std::vector<const node_type*> decomposition(
+    std::vector<const nonterminal_type*> decomposition(
         std::uint64_t begin,
         std::uint64_t end) const {
 
@@ -341,14 +342,14 @@ struct avl_grammar_multiroot {
       const_iter_type it = m_roots.lower_bound(begin);
 
       // Proper substring or suffix of expansion of `it'.
-      std::vector<const node_type*> ret;
+      std::vector<const nonterminal_type*> ret;
       if (begin < it->first) {
         const std::uint64_t it_exp_size = it->second->m_exp_len;
         const std::uint64_t it_exp_beg = it->first - it_exp_size;
         const std::uint64_t local_beg = begin - it_exp_beg;
         const std::uint64_t local_end = std::min(it->first, end) - it_exp_beg;
         const std::uint64_t local_size = local_end - local_beg;
-        std::vector<const node_type*> dec =
+        std::vector<const nonterminal_type*> dec =
           it->second->decomposition(local_beg, local_end);
         ret.insert(ret.end(), dec.begin(), dec.end());
         begin += local_size;
@@ -367,7 +368,7 @@ struct avl_grammar_multiroot {
         const std::uint64_t it_exp_size = it->second->m_exp_len;
         const std::uint64_t it_exp_beg = it->first - it_exp_size;
         const std::uint64_t local_end = end - it_exp_beg;
-        std::vector<const node_type*> dec =
+        std::vector<const nonterminal_type*> dec =
           it->second->decomposition(0, local_end);
         ret.insert(ret.end(), dec.begin(), dec.end());
         begin = end;
@@ -380,11 +381,11 @@ struct avl_grammar_multiroot {
     //=========================================================================
     // Return the sequence of nonterminals with the same expansion as seq.
     //=========================================================================
-    std::vector<const node_type*> find_equivalent_seq(
-      const std::vector<const node_type*> &seq) const {
+    std::vector<const nonterminal_type*> find_equivalent_seq(
+      const std::vector<const nonterminal_type*> &seq) const {
 
       // Create the vector to hold the solution.
-      typedef const node_type* ptr_type;
+      typedef const nonterminal_type* ptr_type;
       std::vector<ptr_type> ret;
 
       // Handle special case.
@@ -465,7 +466,8 @@ struct avl_grammar_multiroot {
     //=========================================================================
     // Merge greedily (shortest first) sequence of nonterminals.
     //=========================================================================
-    const node_type* greedy_merge(std::vector<const node_type*> &seq) {
+    const nonterminal_type* greedy_merge(
+        std::vector<const nonterminal_type*> &seq) {
       while (seq.size() > 1) {
 
         // Find the nonterminal with the smallest height.
@@ -485,8 +487,8 @@ struct avl_grammar_multiroot {
           // Only right neighbor exists, or both exist
           // and the right one is not taller than the left
           // one. End result: merge with the right neighbor.
-          const node_type * const left = seq[smallest_height_id];
-          const node_type * const right = seq[smallest_height_id + 1];
+          const nonterminal_type * const left = seq[smallest_height_id];
+          const nonterminal_type * const right = seq[smallest_height_id + 1];
           const std::uint64_t h = merge_hashes<char_type>(left, right);
           seq.erase(seq.begin() + smallest_height_id);
           if (m_hashes.find(h) != NULL)
@@ -498,8 +500,8 @@ struct avl_grammar_multiroot {
           // Only left neighbor exists, or both exists
           // and the left one is not taller than the
           // right one. End result: merge with left neighbor.
-          const node_type * const left = seq[smallest_height_id - 1];
-          const node_type * const right = seq[smallest_height_id];
+          const nonterminal_type * const left = seq[smallest_height_id - 1];
+          const nonterminal_type * const right = seq[smallest_height_id];
           const std::uint64_t h = merge_hashes<char_type>(left, right);
           seq.erase(seq.begin() + (smallest_height_id - 1));
           if (m_hashes.find(h) != NULL)

@@ -8,7 +8,7 @@
 #include <algorithm>
 
 #include "../utils/karp_rabin_hashing.hpp"
-#include "avl_grammar_node.hpp"
+#include "nonterminal.hpp"
 #include "avl_grammar_multiroot.hpp"
 
 
@@ -27,7 +27,7 @@ avl_grammar_multiroot<char_type> *convert_lz77_to_avl_grammar_multiroot(
       std::pair<text_offset_type, text_offset_type> > &parsing) {
 
   // Declare types.
-  typedef avl_grammar_node<char_type> node_type;
+  typedef nonterminal<char_type> nonterminal_type;
   typedef avl_grammar_multiroot<char_type> grammar_type;
 
   // Init Karp-Rabin hashing.
@@ -46,11 +46,11 @@ avl_grammar_multiroot<char_type> *convert_lz77_to_avl_grammar_multiroot(
     std::uint64_t len = p.second;
     
     // Compute the AVL grammar expanding to phrase p.
-    std::vector<const node_type*> phrase_roots;
+    std::vector<const nonterminal_type*> phrase_roots;
     if (len == 0) {
 
       // If this is a literal phrase, create a trivial grammar.
-      const node_type *root = new node_type((char_type)pos);
+      const nonterminal_type *root = new nonterminal_type((char_type)pos);
       grammar->add_nonterminal(root);
       phrase_roots.push_back(root);
     } else {
@@ -64,7 +64,7 @@ avl_grammar_multiroot<char_type> *convert_lz77_to_avl_grammar_multiroot(
 
           std::uint64_t next = std::min(left, exist);
           grammar->merge_enclosed_roots(pos, pos + next);
-          std::vector<const node_type*> v =
+          std::vector<const nonterminal_type*> v =
             grammar->decomposition(pos, pos + next);
           v = grammar->find_equivalent_seq(v);
 

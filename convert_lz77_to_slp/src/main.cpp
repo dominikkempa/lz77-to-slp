@@ -8,16 +8,15 @@
 #include <unistd.h>
 #include <getopt.h>
 
-#define MULTIROOT
+//#define MULTIROOT
 #define TEST_CORRECTNESS
 
 #include "../include/types/uint40.hpp"
 #include "../include/utils/utils.hpp"
-#include "../include/utils/hash_table.hpp"
-#include "../include/avl_grammar/avl_grammar_node.hpp"
+//#include "../include/utils/hash_table.hpp"
 #ifdef MULTIROOT
-#include "../include/avl_grammar/avl_grammar_multiroot.hpp"
-#include "../include/avl_grammar/convert_lz77_to_avl_grammar_multiroot.hpp"
+#include "../include/avl_grammar_multiroot/avl_grammar_multiroot.hpp"
+#include "../include/avl_grammar_multiroot/convert_lz77_to_avl_grammar_multiroot.hpp"
 #else
 #include "../include/avl_grammar/avl_grammar.hpp"
 #include "../include/avl_grammar/convert_lz77_to_avl_grammar.hpp"
