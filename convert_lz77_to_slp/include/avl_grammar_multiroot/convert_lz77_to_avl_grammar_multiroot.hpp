@@ -22,13 +22,14 @@
 template<
   typename char_type,
   typename text_offset_type>
-avl_grammar_multiroot<char_type> *convert_lz77_to_avl_grammar_multiroot(
+avl_grammar_multiroot<char_type, text_offset_type>*
+convert_lz77_to_avl_grammar_multiroot(
     const std::vector<
       std::pair<text_offset_type, text_offset_type> > &parsing) {
 
   // Declare types.
-  typedef nonterminal<char_type> nonterminal_type;
-  typedef avl_grammar_multiroot<char_type> grammar_type;
+  typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+  typedef avl_grammar_multiroot<char_type, text_offset_type> grammar_type;
 
   // Init Karp-Rabin hashing.
   karp_rabin_hashing::init();
@@ -46,13 +47,13 @@ avl_grammar_multiroot<char_type> *convert_lz77_to_avl_grammar_multiroot(
     std::uint64_t len = p.second;
     
     // Compute the AVL grammar expanding to phrase p.
-    std::vector<const nonterminal_type*> phrase_roots;
+    std::vector<text_offset_type> phrase_roots;
     if (len == 0) {
 
       // If this is a literal phrase, create a trivial grammar.
-      const nonterminal_type *root = new nonterminal_type((char_type)pos);
-      grammar->add_nonterminal(root);
-      phrase_roots.push_back(root);
+      const nonterminal_type root((char_type)pos);
+      const std::uint64_t root_id = grammar->add_nonterminal(root);
+      phrase_roots.push_back((text_offset_type)root_id);
     } else {
 
       // Self-overlapping phrases are unadressed in Rytter's paper.
@@ -64,12 +65,14 @@ avl_grammar_multiroot<char_type> *convert_lz77_to_avl_grammar_multiroot(
 
           std::uint64_t next = std::min(left, exist);
           grammar->merge_enclosed_roots(pos, pos + next);
-          std::vector<const nonterminal_type*> v =
+          std::vector<text_offset_type> v =
             grammar->decomposition(pos, pos + next);
           v = grammar->find_equivalent_seq(v);
 
           for (std::uint64_t t = 0; t < v.size(); ++t) {
-            prefix_length += v[t]->m_exp_len;
+            const std::uint64_t id = v[t];
+            const std::uint64_t exp_len = grammar->get_exp_len(id);
+            prefix_length += exp_len;
             grammar->add_root(prefix_length, v[t]);
           }
           exist += next;
@@ -89,7 +92,9 @@ avl_grammar_multiroot<char_type> *convert_lz77_to_avl_grammar_multiroot(
 
     // Update prefix length and add new roots to the grammar.
     for (std::uint64_t t = 0; t < phrase_roots.size(); ++t) {
-      prefix_length += phrase_roots[t]->m_exp_len;
+      const std::uint64_t id = phrase_roots[t];
+      const std::uint64_t exp_len = grammar->get_exp_len(id);
+      prefix_length += exp_len;
       grammar->add_root(prefix_length, phrase_roots[t]);
     }
   }

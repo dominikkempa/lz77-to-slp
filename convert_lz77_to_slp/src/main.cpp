@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <getopt.h>
 
-//#define MULTIROOT
+#define MULTIROOT
 #define TEST_CORRECTNESS
 
 #include "../include/types/uint40.hpp"
@@ -35,7 +35,7 @@ void test_conversion(
   // Declare types.
   typedef std::pair<text_offset_type, text_offset_type> phrase_type;
 #ifdef MULTIROOT
-  typedef avl_grammar_multiroot<char_type> grammar_type;
+  typedef avl_grammar_multiroot<char_type, text_offset_type> grammar_type;
 #else
   typedef avl_grammar<char_type> grammar_type;
 #endif
