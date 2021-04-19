@@ -8,7 +8,7 @@
 #include <algorithm>
 
 #include "../utils/karp_rabin_hashing.hpp"
-#include "avl_grammar_node.hpp"
+#include "nonterminal.hpp"
 #include "avl_grammar.hpp"
 
 
@@ -27,7 +27,7 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
       std::pair<text_offset_type, text_offset_type> > &parsing) {
 
   // Declare types.
-  typedef avl_grammar_node<char_type> node_type;
+  typedef nonterminal<char_type> nonterminal_type;
   typedef avl_grammar<char_type> grammar_type;
 
   // Init Karp-Rabin hashing.
@@ -35,7 +35,7 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
 
   // Compute the AVL grammar expanding to T.
   grammar_type *grammar = new grammar_type();
-  const node_type *root = NULL;
+  const nonterminal_type *root = NULL;
   std::uint64_t prefix_length = 0;
   for (std::uint64_t phrase_id = 0;
       phrase_id < parsing.size(); ++phrase_id) {
@@ -47,11 +47,11 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
     std::uint64_t len = p.second;
     
     // Compute the AVL grammar expanding to phrase p.
-    const node_type *phrase_root = NULL;
+    const nonterminal_type *phrase_root = NULL;
     if (len == 0) {
 
       // If this is a literal phrase, create a trivial grammar.
-      phrase_root = new node_type((char_type)pos);
+      phrase_root = new nonterminal_type((char_type)pos);
       grammar->add_nonterminal(phrase_root);
     } else {
 
@@ -61,14 +61,14 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
 
         // If the phase is self-overlapping, we create the
         // nonterminal expanding to text[pos..prefix_length).
-        const node_type * const suffix_nonterm =
+        const nonterminal_type * const suffix_nonterm =
           grammar->add_substring_nonterminal(pos, prefix_length);
 
         // Square the nonterminal until it reaches length >= len.
-        const node_type *suffix_pow_nonterm = suffix_nonterm;
+        const nonterminal_type *suffix_pow_nonterm = suffix_nonterm;
         std::uint64_t curlen = prefix_length - pos;
         while (curlen < len) {
-          const node_type * const square = new node_type(
+          const nonterminal_type * const square = new nonterminal_type(
               suffix_pow_nonterm, suffix_pow_nonterm);
           grammar->add_nonterminal(square);
           curlen <<= 1;
