@@ -92,7 +92,10 @@ struct avl_grammar_multiroot {
     //=========================================================================
     void add_nonterminal(const node_type* nonterm) {
       m_nonterminals.push_back(nonterm);
-      m_hashes.insert(nonterm->m_kr_hash, nonterm);
+      if (utils::random_int<std::uint64_t>(
+            (std::uint64_t)0,
+            (std::uint64_t)15) == 0)
+        m_hashes.insert(nonterm->m_kr_hash, nonterm);
     }
 
     //=========================================================================

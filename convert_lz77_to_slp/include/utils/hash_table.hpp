@@ -10,6 +10,9 @@
 #include "utils.hpp"
 
 
+//=============================================================================
+// Generic hash function. Needs to be specialized for the key type.
+//=============================================================================
 template<typename key_type>
 std::uint64_t get_hash(const key_type &) {
   fprintf(stderr, "\n\nError: calling a generic get_hash.\n");
@@ -17,6 +20,9 @@ std::uint64_t get_hash(const key_type &) {
   return (std::uint64_t)0;
 }
 
+//=============================================================================
+// Simple chaining hash table.
+//=============================================================================
 template<typename KeyType,
   typename ValueType,
   typename SizeType = std::uint64_t>
@@ -36,9 +42,11 @@ class hash_table {
 
     typedef hash_item<key_type, value_type, size_type> item_type;
 
+    //=========================================================================
     // After the first item has been inserted into hash table:
     // the following invariant holds at all times:
     // m_item_count <= m_bucket_count < 2 * m_item_count.
+    //=========================================================================
     std::uint64_t m_bucket_count;
     std::uint64_t m_item_count;
 
@@ -46,6 +54,10 @@ class hash_table {
     size_type *m_buckets;
 
   public:
+
+    //=========================================================================
+    // Constructor.
+    //=========================================================================
     hash_table() {
       m_bucket_count = 1;
       m_item_count = 0;
@@ -57,6 +69,11 @@ class hash_table {
     }
 
   private:
+
+    //=========================================================================
+    // Double the capacity of the hash table. There is room for
+    // improvement in the way we rehash all elements.
+    //=========================================================================
     void enlarge() {
 
       // Allocate new arrays.
@@ -95,6 +112,10 @@ class hash_table {
     }
 
   public:
+
+    //=========================================================================
+    // Insert a new key (and the associated value).
+    //=========================================================================
     void insert(const key_type &key, const value_type &value) {
       if (m_item_count == m_bucket_count)
         enlarge();
@@ -107,6 +128,9 @@ class hash_table {
       m_buckets[hash] = new_item;
     }
 
+    //=========================================================================
+    // Find the value associated with a given key.
+    //=========================================================================
     value_type* find(const key_type &key) {
       std::uint64_t hash = get_hash(key) & (m_bucket_count - 1);
       std::uint64_t j = m_buckets[hash];
@@ -117,7 +141,9 @@ class hash_table {
       return NULL;
     }
 
-
+    //=========================================================================
+    // Find a value associated with a given key.
+    //=========================================================================
     const value_type* find(const key_type &key) const {
       std::uint64_t hash = get_hash(key) & (m_bucket_count - 1);
       std::uint64_t j = m_buckets[hash];
@@ -128,9 +154,19 @@ class hash_table {
       return NULL;
     }
 
+    //=========================================================================
+    // Destructor.
+    //=========================================================================
     ~hash_table() {
       utils::deallocate(m_buckets);
       utils::deallocate(m_items);
+    }
+
+    //=========================================================================
+    // Return the number of items in hash table.
+    //=========================================================================
+    std::uint64_t size() const {
+      return m_item_count;
     }
 };
 

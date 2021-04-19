@@ -101,7 +101,10 @@ void test_conversion(
 
   // Print info. Note that the grammar may
   // still contain unused nonterminals.
-  fprintf(stderr, "Grammar size = %lu\n", grammar->size());
+  fprintf(stderr, "Number of nonterminals = %lu\n", grammar->size());
+#ifdef MULTIROOT
+  fprintf(stderr, "Number of roots = %lu\n", grammar->number_of_roots());
+#endif
   fprintf(stderr, "\n");
 
 
@@ -159,6 +162,7 @@ void test_conversion(
     fprintf(stderr, "%s\n", result ? "(OK)" : "(FAILED)");
   }
 
+#if 0
   // Collect various statistic about grammar.
   fprintf(stderr, "\n");
   fprintf(stderr, "Additional statistics:\n");
@@ -195,7 +199,6 @@ void test_conversion(
     fprintf(stderr, "(%lu)\n", hashes.size());
   }
 
-
   // Compute the number of nodes in the pruned grammar.
   {
     fprintf(stderr, "  Count nodes in the pruned grammar... ");
@@ -219,11 +222,13 @@ void test_conversion(
     std::vector<const node_type*> pointers;
     grammar->collect_nonterminal_pointers(pointers);
     std::sort(pointers.begin(), pointers.end());
-    pointers.erase(std::unique(pointers.begin(), pointers.end()), pointers.end());
+    pointers.erase(std::unique(pointers.begin(),
+          pointers.end()), pointers.end());
     long double elapsed = utils::wclock() - start;
     fprintf(stderr, "%.2Lfs ", elapsed);
     fprintf(stderr, "(%lu)\n", pointers.size());
   }
+#endif
 
   // Clean up.
   delete[] text;
@@ -231,15 +236,13 @@ void test_conversion(
 
 #endif  // TEST_CORRECTNESS
 
-#ifdef MULTIROOT
-  {
-    fprintf(stderr, "  Number of roots = %lu\n",
-        grammar->number_of_roots());
-  }
-#endif
-
   // Clean up.
   delete grammar;
+
+  fprintf(stderr, "\n\nComputation finished. Summary:\n");
+  fprintf(stderr, "  RAM allocation: cur = %lu bytes, peak = %.2LfMiB\n",
+      utils::get_current_ram_allocation(),
+      (1.L * utils::get_peak_ram_allocation()) / (1UL << 20));
 }
 
 int main(int argc, char **argv) {
@@ -251,8 +254,9 @@ int main(int argc, char **argv) {
     std::exit(EXIT_FAILURE);
 #endif
 
-  // Initialize runtime statistics.
+  // Initialize runtime statistics and randomness.
   utils::initialize_stats();
+  srand(time(0) + getpid());
 
   // Declare types.
   typedef std::uint8_t char_type;
