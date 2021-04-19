@@ -306,15 +306,18 @@ struct nonterminal {
             const std::uint64_t y_exp_len = nonterminals[y].m_exp_len;
             const std::uint64_t y_left = nonterminals[y].m_left;
             const std::uint64_t y_right = nonterminals[y].m_right;
-            const std::uint64_t y_right_exp_len = nonterminals[y_right].m_exp_len;
             if (y_exp_len == suffix_length) {
               ret.push_back(y);
               suffix_length -= y_exp_len;
-            } else if (suffix_length > y_right_exp_len) {
-              ret.push_back(y_right);
-              suffix_length -= y_right_exp_len;
-              y = y_left;
-            } else y = y_right;
+            } else {
+              const std::uint64_t y_right_exp_len =
+                nonterminals[y_right].m_exp_len;
+              if (suffix_length > y_right_exp_len) {
+                ret.push_back(y_right);
+                suffix_length -= y_right_exp_len;
+                y = y_left;
+              } else y = y_right;
+            }
           }
         }
 
@@ -334,15 +337,18 @@ struct nonterminal {
             const std::uint64_t y_exp_len = nonterminals[y].m_exp_len;
             const std::uint64_t y_left = nonterminals[y].m_left;
             const std::uint64_t y_right = nonterminals[y].m_right;
-            const std::uint64_t y_left_exp_len = nonterminals[y_left].m_exp_len;
             if (y_exp_len == prefix_length) {
               ret.push_back(y);
               prefix_length -= y_exp_len;
-            } else if (prefix_length > y_left_exp_len) {
-              ret.push_back(y_left);
-              prefix_length -= y_left_exp_len;
-              y = y_right;
-            } else y = y_left;
+            } else {
+              const std::uint64_t y_left_exp_len =
+                nonterminals[y_left].m_exp_len;
+              if (prefix_length > y_left_exp_len) {
+                ret.push_back(y_left);
+                prefix_length -= y_left_exp_len;
+                y = y_right;
+              } else y = y_left;
+            }
           }
         }
       }
