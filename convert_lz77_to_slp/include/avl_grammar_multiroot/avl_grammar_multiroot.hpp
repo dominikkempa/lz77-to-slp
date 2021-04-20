@@ -192,9 +192,9 @@ struct avl_grammar_multiroot {
         std::uint64_t end = m_long_exp_nonterm.size();
         while (beg + 1 < end) {
           const std::uint64_t mid = (beg + end) / 2;
-          if ((std::uint64_t)m_long_exp_nonterm[mid].first >= id)
-            end = mid + 1;
-          else beg = mid + 1;
+          if ((std::uint64_t)m_long_exp_nonterm[mid].first <= id)
+            beg = mid;
+          else end = mid;
         }
         return (std::uint64_t)m_long_exp_nonterm[beg].second;
       } else return nonterm.m_exp_len;
