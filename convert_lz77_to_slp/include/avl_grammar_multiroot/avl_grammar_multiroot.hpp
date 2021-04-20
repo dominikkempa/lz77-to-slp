@@ -546,17 +546,17 @@ struct avl_grammar_multiroot {
       if (seq.empty())
         return ret;
 
-      // Allocate the DP array.
+      // Allocate the arrays used in the dynamic programming.
       std::uint64_t length = seq.size();
-      std::uint64_t *kr_hashes = new std::uint64_t[length];
-      std::uint64_t *exp_lengths = new std::uint64_t[length];
-      std::uint64_t **dp = new std::uint64_t*[length];
-      std::uint64_t **dp_sol = new std::uint64_t*[length];
-      text_offset_type **dp_nonterm = new text_offset_type*[length];
+      std::uint64_t *kr_hashes = utils::allocate_array<std::uint64_t>(length);
+      std::uint64_t *exp_lengths = utils::allocate_array<std::uint64_t>(length);
+      std::uint64_t **dp = utils::allocate_array<std::uint64_t*>(length);
+      std::uint64_t **dp_sol = utils::allocate_array<std::uint64_t*>(length);
+      text_offset_type **dp_nonterm = utils::allocate_array<text_offset_type*>(length);
       for (std::uint64_t i = 0; i < length; ++i) {
-        dp[i] = new std::uint64_t[length];
-        dp_sol[i] = new std::uint64_t[length];
-        dp_nonterm[i] = new text_offset_type[length];
+        dp[i] = utils::allocate_array<std::uint64_t>(length);
+        dp_sol[i] = utils::allocate_array<std::uint64_t>(length);
+        dp_nonterm[i] = utils::allocate_array<text_offset_type>(length);
       }
 
       // Fill in the array for len = 1.
@@ -609,15 +609,15 @@ struct avl_grammar_multiroot {
 
       // Clean up.
       for (std::uint64_t i = 0; i < length; ++i) {
-        delete[] dp[i];
-        delete[] dp_sol[i];
-        delete[] dp_nonterm[i];
+        utils::deallocate(dp[i]);
+        utils::deallocate(dp_sol[i]);
+        utils::deallocate(dp_nonterm[i]);
       }
-      delete[] dp;
-      delete[] dp_sol;
-      delete[] dp_nonterm;
-      delete[] exp_lengths;
-      delete[] kr_hashes;
+      utils::deallocate(dp);
+      utils::deallocate(dp_sol);
+      utils::deallocate(dp_nonterm);
+      utils::deallocate(exp_lengths);
+      utils::deallocate(kr_hashes);
 
       // Return the result.
       return ret;
