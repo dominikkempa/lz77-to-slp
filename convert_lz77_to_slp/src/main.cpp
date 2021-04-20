@@ -184,13 +184,12 @@ void test_conversion(
   // Check the number of different Mersenne hashes (method #2).
   {
     fprintf(stderr, "  Compute different Karp-Rabin hashes (method #2)... ");
-    typedef avl_grammar_node<char_type> node_type;
     long double start = utils::wclock();
-    std::vector<const node_type*> pointers;
+    std::vector<text_offset_type> pointers;
     std::vector<std::uint64_t> hashes;
     grammar->collect_nonterminal_pointers(pointers);
     for (std::uint64_t i = 0; i < pointers.size(); ++i)
-      hashes.push_back(pointers[i]->m_kr_hash);
+      hashes.push_back(grammar->get_kr_hash(pointers[i]));
     std::sort(hashes.begin(), hashes.end());
     hashes.erase(std::unique(hashes.begin(), hashes.end()), hashes.end());
     long double elapsed = utils::wclock() - start;
@@ -202,12 +201,11 @@ void test_conversion(
   {
     fprintf(stderr, "  Count nodes in the pruned grammar... ");
     long double start = utils::wclock();
-    typedef avl_grammar_node<char_type> node_type;
-    hash_table<const node_type*, std::uint64_t> hashes;
+    hash_table<text_offset_type, std::uint64_t> hashes;
     hash_table<std::uint64_t, bool> seen_hashes;
     std::uint64_t count = 0;
     grammar->collect_mersenne_karp_rabin_hashes_2(hashes);
-    grammar->count_nodes_in_pruned_grammar(hashes, seen_hashes, count);
+    grammar->count_nonterminals_in_pruned_grammar(hashes, seen_hashes, count);
     long double elapsed = utils::wclock() - start;
     fprintf(stderr, "%.2Lfs ", elapsed);
     fprintf(stderr, "(%lu)\n", count);
@@ -216,9 +214,8 @@ void test_conversion(
   // Check the number of different reachable nonterminals.
   {
     fprintf(stderr, "  Collect reachable nonterminals... ");
-    typedef avl_grammar_node<char_type> node_type;
     long double start = utils::wclock();
-    std::vector<const node_type*> pointers;
+    std::vector<text_offset_type> pointers;
     grammar->collect_nonterminal_pointers(pointers);
     std::sort(pointers.begin(), pointers.end());
     pointers.erase(std::unique(pointers.begin(),
