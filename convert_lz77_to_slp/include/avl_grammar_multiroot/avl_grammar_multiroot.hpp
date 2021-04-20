@@ -61,7 +61,7 @@ struct nonterminal {
     std::vector<text_offset_type> decomposition(
         const std::uint64_t, const std::uint64_t, const std::uint64_t,
         const grammar_type * const g) const;
-};
+} __attribute__((packed));
 
 //=============================================================================
 // Hash functions of the appropriate type.
