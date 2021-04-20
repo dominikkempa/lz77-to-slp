@@ -30,7 +30,6 @@ struct nonterminal {
     typedef avl_grammar_multiroot<char_type, text_offset_type> grammar_type;
 
   public:
-    char_type m_char;
     std::uint8_t m_height;
     std::uint8_t m_exp_len;
     std::uint64_t m_kr_hash;
@@ -85,6 +84,8 @@ template<
   typename char_type,
   typename text_offset_type>
 struct avl_grammar_multiroot {
+  static_assert(sizeof(char_type) <= sizeof(text_offset_type),
+      "Error: sizeof(char_type) > sizeof(text_offset_type)!");
 
   //===========================================================================
   // Declare typedefs
@@ -177,7 +178,10 @@ struct avl_grammar_multiroot {
     //=========================================================================
     char_type get_char(const std::uint64_t id) const {
       const nonterminal_type &nonterm = get_nonterminal(id);
-      return nonterm.m_char;
+      if (nonterm.m_height == 0) {
+        char_type c = (char_type)nonterm.m_left;
+        return c;
+      } else return (char_type)0;
     }
 
     //=========================================================================
@@ -246,20 +250,15 @@ struct avl_grammar_multiroot {
         const std::uint64_t right_id) {
 
       // Compute values for the new nonterminal.
-      const char_type new_char = (char_type)0;
       const std::uint8_t new_height =
         std::max(get_height(left_id), get_height(right_id)) + 1;
       const std::uint64_t new_exp_len =
         get_exp_len(left_id) + get_exp_len(right_id);
-      const std::uint64_t new_kr_hash =
-        karp_rabin_hashing::concat(
-            get_kr_hash(left_id),
-            get_kr_hash(right_id),
-            get_exp_len(right_id));
+      const std::uint64_t new_kr_hash = karp_rabin_hashing::concat(
+          get_kr_hash(left_id), get_kr_hash(right_id), get_exp_len(right_id));
 
       // Create and add new nonterminal.
       nonterminal_type new_nonterm;
-      new_nonterm.m_char = new_char;
       new_nonterm.m_height = new_height;
       new_nonterm.m_exp_len = std::min(255UL, new_exp_len);
       new_nonterm.m_kr_hash = new_kr_hash;
@@ -727,8 +726,7 @@ struct avl_grammar_multiroot {
 //=============================================================================
 template<typename char_type, typename text_offset_type>
 nonterminal<char_type, text_offset_type>::nonterminal()
-  : m_char((char_type)0),
-    m_height(0),
+  : m_height(0),
     m_exp_len(1),
     m_kr_hash(0),
     m_left(std::numeric_limits<text_offset_type>::max()),
@@ -739,11 +737,10 @@ nonterminal<char_type, text_offset_type>::nonterminal()
 //=============================================================================
 template<typename char_type, typename text_offset_type>
 nonterminal<char_type, text_offset_type>::nonterminal(const char_type c)
-  : m_char(c),
-    m_height(0),
+  : m_height(0),
     m_exp_len(1),
     m_kr_hash(karp_rabin_hashing::hash_char(c)),
-    m_left(std::numeric_limits<text_offset_type>::max()),
+    m_left((text_offset_type)c),
     m_right(std::numeric_limits<text_offset_type>::max()) {}
 
 //=============================================================================
@@ -752,8 +749,7 @@ nonterminal<char_type, text_offset_type>::nonterminal(const char_type c)
 template<typename char_type, typename text_offset_type>
 nonterminal<char_type, text_offset_type>::nonterminal(
     const nonterminal<char_type, text_offset_type> &x)
-  : m_char(x.m_char),
-    m_height(x.m_height),
+  : m_height(x.m_height),
     m_exp_len(x.m_exp_len),
     m_kr_hash(x.m_kr_hash),
     m_left(x.m_left),
