@@ -10,11 +10,102 @@
 
 #include "../utils/hash_table.hpp"
 #include "../utils/karp_rabin_hashing.hpp"
-#include "nonterminal.hpp"
 
 
 //=============================================================================
-// A class storing multiroot AVL grammar.
+// Class used to present multiroot AVL grammar. Forward declaration.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+struct avl_grammar_multiroot;
+
+//=============================================================================
+// Class used to represent nonterminal. Forward declaration.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+struct nonterminal {
+  private:
+    typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+    typedef avl_grammar_multiroot<char_type, text_offset_type> grammar_type;
+
+  public:
+    const char_type m_char;
+    const std::uint8_t m_height;
+    const std::uint64_t m_exp_len;
+    const std::uint64_t m_kr_hash;
+    const text_offset_type m_left;
+    const text_offset_type m_right;
+
+    nonterminal();
+    nonterminal(const char_type);
+    nonterminal(const std::uint64_t, const std::uint64_t,
+        const grammar_type * const g);
+    void print_expansion( const std::uint64_t,
+        const grammar_type * const) const;
+    void write_expansion(const std::uint64_t, char_type * const,
+        const grammar_type * const) const;
+    bool test_avl_property(const std::uint64_t,
+        const grammar_type * const) const;
+    std::uint64_t collect_mersenne_karp_rabin_hashes(const std::uint64_t,
+        std::vector<std::uint64_t> &, const grammar_type * const) const;
+    void collect_nonterminal_pointers(const std::uint64_t,
+        std::vector<text_offset_type> &, const grammar_type * const) const;
+    std::uint64_t collect_mersenne_karp_rabin_hashes_2(const std::uint64_t,
+        hash_table<text_offset_type, std::uint64_t> &,
+        const grammar_type * const) const;
+    void count_nonterminals_in_pruned_grammar(const std::uint64_t,
+        hash_table<text_offset_type, std::uint64_t> &,
+        hash_table<std::uint64_t, bool> &,
+        std::uint64_t &, const grammar_type * const) const;
+    std::vector<text_offset_type> decomposition(
+        const std::uint64_t, const std::uint64_t, const std::uint64_t,
+        const grammar_type * const g) const;
+};
+
+//=============================================================================
+// Hash functions of the appropriate type.
+// Used in the hash table used to prune the grammar.
+//=============================================================================
+template<>
+std::uint64_t get_hash(const uint40 &x) {
+  return (std::uint64_t)x * (std::uint64_t)29996224275833;
+}
+
+template<>
+std::uint64_t get_hash(const std::uint64_t &x) {
+  return (std::uint64_t)x * (std::uint64_t)4972548694736365;
+}
+
+template<
+  typename char_type,
+  typename text_offset_type>
+std::uint64_t merge_hashes(
+    const std::uint64_t left,
+    const std::uint64_t right,
+    const std::vector<nonterminal<char_type, text_offset_type> >&nonterminals) {
+  const std::uint64_t left_hash = nonterminals[left].m_kr_hash;
+  const std::uint64_t right_hash = nonterminals[right].m_kr_hash;
+  const std::uint64_t right_len = nonterminals[right].m_exp_len;
+  const std::uint64_t h = karp_rabin_hashing::concat(
+      left_hash, right_hash, right_len);
+  return h;
+}
+
+template<
+  typename char_type,
+  typename text_offset_type>
+std::uint64_t append_hash(
+    const std::uint64_t left_hash,
+    const std::uint64_t right,
+    const std::vector<nonterminal<char_type, text_offset_type> > &nonterminals) {
+  const std::uint64_t right_hash = nonterminals[right].m_kr_hash;
+  const std::uint64_t right_len = nonterminals[right].m_exp_len;
+  const std::uint64_t h = karp_rabin_hashing::concat(
+      left_hash, right_hash, right_len);
+  return h;
+}
+
+//=============================================================================
+// Implementation of the avl_grammar_multiroot class.
 //=============================================================================
 template<
   typename char_type,
@@ -61,7 +152,7 @@ struct avl_grammar_multiroot {
         std::uint64_t preflen = it->first;
         std::uint64_t id = it->second;
         if (preflen != 0)
-          m_nonterminals[id].print_expansion(id, m_nonterminals);
+          m_nonterminals[id].print_expansion(id, this);
       }
     }
 
@@ -89,10 +180,24 @@ struct avl_grammar_multiroot {
     }
 
     //=========================================================================
+    // Gives access to a given nonterminal.
+    //=========================================================================
+    const nonterminal_type& get_nonterminal(const std::uint64_t id) const {
+      return m_nonterminals[id];
+    }
+
+    //=========================================================================
     // Return the height of a given nonterminal.
     //=========================================================================
     std::uint64_t get_height(const std::uint64_t id) const {
       return m_nonterminals[id].m_height;
+    }
+
+    //=========================================================================
+    // Return the char associated with a given nonterminal.
+    //=========================================================================
+    char_type get_char(const std::uint64_t id) const {
+      return m_nonterminals[id].m_char;
     }
 
     //=========================================================================
@@ -159,7 +264,8 @@ struct avl_grammar_multiroot {
         const std::uint64_t preflen = it->first;
         const std::uint64_t id = it->second;
         if (preflen != 0) {
-          m_nonterminals[id].write_expansion(id, text + ptr, m_nonterminals);
+          m_nonterminals[id].write_expansion(
+              id, text + ptr, this);
           ptr += get_exp_len(id);
         }
       }
@@ -173,7 +279,7 @@ struct avl_grammar_multiroot {
         const std::uint64_t preflen = it->first;
         const std::uint64_t id = it->second;
         if (preflen != 0 &&
-            !m_nonterminals[id].test_avl_property(id, m_nonterminals))
+            !m_nonterminals[id].test_avl_property(id, this))
           return false;
       }
       return true;
@@ -189,7 +295,7 @@ struct avl_grammar_multiroot {
         const std::uint64_t id = it->second;
         if (preflen != 0)
           (void) m_nonterminals[id].collect_mersenne_karp_rabin_hashes(
-              id, hashes, m_nonterminals);
+              id, hashes, this);
       }
     }
 
@@ -203,7 +309,7 @@ struct avl_grammar_multiroot {
         const std::uint64_t id = it->second;
         if (preflen != 0)
           (void) m_nonterminals[id].collect_mersenne_karp_rabin_hashes_2(
-             id, hashes, m_nonterminals);
+             id, hashes, this);
       }
     }
 
@@ -219,7 +325,7 @@ struct avl_grammar_multiroot {
         const std::uint64_t id = it->second;
         if (preflen != 0)
           m_nonterminals[id].count_nonterminals_in_pruned_grammar(
-            id, hashes, seen_hashes, current_count, m_nonterminals);
+            id, hashes, seen_hashes, current_count, this);
       }
     }
 
@@ -233,7 +339,7 @@ struct avl_grammar_multiroot {
         const std::uint64_t id = it->second;
         if (preflen != 0)
           m_nonterminals[id].collect_nonterminal_pointers(
-              id, pointers, m_nonterminals);
+              id, pointers, this);
       }
     }
 
@@ -281,7 +387,7 @@ struct avl_grammar_multiroot {
         if (get_height(left_id) - get_height(right_id) <= 1) {
 
           // Height are close. Just merge and return.
-          const nonterminal_type newroot(left_id, right_id, m_nonterminals);
+          const nonterminal_type newroot(left_id, right_id, this);
           const std::uint64_t newroot_id = add_nonterminal(newroot);
           return newroot_id;
       } else {
@@ -297,29 +403,22 @@ struct avl_grammar_multiroot {
               // Double (right-left) rotation.
               const nonterminal_type X(
                   get_left_id(left_id),
-                  get_left_id(get_left_id(newright_id)),
-                  m_nonterminals);
+                  get_left_id(get_left_id(newright_id)), this);
               const nonterminal_type Z(
                   get_right_id(get_left_id(newright_id)),
-                  get_right_id(newright_id),
-                  m_nonterminals);
+                  get_right_id(newright_id), this);
               const std::uint64_t X_id = add_nonterminal(X);
               const std::uint64_t Z_id = add_nonterminal(Z);
-              const nonterminal_type Y(X_id, Z_id, m_nonterminals);
+              const nonterminal_type Y(X_id, Z_id, this);
               const std::uint64_t Y_id = add_nonterminal(Y);
               return Y_id;
             } else {
 
               // Single (left) rotation.
               const nonterminal_type X(
-                  get_left_id(left_id),
-                  get_left_id(newright_id),
-                  m_nonterminals);
+                  get_left_id(left_id), get_left_id(newright_id), this);
               const std::uint64_t X_id = add_nonterminal(X);
-              const nonterminal_type Y(
-                  X_id,
-                  get_right_id(newright_id),
-                  m_nonterminals);
+              const nonterminal_type Y(X_id, get_right_id(newright_id), this);
               const std::uint64_t Y_id = add_nonterminal(Y);
               return Y_id;
             }
@@ -327,9 +426,7 @@ struct avl_grammar_multiroot {
 
             // No need to rebalance.
             const nonterminal_type newroot(
-                get_left_id(left_id),
-                newright_id,
-                m_nonterminals);
+                get_left_id(left_id), newright_id, this);
             const std::uint64_t newroot_id = add_nonterminal(newroot);
             return newroot_id;
           }
@@ -338,7 +435,7 @@ struct avl_grammar_multiroot {
         if (get_height(right_id) - get_height(left_id) <= 1) {
 
           // Heights are close. Just merge and return.
-          const nonterminal_type newroot(left_id, right_id, m_nonterminals);
+          const nonterminal_type newroot(left_id, right_id, this);
           const std::uint64_t newroot_id = add_nonterminal(newroot);
           return newroot_id;
         } else {
@@ -354,29 +451,22 @@ struct avl_grammar_multiroot {
               // Double (left-right) rotation.
               const nonterminal_type X(
                   get_left_id(newleft_id),
-                  get_left_id(get_right_id(newleft_id)),
-                  m_nonterminals);
+                  get_left_id(get_right_id(newleft_id)), this);
               const nonterminal_type Z(
                   get_right_id(get_right_id(newleft_id)),
-                  get_right_id(right_id),
-                  m_nonterminals);
+                  get_right_id(right_id), this);
               const std::uint64_t X_id = add_nonterminal(X);
               const std::uint64_t Z_id = add_nonterminal(Z);
-              const nonterminal_type Y(X_id, Z_id, m_nonterminals);
+              const nonterminal_type Y(X_id, Z_id, this);
               const std::uint64_t Y_id = add_nonterminal(Y);
               return Y_id;
             } else {
 
               // Single (right) rotation.
               const nonterminal_type Y(
-                  get_right_id(newleft_id),
-                  get_right_id(right_id),
-                  m_nonterminals);
+                  get_right_id(newleft_id), get_right_id(right_id), this);
               const std::uint64_t Y_id = add_nonterminal(Y);
-              const nonterminal_type X(
-                  get_left_id(newleft_id),
-                  Y_id,
-                  m_nonterminals);
+              const nonterminal_type X(get_left_id(newleft_id), Y_id, this);
               const std::uint64_t X_id = add_nonterminal(X);
               return X_id;
             }
@@ -384,9 +474,7 @@ struct avl_grammar_multiroot {
 
             // No need to rebalance.
             const nonterminal_type newroot(
-                newleft_id,
-                get_right_id(right_id),
-                m_nonterminals);
+                newleft_id, get_right_id(right_id), this);
             const std::uint64_t newroot_id = add_nonterminal(newroot);
             return newroot_id;
           }
@@ -415,8 +503,7 @@ struct avl_grammar_multiroot {
         const std::uint64_t local_end = std::min(preflen, end) - it_exp_beg;
         const std::uint64_t local_size = local_end - local_beg;
         std::vector<text_offset_type> dec =
-          m_nonterminals[id].decomposition(
-              id, local_beg, local_end, m_nonterminals);
+          m_nonterminals[id].decomposition(id, local_beg, local_end, this);
         ret.insert(ret.end(), dec.begin(), dec.end());
         begin += local_size;
       }
@@ -437,7 +524,7 @@ struct avl_grammar_multiroot {
         const std::uint64_t it_exp_beg = preflen - it_exp_size;
         const std::uint64_t local_end = end - it_exp_beg;
         std::vector<text_offset_type> dec =
-          m_nonterminals[id].decomposition(id, 0, local_end, m_nonterminals);
+          m_nonterminals[id].decomposition(id, 0, local_end, this);
         ret.insert(ret.end(), dec.begin(), dec.end());
         begin = end;
       }
@@ -565,7 +652,8 @@ struct avl_grammar_multiroot {
           if (m_hashes.find(h) != NULL)
             seq[smallest_height_id] = *(m_hashes.find(h));
           else
-            seq[smallest_height_id] = add_concat_nonterminal(left_id, right_id);
+            seq[smallest_height_id] =
+              add_concat_nonterminal(left_id, right_id);
         } else {
 
           // Only left neighbor exists, or both exists
@@ -580,11 +668,354 @@ struct avl_grammar_multiroot {
           if (m_hashes.find(h) != NULL)
             seq[smallest_height_id - 1] = *(m_hashes.find(h));
           else
-            seq[smallest_height_id - 1] = add_concat_nonterminal(left_id, right_id);
+            seq[smallest_height_id - 1] =
+              add_concat_nonterminal(left_id, right_id);
         }
       }
       return seq[0];
     }
 };
+
+//=============================================================================
+// Default constructor.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+nonterminal<char_type, text_offset_type>::nonterminal()
+  : m_char((char_type)0),
+    m_height(0),
+    m_exp_len(1),
+    m_kr_hash(0),
+    m_left(std::numeric_limits<text_offset_type>::max()),
+    m_right(std::numeric_limits<text_offset_type>::max()) {}
+
+//=============================================================================
+// Constructor for a nonterminal expanding to a single symbol.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+nonterminal<char_type, text_offset_type>::nonterminal(const char_type c)
+  : m_char(c),
+    m_height(0),
+    m_exp_len(1),
+    m_kr_hash(karp_rabin_hashing::hash_char(c)),
+    m_left(std::numeric_limits<text_offset_type>::max()),
+    m_right(std::numeric_limits<text_offset_type>::max()) {}
+
+//=============================================================================
+// Constructor for non-single-symbol nonterminal.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+nonterminal<char_type, text_offset_type>::nonterminal(
+      const std::uint64_t left,
+      const std::uint64_t right,
+      const avl_grammar_multiroot<char_type, text_offset_type> * const g)
+  : m_char((char_type)0),
+    m_height(std::max(g->get_height(left), g->get_height(right)) + 1),
+    m_exp_len(g->get_exp_len(left) + g->get_exp_len(right)),
+    m_kr_hash(karp_rabin_hashing::concat(
+        g->get_kr_hash(left),
+        g->get_kr_hash(right),
+        g->get_exp_len(right))),
+    m_left(left),
+    m_right(right) {}
+
+//=============================================================================
+// Print expansion of a given nonterminal.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+void nonterminal<char_type, text_offset_type>::print_expansion(
+    const std::uint64_t id,
+    const avl_grammar_multiroot<char_type, text_offset_type> * const g) const {
+  typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+  const std::uint64_t height = g->get_height(id);
+  if (height == 0) {
+    const char_type my_char = g->get_char(id);
+    fprintf(stderr, "%c", (char)my_char);
+  } else {
+    const std::uint64_t left_id = g->get_left_id(id);
+    const std::uint64_t right_id = g->get_right_id(id);
+    const nonterminal_type &left = g->get_nonterminal(left_id);
+    const nonterminal_type &right = g->get_nonterminal(right_id);
+    left.print_expansion(left_id, g);
+    right.print_expansion(right_id, g);
+  }
+}
+
+//=============================================================================
+// Write the expansion into the given array.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+void nonterminal<char_type, text_offset_type>::write_expansion(
+    const std::uint64_t id,
+    char_type * const text,
+    const avl_grammar_multiroot<char_type, text_offset_type> * const g) const {
+  typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+  const std::uint64_t height = g->get_height(id);
+  if (height == 0) {
+    const char_type my_char = g->get_char(id);
+    text[0] = my_char;
+  } else {
+    const std::uint64_t left_id = g->get_left_id(id);
+    const std::uint64_t right_id = g->get_right_id(id);
+    const std::uint64_t left_exp_len = g->get_exp_len(left_id);
+    const nonterminal_type &left = g->get_nonterminal(left_id);
+    const nonterminal_type &right = g->get_nonterminal(right_id);
+    left.write_expansion(left_id, text, g);
+    right.write_expansion(right_id, text + left_exp_len, g);
+  }
+}
+
+//=============================================================================
+// Test the AVL propert of a subtree.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+bool nonterminal<char_type, text_offset_type>::test_avl_property(
+    const std::uint64_t id,
+    const avl_grammar_multiroot<char_type, text_offset_type> * const g) const {
+  typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+  const std::uint64_t height = g->get_height(id);
+  if (height == 0)
+    return true;
+
+  const std::uint64_t left_id = g->get_left_id(id);
+  const std::uint64_t right_id = g->get_right_id(id);
+  const nonterminal_type &left = g->get_nonterminal(left_id);
+  const nonterminal_type &right = g->get_nonterminal(right_id);
+  if (!left.test_avl_property(left_id, g) ||
+      !right.test_avl_property(right_id, g))
+    return false;
+
+  const std::uint64_t left_height = g->get_height(left_id);
+  const std::uint64_t right_height = g->get_height(right_id);
+  if ((right_height > left_height && right_height - left_height > 1) ||
+      (right_height < left_height && left_height - right_height > 1))
+    return false;
+
+  return true;
+}
+
+//=============================================================================
+// Collect Mersenne Karp-Rabin hashes of all nonterminals.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+std::uint64_t nonterminal<char_type, text_offset_type>
+::collect_mersenne_karp_rabin_hashes(
+    const std::uint64_t id,
+    std::vector<std::uint64_t> &hashes,
+    const avl_grammar_multiroot<char_type, text_offset_type> * const g) const {
+  typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+  const std::uint64_t height = g->get_height(id);
+  if (height == 0) {
+    const char_type my_char = g->get_char(id);
+    const std::uint64_t h = karp_rabin_hashing::hash_char(my_char);
+    hashes.push_back(h);
+    return h;
+  } else {
+    const std::uint64_t left_id = g->get_left_id(id);
+    const std::uint64_t right_id = g->get_right_id(id);
+    const nonterminal_type &left = g->get_nonterminal(left_id);
+    const nonterminal_type &right = g->get_nonterminal(right_id);
+    const std::uint64_t left_hash =
+      left.collect_mersenne_karp_rabin_hashes(left_id, hashes, g);
+    const std::uint64_t right_hash =
+      right.collect_mersenne_karp_rabin_hashes(right_id, hashes, g);
+    const std::uint64_t right_len = g->get_exp_len(right_id);
+    const std::uint64_t h = karp_rabin_hashing::concat(
+        left_hash, right_hash, right_len);
+    hashes.push_back(h);
+    return h;
+  }
+}
+
+//=============================================================================
+// Collect reachable nonterminals.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+void nonterminal<char_type, text_offset_type>::collect_nonterminal_pointers(
+    const std::uint64_t id,
+    std::vector<text_offset_type> &pointers,
+    const avl_grammar_multiroot<char_type, text_offset_type> * const g) const {
+  typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+  const std::uint64_t height = g->get_height(id);
+  pointers.push_back(id);
+  if (height > 0) {
+    const std::uint64_t left_id = g->get_left_id(id);
+    const std::uint64_t right_id = g->get_right_id(id);
+    const nonterminal_type &left = g->get_nonterminal(left_id);
+    const nonterminal_type &right = g->get_nonterminal(right_id);
+    left.collect_nonterminal_pointers(left_id, pointers, g);
+    right.collect_nonterminal_pointers(right_id, pointers, g);
+ }
+}
+
+//=============================================================================
+// Collect Mersenne Karp-Rabin hashes of all nonterminals.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+std::uint64_t nonterminal<char_type, text_offset_type>
+::collect_mersenne_karp_rabin_hashes_2(
+    const std::uint64_t id,
+    hash_table<text_offset_type, std::uint64_t> &hashes,
+    const avl_grammar_multiroot<char_type, text_offset_type> * const g) const {
+  typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+  const std::uint64_t height = g->get_height(id);
+  if (height == 0) {
+    const char_type my_char = g->get_char(id);
+    const std::uint64_t h = karp_rabin_hashing::hash_char(my_char);
+    hashes.insert(id, h);
+    return h;
+  } else {
+    const std::uint64_t left_id = g->get_left_id(id);
+    const std::uint64_t right_id = g->get_right_id(id);
+    const nonterminal_type &left = g->get_nonterminal(left_id);
+    const nonterminal_type &right = g->get_nonterminal(right_id);
+    const std::uint64_t left_hash =
+      left.collect_mersenne_karp_rabin_hashes_2(left_id, hashes, g);
+    const std::uint64_t right_hash =
+      right.collect_mersenne_karp_rabin_hashes_2(right_id, hashes, g);
+    const std::uint64_t right_len = g->get_exp_len(right_id);
+    const std::uint64_t h = karp_rabin_hashing::concat(
+        left_hash, right_hash, right_len);
+    hashes.insert(id, h);
+    return h;
+  }
+}
+
+//=============================================================================
+// Compute the number of nonterminals in the pruned grammar.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+void nonterminal<char_type, text_offset_type>
+::count_nonterminals_in_pruned_grammar(
+    const std::uint64_t id,
+    hash_table<text_offset_type, std::uint64_t> &hashes,
+    hash_table<std::uint64_t, bool> &seen_hashes,
+    std::uint64_t &current_count,
+    const avl_grammar_multiroot<char_type, text_offset_type> * const g) const {
+  typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+  const std::uint64_t * const h = hashes.find((text_offset_type)id);
+  if (seen_hashes.find(*h) == NULL) {
+    seen_hashes.insert(*h, true);
+    ++current_count;
+    const std::uint64_t height = g->get_height(id);
+    if (height != 0) {
+      const std::uint64_t left_id = g->get_left_id(id);
+      const std::uint64_t right_id = g->get_right_id(id);
+      const nonterminal_type &left = g->get_nonterminal(left_id);
+      const nonterminal_type &right = g->get_nonterminal(right_id);
+      left.count_nonterminals_in_pruned_grammar(
+          left_id, hashes, seen_hashes, current_count, g);
+      right.count_nonterminals_in_pruned_grammar(
+          right_id, hashes, seen_hashes, current_count, g);
+    }
+  }
+}
+
+//=============================================================================
+// Assuming S is the expansions of the nontermnal, return the
+// sequence of nonterminals expanding to S[begin..end).
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+std::vector<text_offset_type>
+nonterminal<char_type, text_offset_type>::decomposition(
+    const std::uint64_t id,
+    const std::uint64_t begin,
+    const std::uint64_t end,
+    const avl_grammar_multiroot<char_type, text_offset_type> * const g) const {
+
+  // Declare the vector storing the result.
+  std::vector<text_offset_type> ret;
+
+  // Handle boundary case.
+  if (begin == end)
+    return ret;
+
+  // Find the deepest nonterminal in the parse tree containing the range
+  // [begin..end).
+  std::uint64_t x = id;
+  std::uint64_t x_height = g->get_height(x);
+  std::uint64_t cur_range_beg = 0;
+  std::uint64_t cur_range_end = g->get_exp_len(x);
+  while (x_height > 0) {
+    const std::uint64_t x_left = g->get_left_id(x);
+    const std::uint64_t x_right = g->get_right_id(x);
+    const std::uint64_t x_left_exp_len = g->get_exp_len(x_left);
+    const std::uint64_t cur_range_mid = cur_range_beg + x_left_exp_len;
+    if (end <= cur_range_mid) {
+      cur_range_end = cur_range_mid;
+      x = x_left;
+      x_height = g->get_height(x);
+    } else if (begin >= cur_range_mid) {
+      cur_range_beg = cur_range_mid;
+      x = x_right;
+      x_height = g->get_height(x);
+    } else break;
+  }
+
+  // Check if the range of x is exactly [begin..end).
+  if (cur_range_beg == begin && cur_range_end == end) {
+
+    // If yes, return x as the answer.
+    ret.push_back((text_offset_type)x);
+  } else {
+
+    // Otherwise, we perform two traversals in the tree.
+    {
+      const std::uint64_t x_left = g->get_left_id(x);
+      const std::uint64_t x_left_exp_len = g->get_exp_len(x_left);
+      const std::uint64_t left_range_end = cur_range_beg + x_left_exp_len;
+      std::uint64_t suffix_length = left_range_end - begin;
+      std::uint64_t y = x_left;
+      while (suffix_length > 0) {
+        const std::uint64_t y_exp_len = g->get_exp_len(y);
+        const std::uint64_t y_left = g->get_left_id(y);
+        const std::uint64_t y_right = g->get_right_id(y);
+        if (y_exp_len == suffix_length) {
+          ret.push_back(y);
+          suffix_length -= y_exp_len;
+        } else {
+          const std::uint64_t y_right_exp_len = g->get_exp_len(y_right);
+          if (suffix_length > y_right_exp_len) {
+            ret.push_back(y_right);
+            suffix_length -= y_right_exp_len;
+            y = y_left;
+          } else y = y_right;
+        }
+      }
+    }
+
+    // Reverse the first sequence of nonterminals
+    // collected during the left downward traversal.
+    std::reverse(ret.begin(), ret.end());
+
+    // Perform the analogous operation for the right side.
+    {
+      const std::uint64_t x_left = g->get_left_id(x);
+      const std::uint64_t x_right = g->get_right_id(x);
+      const std::uint64_t x_left_exp_len = g->get_exp_len(x_left);
+      const std::uint64_t right_range_beg = cur_range_beg + x_left_exp_len;
+      std::uint64_t prefix_length = end - right_range_beg;
+      std::uint64_t y = x_right;
+      while (prefix_length > 0) {
+        const std::uint64_t y_exp_len = g->get_exp_len(y);
+        const std::uint64_t y_left = g->get_left_id(y);
+        const std::uint64_t y_right = g->get_right_id(y);
+        if (y_exp_len == prefix_length) {
+          ret.push_back(y);
+          prefix_length -= y_exp_len;
+        } else {
+          const std::uint64_t y_left_exp_len = g->get_exp_len(y_left);
+          if (prefix_length > y_left_exp_len) {
+            ret.push_back(y_left);
+            prefix_length -= y_left_exp_len;
+            y = y_right;
+          } else y = y_left;
+        }
+      }
+    }
+  }
+
+  // Return the result.
+  return ret;
+}
 
 #endif  // __AVL_GRAMMAR_MULTIROOT_HPP_INCLUDED

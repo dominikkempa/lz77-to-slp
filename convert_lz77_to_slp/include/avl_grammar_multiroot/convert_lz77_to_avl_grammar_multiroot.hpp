@@ -8,7 +8,6 @@
 #include <algorithm>
 
 #include "../utils/karp_rabin_hashing.hpp"
-#include "nonterminal.hpp"
 #include "avl_grammar_multiroot.hpp"
 
 
