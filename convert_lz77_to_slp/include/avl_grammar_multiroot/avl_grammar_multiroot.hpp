@@ -32,7 +32,6 @@ struct nonterminal {
   public:
     std::uint8_t m_height;
     std::uint8_t m_exp_len;
-    std::uint64_t m_kr_hash;
     text_offset_type m_left;
     text_offset_type m_right;
 
@@ -95,6 +94,7 @@ struct avl_grammar_multiroot {
   typedef typename map_type::const_iterator const_iter_type;
   typedef typename map_type::iterator iter_type;
   typedef packed_pair<text_offset_type, text_offset_type> pair_type;
+  typedef packed_pair<text_offset_type, std::uint64_t> hash_pair_type;
 
   private:
 
@@ -103,8 +103,10 @@ struct avl_grammar_multiroot {
     //=========================================================================
     map_type m_roots;
     space_efficient_vector<nonterminal_type> m_nonterminals;
-    space_efficient_vector<pair_type> m_long_exp_nonterm;
+    space_efficient_vector<pair_type> m_long_exp_len;
+    space_efficient_vector<hash_pair_type> m_long_exp_hashes;
     hash_table<std::uint64_t, text_offset_type> m_hashes;
+    char_type *m_snippet;
 
   public:
 
@@ -114,12 +116,15 @@ struct avl_grammar_multiroot {
     avl_grammar_multiroot() {
       m_roots.insert(
           std::make_pair(0, std::numeric_limits<text_offset_type>::max()));
+      m_snippet = utils::allocate_array<char_type>(256);
     }
 
     //=========================================================================
     // Destructor.
     //=========================================================================
-    ~avl_grammar_multiroot() {}
+    ~avl_grammar_multiroot() {
+      utils::deallocate(m_snippet);
+    }
 
     //=========================================================================
     // Print the string encoded by the grammar.
@@ -191,16 +196,16 @@ struct avl_grammar_multiroot {
       const nonterminal_type &nonterm = get_nonterminal(id);
       if (nonterm.m_exp_len == 255) {
 
-        // Binary search in m_long_exp_nonterm.
+        // Binary search in m_long_exp_len.
         std::uint64_t beg = 0;
-        std::uint64_t end = m_long_exp_nonterm.size();
+        std::uint64_t end = m_long_exp_len.size();
         while (beg + 1 < end) {
           const std::uint64_t mid = (beg + end) / 2;
-          if ((std::uint64_t)m_long_exp_nonterm[mid].first <= id)
+          if ((std::uint64_t)m_long_exp_len[mid].first <= id)
             beg = mid;
           else end = mid;
         }
-        return (std::uint64_t)m_long_exp_nonterm[beg].second;
+        return (std::uint64_t)m_long_exp_len[beg].second;
       } else return nonterm.m_exp_len;
     }
 
@@ -209,7 +214,27 @@ struct avl_grammar_multiroot {
     //=========================================================================
     std::uint64_t get_kr_hash(const std::uint64_t id) const {
       const nonterminal_type &nonterm = get_nonterminal(id);
-      return nonterm.m_kr_hash;
+      if (nonterm.m_exp_len < 255) {
+
+        // Recompute the hash from scratch.
+        nonterm.write_expansion(id, m_snippet, this);
+        std::uint64_t h = 0;
+        for (std::uint64_t i = 0; i < nonterm.m_exp_len; ++i)
+          h = karp_rabin_hashing::concat(h, (std::uint64_t)m_snippet[i], 1);
+        return h;
+      } else {
+
+        // Binary search in m_long_exp_hashes.
+        std::uint64_t beg = 0;
+        std::uint64_t end = m_long_exp_hashes.size();
+        while (beg + 1 < end) {
+          const std::uint64_t mid = (beg + end) / 2;
+          if ((std::uint64_t)m_long_exp_hashes[mid].first <= id)
+            beg = mid;
+          else end = mid;
+        }
+        return m_long_exp_hashes[beg].second;
+      }
     }
 
     //=========================================================================
@@ -229,7 +254,7 @@ struct avl_grammar_multiroot {
     }
 
     //=========================================================================
-    // Add a nonterminal.
+    // Add nonterminal expanding to single symbol.
     //=========================================================================
     std::uint64_t add_nonterminal(const nonterminal_type &nonterm) {
       const std::uint64_t id = m_nonterminals.size();
@@ -245,6 +270,9 @@ struct avl_grammar_multiroot {
       return id;
     }
 
+    //=========================================================================
+    // Add a new binary nonterminal.
+    //=========================================================================
     std::uint64_t add_nonterminal(
         const std::uint64_t left_id,
         const std::uint64_t right_id) {
@@ -254,24 +282,51 @@ struct avl_grammar_multiroot {
         std::max(get_height(left_id), get_height(right_id)) + 1;
       const std::uint64_t new_exp_len =
         get_exp_len(left_id) + get_exp_len(right_id);
-      const std::uint64_t new_kr_hash = karp_rabin_hashing::concat(
-          get_kr_hash(left_id), get_kr_hash(right_id), get_exp_len(right_id));
 
       // Create and add new nonterminal.
       nonterminal_type new_nonterm;
       new_nonterm.m_height = new_height;
       new_nonterm.m_exp_len = std::min(255UL, new_exp_len);
-      new_nonterm.m_kr_hash = new_kr_hash;
       new_nonterm.m_left = left_id;
       new_nonterm.m_right = right_id;
-      std::uint64_t new_id = add_nonterminal(new_nonterm);
 
-      // If necessary, update list of long nonterminals.
-      if (new_exp_len >= 255)
-        m_long_exp_nonterm.push_back(
+      const std::uint64_t new_id = m_nonterminals.size();
+      m_nonterminals.push_back(new_nonterm);
+
+      // With probability 1/16 add to hash table.
+      std::uint64_t new_kr_hash = 0;
+      bool hash_computed = false;
+      if (utils::random_int<std::uint64_t>(
+            (std::uint64_t)0,
+            (std::uint64_t)15) == 0) {
+        new_kr_hash =
+          karp_rabin_hashing::concat(
+              get_kr_hash(left_id),
+              get_kr_hash(right_id),
+              get_exp_len(right_id));
+        hash_computed = true;
+        m_hashes.insert(new_kr_hash, new_id);
+      }
+
+      // Update list of long nonterminals.
+      if (new_exp_len >= 255) {
+        if (!hash_computed) {
+          new_kr_hash =
+            karp_rabin_hashing::concat(
+                get_kr_hash(left_id),
+                get_kr_hash(right_id),
+                get_exp_len(right_id));
+        }
+
+        m_long_exp_len.push_back(
             pair_type(
               (text_offset_type)new_id,
               (text_offset_type)new_exp_len));
+        m_long_exp_hashes.push_back(
+            hash_pair_type(
+              (text_offset_type)new_id,
+              new_kr_hash));
+      }
 
       // Return the id of the new nonterminal.
       return new_id;
@@ -728,7 +783,6 @@ template<typename char_type, typename text_offset_type>
 nonterminal<char_type, text_offset_type>::nonterminal()
   : m_height(0),
     m_exp_len(1),
-    m_kr_hash(0),
     m_left(std::numeric_limits<text_offset_type>::max()),
     m_right(std::numeric_limits<text_offset_type>::max()) {}
 
@@ -739,7 +793,6 @@ template<typename char_type, typename text_offset_type>
 nonterminal<char_type, text_offset_type>::nonterminal(const char_type c)
   : m_height(0),
     m_exp_len(1),
-    m_kr_hash(karp_rabin_hashing::hash_char(c)),
     m_left((text_offset_type)c),
     m_right(std::numeric_limits<text_offset_type>::max()) {}
 
@@ -751,7 +804,6 @@ nonterminal<char_type, text_offset_type>::nonterminal(
     const nonterminal<char_type, text_offset_type> &x)
   : m_height(x.m_height),
     m_exp_len(x.m_exp_len),
-    m_kr_hash(x.m_kr_hash),
     m_left(x.m_left),
     m_right(x.m_right) {}
 
