@@ -548,6 +548,8 @@ struct avl_grammar_multiroot {
 
       // Allocate the DP array.
       std::uint64_t length = seq.size();
+      std::uint64_t *kr_hashes = new std::uint64_t[length];
+      std::uint64_t *exp_lengths = new std::uint64_t[length];
       std::uint64_t **dp = new std::uint64_t*[length];
       std::uint64_t **dp_sol = new std::uint64_t*[length];
       text_offset_type **dp_nonterm = new text_offset_type*[length];
@@ -562,6 +564,8 @@ struct avl_grammar_multiroot {
         dp[i][i] = 1;
         dp_sol[i][i] = 1;
         dp_nonterm[i][i] = seq[i];
+        kr_hashes[i] = get_kr_hash((std::uint64_t)seq[i]);
+        exp_lengths[i] = get_exp_len((std::uint64_t)seq[i]);
       }
 
       // Solve for subarray of length > 1.
@@ -575,12 +579,13 @@ struct avl_grammar_multiroot {
           dp_nonterm[beg][end] = seq[beg];
 
           // Try all other possible choices.
-          std::uint64_t h = get_kr_hash((std::uint64_t)seq[beg]);
+          std::uint64_t h = kr_hashes[beg];
           for (std::uint64_t leftlen = 2;
               leftlen <= len; ++leftlen) {
             const std::uint64_t last = beg + leftlen - 1;
-            h = append_hash<char_type, text_offset_type>(
-                h, (std::uint64_t)seq[last], m_nonterminals);
+            const std::uint64_t right_hash = kr_hashes[last];
+            const std::uint64_t right_len = exp_lengths[last];
+            h = karp_rabin_hashing::concat(h, right_hash, right_len);
             const text_offset_type *nonterm_id_ptr = m_hashes.find(h);
             if (nonterm_id_ptr != NULL) {
               std::uint64_t sol_cost = 1;
@@ -611,6 +616,8 @@ struct avl_grammar_multiroot {
       delete[] dp;
       delete[] dp_sol;
       delete[] dp_nonterm;
+      delete[] exp_lengths;
+      delete[] kr_hashes;
 
       // Return the result.
       return ret;
