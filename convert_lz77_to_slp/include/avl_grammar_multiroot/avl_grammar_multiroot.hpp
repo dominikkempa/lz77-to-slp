@@ -10,6 +10,7 @@
 
 #include "../utils/hash_table.hpp"
 #include "../utils/karp_rabin_hashing.hpp"
+#include "../utils/space_efficient_vector.hpp"
 
 
 //=============================================================================
@@ -28,17 +29,18 @@ struct nonterminal {
     typedef avl_grammar_multiroot<char_type, text_offset_type> grammar_type;
 
   public:
-    const char_type m_char;
-    const std::uint8_t m_height;
-    const std::uint64_t m_exp_len;
-    const std::uint64_t m_kr_hash;
-    const text_offset_type m_left;
-    const text_offset_type m_right;
+    char_type m_char;
+    std::uint8_t m_height;
+    std::uint64_t m_exp_len;
+    std::uint64_t m_kr_hash;
+    text_offset_type m_left;
+    text_offset_type m_right;
 
     nonterminal();
     nonterminal(const char_type);
     nonterminal(const std::uint64_t, const std::uint64_t,
         const grammar_type * const g);
+    nonterminal(const nonterminal_type &);
     void print_expansion( const std::uint64_t,
         const grammar_type * const) const;
     void write_expansion(const std::uint64_t, char_type * const,
@@ -97,7 +99,7 @@ struct avl_grammar_multiroot {
     // Class members.
     //=========================================================================
     map_type m_roots;
-    std::vector<nonterminal_type> m_nonterminals;
+    space_efficient_vector<nonterminal_type> m_nonterminals;
     hash_table<std::uint64_t, text_offset_type> m_hashes;
 
   public:
@@ -717,6 +719,19 @@ nonterminal<char_type, text_offset_type>::nonterminal(
         g->get_exp_len(right))),
     m_left(left),
     m_right(right) {}
+
+//=============================================================================
+// Copy constructor.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+nonterminal<char_type, text_offset_type>::nonterminal(
+    const nonterminal<char_type, text_offset_type> &x)
+  : m_char(x.m_char),
+    m_height(x.m_height),
+    m_exp_len(x.m_exp_len),
+    m_kr_hash(x.m_kr_hash),
+    m_left(x.m_left),
+    m_right(x.m_right) {}
 
 //=============================================================================
 // Print expansion of a given nonterminal.
