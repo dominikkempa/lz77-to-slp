@@ -87,7 +87,7 @@ class space_efficient_vector {
       }
     }
 
-    void push_back(const value_type &value) {
+    inline void push_back(const value_type &value) {
       if (m_cur_block_filled == m_block_size &&
           m_cur_block_id + 1 == max_blocks) {
         std::uint64_t new_block_size = m_block_size * 2;
