@@ -15,7 +15,7 @@
 
 
 //=============================================================================
-// Class used to present multiroot AVL grammar. Forward declaration.
+// Class used to represent multiroot AVL grammar. Forward declaration.
 //=============================================================================
 template<typename char_type, typename text_offset_type>
 struct avl_grammar_multiroot;
