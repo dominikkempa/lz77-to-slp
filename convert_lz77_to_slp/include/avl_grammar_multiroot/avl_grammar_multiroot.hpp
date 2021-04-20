@@ -75,35 +75,6 @@ std::uint64_t get_hash(const std::uint64_t &x) {
   return (std::uint64_t)x * (std::uint64_t)4972548694736365;
 }
 
-template<
-  typename char_type,
-  typename text_offset_type>
-std::uint64_t merge_hashes(
-    const std::uint64_t left,
-    const std::uint64_t right,
-    const std::vector<nonterminal<char_type, text_offset_type> >&nonterminals) {
-  const std::uint64_t left_hash = nonterminals[left].m_kr_hash;
-  const std::uint64_t right_hash = nonterminals[right].m_kr_hash;
-  const std::uint64_t right_len = nonterminals[right].m_exp_len;
-  const std::uint64_t h = karp_rabin_hashing::concat(
-      left_hash, right_hash, right_len);
-  return h;
-}
-
-template<
-  typename char_type,
-  typename text_offset_type>
-std::uint64_t append_hash(
-    const std::uint64_t left_hash,
-    const std::uint64_t right,
-    const std::vector<nonterminal<char_type, text_offset_type> > &nonterminals) {
-  const std::uint64_t right_hash = nonterminals[right].m_kr_hash;
-  const std::uint64_t right_len = nonterminals[right].m_exp_len;
-  const std::uint64_t h = karp_rabin_hashing::concat(
-      left_hash, right_hash, right_len);
-  return h;
-}
-
 //=============================================================================
 // Implementation of the avl_grammar_multiroot class.
 //=============================================================================
@@ -652,9 +623,11 @@ struct avl_grammar_multiroot {
           // one. End result: merge with the right neighbor.
           const std::uint64_t left_id = seq[smallest_height_id];
           const std::uint64_t right_id = seq[smallest_height_id + 1];
+          const std::uint64_t left_hash = get_kr_hash(left_id);
+          const std::uint64_t right_hash = get_kr_hash(right_id);
+          const std::uint64_t right_len = get_exp_len(right_id);
           const std::uint64_t h =
-            merge_hashes<char_type, text_offset_type>(
-                left_id, right_id, m_nonterminals);
+            karp_rabin_hashing::concat(left_hash, right_hash, right_len);
           seq.erase(seq.begin() + smallest_height_id);
           if (m_hashes.find(h) != NULL)
             seq[smallest_height_id] = *(m_hashes.find(h));
@@ -668,9 +641,11 @@ struct avl_grammar_multiroot {
           // right one. End result: merge with left neighbor.
           const std::uint64_t left_id = seq[smallest_height_id - 1];
           const std::uint64_t right_id = seq[smallest_height_id];
+          const std::uint64_t left_hash = get_kr_hash(left_id);
+          const std::uint64_t right_hash = get_kr_hash(right_id);
+          const std::uint64_t right_len = get_exp_len(right_id);
           const std::uint64_t h =
-            merge_hashes<char_type, text_offset_type>(
-                left_id, right_id, m_nonterminals);
+            karp_rabin_hashing::concat(left_hash, right_hash, right_len);
           seq.erase(seq.begin() + (smallest_height_id - 1));
           if (m_hashes.find(h) != NULL)
             seq[smallest_height_id - 1] = *(m_hashes.find(h));
