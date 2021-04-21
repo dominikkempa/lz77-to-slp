@@ -190,8 +190,6 @@ struct avl_grammar_multiroot {
     // Bring the elements in m_roots_vec together.
     //=========================================================================
     void roots_garbage_collector() {
-      fprintf(stderr, "Running garbage collector(size=%lu, steps=%lu)\n",
-          m_roots_vec.size(), empty_step_counter);
       std::uint64_t filled = 0;
       for (std::uint64_t i = roots_begin();
           i != roots_end(); i = roots_next(i)) {
@@ -207,9 +205,9 @@ struct avl_grammar_multiroot {
     // Run garbage collector if needed.
     //=========================================================================
     void check_gargage_collector() {
-      if (empty_step_counter > 2UL * m_roots_vec.size()) {
-        empty_step_counter = 0;
+      if (empty_step_counter > m_roots_vec.size()) {
         roots_garbage_collector();
+        empty_step_counter = 0;
       }
     }
 
