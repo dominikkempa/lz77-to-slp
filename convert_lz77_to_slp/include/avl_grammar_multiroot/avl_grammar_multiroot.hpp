@@ -503,31 +503,6 @@ struct avl_grammar_multiroot {
         const std::uint64_t begin,
         const std::uint64_t end) {
 
-      // Find range [it_begin..it_end) to merge.
-      iter_type it_begin = m_roots.end();
-      it_begin = m_roots.lower_bound(begin);
-      ++it_begin;
-      iter_type it_end = it_begin;
-      std::uint64_t newend = 0;
-      while (it_end != m_roots.end() && it_end->first <= end) {
-        newend = (std::uint64_t)it_end->first;
-        ++it_end;
-      }
-
-      // Merge roots in [it_begin..it_end).
-      if (it_begin != it_end) {
-        std::vector<text_offset_type> v;
-        for (iter_type it = it_begin; it != it_end; ++it)
-          v.push_back(it->second);
-        const std::uint64_t newroot_id = greedy_merge(v);
-
-        // Update roots.
-        m_roots.erase(it_begin, it_end);
-        m_roots[newend] = newroot_id;
-      }
-
-
-#if 0 // Correct and tested.
       // Compute range m_roots_vec[range_beg..range_end) to merge.
       std::uint64_t range_beg = 0;
       {
@@ -570,6 +545,7 @@ struct avl_grammar_multiroot {
       }
 
       // Merge roots in m_roots_vec[range_beg..range_end).
+      std::uint64_t newroot_id_copy = 0;
       if (range_beg != range_end) {
         std::vector<text_offset_type> v;
         for (std::uint64_t i = range_beg; i < range_end; ++i)
@@ -577,12 +553,35 @@ struct avl_grammar_multiroot {
               std::numeric_limits<text_offset_type>::max())
             v.push_back(m_roots_vec[i].second);
         const std::uint64_t newroot_id = greedy_merge(v);
+        newroot_id_copy = newroot_id;
 
         // Update roots.
         for (std::uint64_t i = range_beg; i < range_end; ++i)
           m_roots_vec[i].second =
             std::numeric_limits<text_offset_type>::max();
         m_roots_vec[range_end - 1].second = newroot_id;
+      }
+
+
+
+#if 1 // to be deleted as soon, as m_roots is not needed elsewhere.
+      // Find range [it_begin..it_end) to merge.
+      iter_type it_begin = m_roots.end();
+      it_begin = m_roots.lower_bound(begin);
+      ++it_begin;
+      iter_type it_end = it_begin;
+      std::uint64_t newend = 0;
+      while (it_end != m_roots.end() && it_end->first <= end) {
+        newend = (std::uint64_t)it_end->first;
+        ++it_end;
+      }
+
+      // Merge roots in [it_begin..it_end).
+      if (it_begin != it_end) {
+
+        // Update roots.
+        m_roots.erase(it_begin, it_end);
+        m_roots[newend] = newroot_id_copy;
       }
 #endif
     }
