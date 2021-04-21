@@ -503,7 +503,7 @@ struct avl_grammar_multiroot {
     //=========================================================================
     void collect_nonterminal_pointers(
         std::vector<text_offset_type> &pointers) const {
-      for (std::uint64_t i = roots_end();
+      for (std::uint64_t i = roots_begin();
           i != roots_end(); i = roots_next(i)) {
         const std::uint64_t preflen = m_roots_vec[i].first;
         const std::uint64_t id = m_roots_vec[i].second;
