@@ -1,6 +1,6 @@
 SHELL = /bin/sh
 CC = g++
-CFLAGS = -Wall -Wextra -pedantic -Wshadow -funroll-loops -O3 -DNDEBUG -march=native -std=c++0x
+CFLAGS = -Wall -Wextra -pedantic -Wshadow -funroll-loops -O3 -DNDEBUG -march=native -std=c++0x -pthread
 #CFLAGS = -Wall -Wextra -pedantic -Wshadow -g2 -std=c++0x
 
 all: convert_lz77_to_slp

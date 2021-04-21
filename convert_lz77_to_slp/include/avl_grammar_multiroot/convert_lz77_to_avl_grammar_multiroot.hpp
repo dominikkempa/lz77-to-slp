@@ -8,6 +8,7 @@
 #include <algorithm>
 
 #include "../utils/karp_rabin_hashing.hpp"
+#include "../io/async_stream_reader.hpp"
 #include "avl_grammar_multiroot.hpp"
 
 
@@ -22,13 +23,22 @@ template<
   typename char_type,
   typename text_offset_type>
 avl_grammar_multiroot<char_type, text_offset_type>*
-convert_lz77_to_avl_grammar_multiroot(
-    const std::vector<
-      std::pair<text_offset_type, text_offset_type> > &parsing) {
+convert_lz77_to_avl_grammar_multiroot(const std::string parsing_filename) {
 
   // Declare types.
   typedef nonterminal<char_type, text_offset_type> nonterminal_type;
   typedef avl_grammar_multiroot<char_type, text_offset_type> grammar_type;
+  typedef async_stream_reader<text_offset_type> reader_type;
+
+  // Initialize the parsing reader.
+  const std::uint64_t bufsize = (1 << 20);
+  const std::uint64_t n_buffers = 4;
+  reader_type *parsing_reader =
+    new reader_type(parsing_filename, bufsize, n_buffers);
+
+  // Compute parsing size.
+  const std::uint64_t parsing_size =
+    utils::file_size(parsing_filename) / (2 * sizeof(text_offset_type));
 
   // Init Karp-Rabin hashing.
   karp_rabin_hashing::init();
@@ -36,17 +46,14 @@ convert_lz77_to_avl_grammar_multiroot(
   // Compute the AVL grammar expanding to T.
   grammar_type *grammar = new grammar_type();
   std::uint64_t prefix_length = 0;
-  for (std::uint64_t phrase_id = 0;
-      phrase_id < parsing.size(); ++phrase_id) {
+  for (std::uint64_t phrase_id = 0; phrase_id < parsing_size; ++phrase_id) {
 
     // Check if we need to run garbage collector.
     grammar->check_gargage_collector();
 
     // Get the next phrase len and pos values.
-    std::pair<text_offset_type, text_offset_type> p =
-      parsing[phrase_id];
-    std::uint64_t pos = p.first;
-    std::uint64_t len = p.second;
+    std::uint64_t pos = parsing_reader->read();
+    std::uint64_t len = parsing_reader->read();
     
     // Compute the AVL grammar expanding to phrase p.
     std::vector<text_offset_type> phrase_roots;
@@ -100,6 +107,10 @@ convert_lz77_to_avl_grammar_multiroot(
       grammar->push_root(prefix_length, phrase_roots[t]);
     }
   }
+
+  // Clean up.
+  parsing_reader->stop_reading();
+  delete parsing_reader;
 
   // Return the result.
   return grammar;

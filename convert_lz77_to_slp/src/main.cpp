@@ -89,7 +89,8 @@ void test_conversion(
     long double start = utils::wclock();
 #ifdef MULTIROOT
     grammar =
-      convert_lz77_to_avl_grammar_multiroot<char_type, text_offset_type>(parsing);
+      convert_lz77_to_avl_grammar_multiroot<char_type, text_offset_type>(
+          parsing_filename);
 #else
     grammar =
       convert_lz77_to_avl_grammar<char_type, text_offset_type>(parsing);
