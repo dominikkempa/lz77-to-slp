@@ -103,6 +103,7 @@ struct avl_grammar_multiroot {
     space_efficient_vector<hash_pair_type> m_long_exp_hashes;
     hash_table<std::uint64_t, text_offset_type> m_hashes;
     char_type *m_snippet;
+    std::uint64_t empty_step_counter;
 
   public:
 
@@ -110,6 +111,7 @@ struct avl_grammar_multiroot {
     // Constructor.
     //=========================================================================
     avl_grammar_multiroot() {
+      empty_step_counter = 0;
       m_roots_vec.push_back(pair_type(
             (text_offset_type)0,
             (text_offset_type)std::numeric_limits<text_offset_type>::max()));
@@ -126,7 +128,7 @@ struct avl_grammar_multiroot {
     //=========================================================================
     // Find the leftmost nondeleted root >= key.
     //=========================================================================
-    std::uint64_t roots_lower_bound(const std::uint64_t key) const {
+    std::uint64_t roots_lower_bound(const std::uint64_t key) {
       std::uint64_t beg = 0;
       std::uint64_t end = m_roots_vec.size();
       while (beg + 1 < end) {
@@ -138,8 +140,10 @@ struct avl_grammar_multiroot {
 
       // Skip deleted elements.
       while (m_roots_vec[beg].second ==
-          std::numeric_limits<text_offset_type>::max())
+          std::numeric_limits<text_offset_type>::max()) {
         ++beg;
+        ++empty_step_counter;
+      }
 
       // Return the result.
       return beg;
@@ -167,14 +171,16 @@ struct avl_grammar_multiroot {
     //=========================================================================
     // Find the next undeleted root.
     //=========================================================================
-    std::uint64_t roots_next(std::uint64_t pos) const {
+    std::uint64_t roots_next(std::uint64_t pos) {
       ++pos;
 
       // Skip deleted elements.
       while (pos != m_roots_vec.size() &&
           m_roots_vec[pos].second ==
-          std::numeric_limits<text_offset_type>::max())
+          std::numeric_limits<text_offset_type>::max()) {
         ++pos;
+        ++empty_step_counter;
+      }
 
       // Return the result.
       return pos;
@@ -184,6 +190,8 @@ struct avl_grammar_multiroot {
     // Bring the elements in m_roots_vec together.
     //=========================================================================
     void roots_garbage_collector() {
+      fprintf(stderr, "Running garbage collector(size=%lu, steps=%lu)\n",
+          m_roots_vec.size(), empty_step_counter);
       std::uint64_t filled = 0;
       for (std::uint64_t i = roots_begin();
           i != roots_end(); i = roots_next(i)) {
@@ -195,14 +203,20 @@ struct avl_grammar_multiroot {
         m_roots_vec.pop_back();
     }
 
-    std::uint64_t get_m_roots_vec_size() const {
-      return m_roots_vec.size();
+    //=========================================================================
+    // Run garbage collector if needed.
+    //=========================================================================
+    void check_gargage_collector() {
+      if (empty_step_counter > 2UL * m_roots_vec.size()) {
+        empty_step_counter = 0;
+        roots_garbage_collector();
+      }
     }
 
     //=========================================================================
     // Print the string encoded by the grammar.
     //=========================================================================
-    void print_expansion() const {
+    void print_expansion() {
       for (std::uint64_t i = roots_begin();
           i != roots_end(); i = roots_next(i)) {
         const std::uint64_t preflen = m_roots_vec[i].first;
@@ -224,7 +238,7 @@ struct avl_grammar_multiroot {
     //=========================================================================
     // Return the number of roots.
     //=========================================================================
-    std::uint64_t number_of_roots() const {
+    std::uint64_t number_of_roots() {
       std::uint64_t ret = 0;
       for (std::uint64_t i = roots_begin();
           i != roots_end(); i = roots_next(i))
@@ -415,7 +429,7 @@ struct avl_grammar_multiroot {
     //=========================================================================
     void decode(
         char_type* &text,
-        std::uint64_t &text_length) const {
+        std::uint64_t &text_length) {
       text_length = 0;
       for (std::uint64_t i = roots_begin();
           i != roots_end(); i = roots_next(i)) {
@@ -441,7 +455,7 @@ struct avl_grammar_multiroot {
     //=========================================================================
     // Test the AVL property of all nonterminals.
     //=========================================================================
-    bool test_avl_property() const {
+    bool test_avl_property() {
       for (std::uint64_t i = roots_begin();
           i != roots_end(); i = roots_next(i)) {
         const std::uint64_t preflen = m_roots_vec[i].first;
@@ -459,7 +473,7 @@ struct avl_grammar_multiroot {
     // Collect Mersenne Karp-Rabin hashes in a vector.
     //=========================================================================
     void collect_mersenne_karp_rabin_hashes(
-        std::vector<std::uint64_t> &hashes) const {
+        std::vector<std::uint64_t> &hashes) {
       for (std::uint64_t i = roots_begin();
           i != roots_end(); i = roots_next(i)) {
         const std::uint64_t preflen = m_roots_vec[i].first;
@@ -475,7 +489,7 @@ struct avl_grammar_multiroot {
     // Collect Mersenne Karp-Rabin hashes in a hash table.
     //=========================================================================
     void collect_mersenne_karp_rabin_hashes_2(
-        hash_table<text_offset_type, std::uint64_t> &hashes) const {
+        hash_table<text_offset_type, std::uint64_t> &hashes) {
       for (std::uint64_t i = roots_begin();
           i != roots_end(); i = roots_next(i)) {
         const std::uint64_t preflen = m_roots_vec[i].first;
@@ -511,7 +525,7 @@ struct avl_grammar_multiroot {
     // Collect pointers to all nonterminals reachable from the root.
     //=========================================================================
     void collect_nonterminal_pointers(
-        std::vector<text_offset_type> &pointers) const {
+        std::vector<text_offset_type> &pointers) {
       for (std::uint64_t i = roots_begin();
           i != roots_end(); i = roots_next(i)) {
         const std::uint64_t preflen = m_roots_vec[i].first;
@@ -661,7 +675,7 @@ struct avl_grammar_multiroot {
     //=========================================================================
     std::vector<text_offset_type> decomposition(
         std::uint64_t begin,
-        std::uint64_t end) const {
+        std::uint64_t end) {
 
       // Find leftmost root whose expansion overlaps/touches T[begin..end).
       std::uint64_t pos = roots_lower_bound(begin);

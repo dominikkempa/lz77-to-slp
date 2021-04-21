@@ -39,6 +39,9 @@ convert_lz77_to_avl_grammar_multiroot(
   for (std::uint64_t phrase_id = 0;
       phrase_id < parsing.size(); ++phrase_id) {
 
+    // Check if we need to run garbage collector.
+    grammar->check_gargage_collector();
+
     // Get the next phrase len and pos values.
     std::pair<text_offset_type, text_offset_type> p =
       parsing[phrase_id];
