@@ -132,12 +132,70 @@ struct avl_grammar_multiroot {
     }
 
     //=========================================================================
+    // Find the leftmost nondeleted root >= key.
+    //=========================================================================
+    std::uint64_t roots_lower_bound(const std::uint64_t key) const {
+      std::uint64_t beg = 0;
+      std::uint64_t end = m_roots_vec.size();
+      while (beg + 1 < end) {
+        std::uint64_t mid = (beg + end - 1) / 2;
+        if ((std::uint64_t)(m_roots_vec[mid].first) >= key)
+          end = mid + 1;
+        else beg = mid + 1;
+      }
+
+      // Skip deleted elements.
+      while (m_roots_vec[beg].second ==
+          std::numeric_limits<text_offset_type>::max())
+        ++beg;
+
+      // Return the result.
+      return beg;
+    }
+
+    //=========================================================================
+    // Find the first undeleted root.
+    //=========================================================================
+    std::uint64_t roots_begin() const {
+
+      // We use the fact that there is a sentinel at the begnning.
+      return 0;
+    }
+
+    //=========================================================================
+    // Return the past-the-end position in the roots array.
+    //=========================================================================
+    std::uint64_t roots_end() const {
+
+      // We use the fact that there is a sentinel at the begnning.
+      return m_roots_vec.size();
+    }
+
+
+    //=========================================================================
+    // Find the next undeleted root.
+    //=========================================================================
+    std::uint64_t roots_next(std::uint64_t pos) const {
+      ++pos;
+
+      // Skip deleted elements.
+      while (pos != m_roots_vec.size() &&
+          m_roots_vec[pos].second ==
+          std::numeric_limits<text_offset_type>::max())
+        ++pos;
+
+      // Return the result.
+      return pos;
+    }
+
+    //=========================================================================
     // Print the string encoded by the grammar.
     //=========================================================================
     void print_expansion() const {
-      for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it) {
-        const std::uint64_t preflen = it->first;
-        const std::uint64_t id = it->second;
+      for (std::uint64_t i = roots_begin();
+          i != roots_end(); i = roots_next(i)) {
+        const std::uint64_t preflen = m_roots_vec[i].first;
+        const std::uint64_t id = m_roots_vec[i].second;
         if (preflen != 0) {
           const nonterminal_type &nonterm = get_nonterminal(id);
           nonterm.print_expansion(id, this);
@@ -172,53 +230,6 @@ struct avl_grammar_multiroot {
         const std::uint64_t pos,
         const text_offset_type id) {
       m_roots_vec.push_back(pair_type(pos, id));
-    }
-
-    void check_roots() const {
-      std::vector<pair_type> filtered_vec;
-      for (std::uint64_t i = 0; i < m_roots_vec.size(); ++i) {
-        if (i + 1 < m_roots_vec.size()) {
-          if ((std::uint64_t)m_roots_vec[i].first >=
-              (std::uint64_t)m_roots_vec[i + 1].first) {
-            fprintf(stderr, "\nError: check_roots failed!\n");
-            fprintf(stderr, "\tm_roots_vec[%lu].first = %lu\n",
-                i, (std::uint64_t)m_roots_vec[i].first);
-            fprintf(stderr, "\tm_roots_vec[%lu].first = %lu\n",
-                i + 1, (std::uint64_t)m_roots_vec[i + 1].first);
-            std::exit(EXIT_FAILURE);
-          }
-        }
-        if (i == 0 || m_roots_vec[i].second !=
-            std::numeric_limits<text_offset_type>::max())
-          filtered_vec.push_back(m_roots_vec[i]);
-      }
-      std::vector<pair_type> map_pairs;
-      {
-        for (const_iter_type it = m_roots.begin();
-            it != m_roots.end(); ++it)
-          map_pairs.push_back(
-              pair_type((text_offset_type)it->first,
-                (text_offset_type)it->second));
-      }
-      if (!std::equal(
-            map_pairs.begin(),
-            map_pairs.end(),
-            filtered_vec.begin())) {
-        fprintf(stderr, "\nError: check_roots failed!\n");
-        fprintf(stderr, "m_roots:\n");
-        for (const_iter_type it = m_roots.begin();
-            it != m_roots.end(); ++it)
-          fprintf(stderr, "\t%lu %lu\n",
-              (std::uint64_t)it->first,
-              (std::uint64_t)it->second);
-        fprintf(stderr, "\n");
-        fprintf(stderr, "filtered_vec:\n");
-        for (std::uint64_t i = 0; i < filtered_vec.size(); ++i)
-          fprintf(stderr, "\t%lu %lu\n",
-              (std::uint64_t)filtered_vec[i].first,
-              (std::uint64_t)filtered_vec[i].second);
-        std::exit(EXIT_FAILURE);
-      }
     }
 
     //=========================================================================
@@ -397,17 +408,19 @@ struct avl_grammar_multiroot {
         char_type* &text,
         std::uint64_t &text_length) const {
       text_length = 0;
-      for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it) {
-        const std::uint64_t preflen = it->first;
-        const std::uint64_t id = it->second;
+      for (std::uint64_t i = roots_begin();
+          i != roots_end(); i = roots_next(i)) {
+        const std::uint64_t preflen = m_roots_vec[i].first;
+        const std::uint64_t id = m_roots_vec[i].second;
         if (preflen != 0)
           text_length += get_exp_len(id);
       }
       text = new char_type[text_length];
       std::uint64_t ptr = 0;
-      for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it) {
-        const std::uint64_t preflen = it->first;
-        const std::uint64_t id = it->second;
+      for (std::uint64_t i = roots_begin();
+          i != roots_end(); i = roots_next(i)) {
+        const std::uint64_t preflen = m_roots_vec[i].first;
+        const std::uint64_t id = m_roots_vec[i].second;
         if (preflen != 0) {
           const nonterminal_type &nonterm = get_nonterminal(id);
           nonterm.write_expansion(id, text + ptr, this);
@@ -420,9 +433,10 @@ struct avl_grammar_multiroot {
     // Test the AVL property of all nonterminals.
     //=========================================================================
     bool test_avl_property() const {
-      for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it) {
-        const std::uint64_t preflen = it->first;
-        const std::uint64_t id = it->second;
+      for (std::uint64_t i = roots_begin();
+          i != roots_end(); i = roots_next(i)) {
+        const std::uint64_t preflen = m_roots_vec[i].first;
+        const std::uint64_t id = m_roots_vec[i].second;
         if (preflen != 0) {
           const nonterminal_type &nonterm = get_nonterminal(id);
           if (nonterm.test_avl_property(id, this) == false)
@@ -437,9 +451,10 @@ struct avl_grammar_multiroot {
     //=========================================================================
     void collect_mersenne_karp_rabin_hashes(
         std::vector<std::uint64_t> &hashes) const {
-      for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it) {
-        const std::uint64_t preflen = it->first;
-        const std::uint64_t id = it->second;
+      for (std::uint64_t i = roots_begin();
+          i != roots_end(); i = roots_next(i)) {
+        const std::uint64_t preflen = m_roots_vec[i].first;
+        const std::uint64_t id = m_roots_vec[i].second;
         if (preflen != 0) {
           const nonterminal_type &nonterm = get_nonterminal(id);
           (void) nonterm.collect_mersenne_karp_rabin_hashes(id, hashes, this);
@@ -452,9 +467,10 @@ struct avl_grammar_multiroot {
     //=========================================================================
     void collect_mersenne_karp_rabin_hashes_2(
         hash_table<text_offset_type, std::uint64_t> &hashes) const {
-      for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it) {
-        const std::uint64_t preflen = it->first;
-        const std::uint64_t id = it->second;
+      for (std::uint64_t i = roots_begin();
+          i != roots_end(); i = roots_next(i)) {
+        const std::uint64_t preflen = m_roots_vec[i].first;
+        const std::uint64_t id = m_roots_vec[i].second;
         if (preflen != 0) {
           const nonterminal_type &nonterm = get_nonterminal(id);
           (void) nonterm.collect_mersenne_karp_rabin_hashes_2(
@@ -470,9 +486,10 @@ struct avl_grammar_multiroot {
         hash_table<text_offset_type, std::uint64_t> &hashes,
         hash_table<std::uint64_t, bool> &seen_hashes,
         std::uint64_t &current_count) const {
-      for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it) {
-        const std::uint64_t preflen = it->first;
-        const std::uint64_t id = it->second;
+      for (std::uint64_t i = roots_begin();
+          i != roots_end(); i = roots_next(i)) {
+        const std::uint64_t preflen = m_roots_vec[i].first;
+        const std::uint64_t id = m_roots_vec[i].second;
         if (preflen != 0) {
           const nonterminal_type &nonterm = get_nonterminal(id);
           nonterm.count_nonterminals_in_pruned_grammar(
@@ -486,52 +503,15 @@ struct avl_grammar_multiroot {
     //=========================================================================
     void collect_nonterminal_pointers(
         std::vector<text_offset_type> &pointers) const {
-      for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it) {
-        const std::uint64_t preflen = it->first;
-        const std::uint64_t id = it->second;
+      for (std::uint64_t i = roots_end();
+          i != roots_end(); i = roots_next(i)) {
+        const std::uint64_t preflen = m_roots_vec[i].first;
+        const std::uint64_t id = m_roots_vec[i].second;
         if (preflen != 0) {
           const nonterminal_type &nonterm = get_nonterminal(id);
           nonterm.collect_nonterminal_pointers(id, pointers, this);
         }
       }
-    }
-
-    //=========================================================================
-    // Find the leftmost nondeleted root >= key.
-    //=========================================================================
-    std::uint64_t roots_lower_bound(const std::uint64_t key) const {
-      std::uint64_t beg = 0;
-      std::uint64_t end = m_roots_vec.size();
-      while (beg + 1 < end) {
-        std::uint64_t mid = (beg + end - 1) / 2;
-        if ((std::uint64_t)(m_roots_vec[mid].first) >= key)
-          end = mid + 1;
-        else beg = mid + 1;
-      }
-
-      // Skip deleted elements.
-      while (m_roots_vec[beg].second ==
-          std::numeric_limits<text_offset_type>::max())
-        ++beg;
-
-      // Return the result.
-      return beg;
-    }
-
-    //=========================================================================
-    // Find the next undeleted roots
-    //=========================================================================
-    std::uint64_t roots_next(std::uint64_t pos) const {
-      ++pos;
-
-      // Skip deleted elements.
-      while (pos != m_roots_vec.size() &&
-          m_roots_vec[pos].second ==
-          std::numeric_limits<text_offset_type>::max())
-        ++pos;
-
-      // Return the result.
-      return pos;
     }
 
     //=========================================================================
@@ -546,7 +526,7 @@ struct avl_grammar_multiroot {
       range_beg = roots_next(range_beg);
       std::uint64_t range_end = range_beg;
       std::uint64_t newend = 0;
-      while (range_end != m_roots_vec.size() &&
+      while (range_end != roots_end() &&
           (std::uint64_t)m_roots_vec[range_end].first <= end) {
         newend = range_end;
         range_end = roots_next(range_end);
