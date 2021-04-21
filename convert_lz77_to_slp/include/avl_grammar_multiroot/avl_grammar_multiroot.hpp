@@ -192,10 +192,22 @@ struct avl_grammar_multiroot {
             std::numeric_limits<text_offset_type>::max())
           filtered_vec.push_back(m_roots_vec[i]);
       }
-      if (!std::equal(m_roots.begin(), m_roots.end(), filtered_vec.begin())) {
+      std::vector<pair_type> map_pairs;
+      {
+        for (const_iter_type it = m_roots.begin();
+            it != m_roots.end(); ++it)
+          map_pairs.push_back(
+              pair_type((text_offset_type)it->first,
+                (text_offset_type)it->second));
+      }
+      if (!std::equal(
+            map_pairs.begin(),
+            map_pairs.end(),
+            filtered_vec.begin())) {
         fprintf(stderr, "\nError: check_roots failed!\n");
         fprintf(stderr, "m_roots:\n");
-        for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
+        for (const_iter_type it = m_roots.begin();
+            it != m_roots.end(); ++it)
           fprintf(stderr, "\t%lu %lu\n",
               (std::uint64_t)it->first,
               (std::uint64_t)it->second);
@@ -515,6 +527,64 @@ struct avl_grammar_multiroot {
       }
 
 
+#if 0 // Correct and tested.
+      // Compute range m_roots_vec[range_beg..range_end) to merge.
+      std::uint64_t range_beg = 0;
+      {
+
+        // First the leftmost element >= begin.
+        std::uint64_t pc = 0;
+        std::uint64_t kn = m_roots_vec.size();
+        while (pc + 1 < kn) {
+          std::uint64_t mid = (pc + kn - 1) / 2;
+          if ((std::uint64_t)(m_roots_vec[mid].first) >= begin)
+            kn = mid + 1;
+          else pc = mid + 1;
+        }
+        range_beg = pc;
+
+        // Skip undeleted elements on the left.
+        while (m_roots_vec[range_beg].second ==
+            std::numeric_limits<text_offset_type>::max())
+          ++range_beg;
+      }
+
+      // Skip one element.
+      ++range_beg;
+
+      // Compute range_end.
+      std::uint64_t range_end = range_beg;
+
+      {
+
+        // Find the rightmost element <= end.
+        while (range_end != m_roots_vec.size() &&
+            (std::uint64_t)m_roots_vec[range_end].first <= end)
+          ++range_end;
+
+        // Skip undeleted elements on the right.
+        while (range_beg < range_end &&
+            m_roots_vec[range_end - 1].second ==
+            std::numeric_limits<text_offset_type>::max())
+          --range_end;
+      }
+
+      // Merge roots in m_roots_vec[range_beg..range_end).
+      if (range_beg != range_end) {
+        std::vector<text_offset_type> v;
+        for (std::uint64_t i = range_beg; i < range_end; ++i)
+          if (m_roots_vec[i].second !=
+              std::numeric_limits<text_offset_type>::max())
+            v.push_back(m_roots_vec[i].second);
+        const std::uint64_t newroot_id = greedy_merge(v);
+
+        // Update roots.
+        for (std::uint64_t i = range_beg; i < range_end; ++i)
+          m_roots_vec[i].second =
+            std::numeric_limits<text_offset_type>::max();
+        m_roots_vec[range_end - 1].second = newroot_id;
+      }
+#endif
     }
 
     //=========================================================================
