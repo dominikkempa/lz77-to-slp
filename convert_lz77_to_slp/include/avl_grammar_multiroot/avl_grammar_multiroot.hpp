@@ -5,7 +5,6 @@
 #include <cstdlib>
 #include <cstdint>
 #include <vector>
-#include <map>
 #include <algorithm>
 
 #include "../utils/hash_table.hpp"
@@ -90,9 +89,6 @@ struct avl_grammar_multiroot {
   // Declare typedefs
   //===========================================================================
   typedef nonterminal<char_type, text_offset_type> nonterminal_type;
-  typedef typename std::map<std::uint64_t, text_offset_type> map_type;
-  typedef typename map_type::const_iterator const_iter_type;
-  typedef typename map_type::iterator iter_type;
   typedef packed_pair<text_offset_type, text_offset_type> pair_type;
   typedef packed_pair<text_offset_type, std::uint64_t> hash_pair_type;
 
@@ -101,7 +97,6 @@ struct avl_grammar_multiroot {
     //=========================================================================
     // Class members.
     //=========================================================================
-    map_type m_roots;
     space_efficient_vector<pair_type> m_roots_vec;
     space_efficient_vector<nonterminal_type> m_nonterminals;
     space_efficient_vector<pair_type> m_long_exp_len;
@@ -115,9 +110,6 @@ struct avl_grammar_multiroot {
     // Constructor.
     //=========================================================================
     avl_grammar_multiroot() {
-      m_roots.insert(std::make_pair(
-            (std::uint64_t)0,
-            (text_offset_type)std::numeric_limits<text_offset_type>::max()));
       m_roots_vec.push_back(pair_type(
             (text_offset_type)0,
             (text_offset_type)std::numeric_limits<text_offset_type>::max()));
@@ -214,18 +206,16 @@ struct avl_grammar_multiroot {
     // Return the number of roots.
     //=========================================================================
     std::uint64_t number_of_roots() const {
-      return m_roots.size() - 1;
+      std::uint64_t ret = 0;
+      for (std::uint64_t i = roots_begin();
+          i != roots_end(); i = roots_next(i))
+        ++ret;
+      return ret - 1;
     }
 
     //=========================================================================
-    // Add a root.
+    // Add a new root at the end of the sequence.
     //=========================================================================
-    void add_root(
-        const std::uint64_t pos,
-        const text_offset_type id) {
-      m_roots[pos] = id;
-    }
-
     void push_root(
         const std::uint64_t pos,
         const text_offset_type id) {
@@ -533,41 +523,17 @@ struct avl_grammar_multiroot {
       }
 
       // Merge roots in m_roots_vec[range_beg..range_end).
-      std::uint64_t newroot_id_copy = 0;
       if (range_beg != range_end) {
         std::vector<text_offset_type> v;
         for (std::uint64_t i = range_beg; i != range_end; i = roots_next(i))
           v.push_back(m_roots_vec[i].second);
         const std::uint64_t newroot_id = greedy_merge(v);
-        newroot_id_copy = newroot_id;
 
         // Update roots.
         for (std::uint64_t i = range_beg; i != range_end; i = roots_next(i))
           m_roots_vec[i].second = std::numeric_limits<text_offset_type>::max();
         m_roots_vec[newend].second = newroot_id;
       }
-
-
-#if 1 // to be deleted as soon, as m_roots is not needed elsewhere.
-      // Find range [it_begin..it_end) to merge.
-      iter_type it_begin = m_roots.end();
-      it_begin = m_roots.lower_bound(begin);
-      ++it_begin;
-      iter_type it_end = it_begin;
-      std::uint64_t newend2 = 0;
-      while (it_end != m_roots.end() && it_end->first <= end) {
-        newend2 = (std::uint64_t)it_end->first;
-        ++it_end;
-      }
-
-      // Merge roots in [it_begin..it_end).
-      if (it_begin != it_end) {
-
-        // Update roots.
-        m_roots.erase(it_begin, it_end);
-        m_roots[newend2] = newroot_id_copy;
-      }
-#endif
     }
 
     //=========================================================================

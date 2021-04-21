@@ -72,7 +72,6 @@ convert_lz77_to_avl_grammar_multiroot(
             const std::uint64_t id = v[t];
             const std::uint64_t exp_len = grammar->get_exp_len(id);
             prefix_length += exp_len;
-            grammar->add_root(prefix_length, v[t]);
             grammar->push_root(prefix_length, v[t]);
           }
           exist += next;
@@ -95,7 +94,6 @@ convert_lz77_to_avl_grammar_multiroot(
       const std::uint64_t id = phrase_roots[t];
       const std::uint64_t exp_len = grammar->get_exp_len(id);
       prefix_length += exp_len;
-      grammar->add_root(prefix_length, phrase_roots[t]);
       grammar->push_root(prefix_length, phrase_roots[t]);
     }
   }
