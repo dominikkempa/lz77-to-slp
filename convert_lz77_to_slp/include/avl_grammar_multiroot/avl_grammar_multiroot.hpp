@@ -497,71 +497,75 @@ struct avl_grammar_multiroot {
     }
 
     //=========================================================================
+    // Find the leftmost nondeleted root >= key.
+    //=========================================================================
+    std::uint64_t roots_lower_bound(const std::uint64_t key) const {
+      std::uint64_t beg = 0;
+      std::uint64_t end = m_roots_vec.size();
+      while (beg + 1 < end) {
+        std::uint64_t mid = (beg + end - 1) / 2;
+        if ((std::uint64_t)(m_roots_vec[mid].first) >= key)
+          end = mid + 1;
+        else beg = mid + 1;
+      }
+
+      // Skip deleted elements.
+      while (m_roots_vec[beg].second ==
+          std::numeric_limits<text_offset_type>::max())
+        ++beg;
+
+      // Return the result.
+      return beg;
+    }
+
+    //=========================================================================
+    // Find the next undeleted roots
+    //=========================================================================
+    std::uint64_t roots_next(std::uint64_t pos) const {
+      ++pos;
+
+      // Skip deleted elements.
+      while (pos != m_roots_vec.size() &&
+          m_roots_vec[pos].second ==
+          std::numeric_limits<text_offset_type>::max())
+        ++pos;
+
+      // Return the result.
+      return pos;
+    }
+
+    //=========================================================================
     // Merge roots enclosed in [begin..end).
     //=========================================================================
     void merge_enclosed_roots(
         const std::uint64_t begin,
         const std::uint64_t end) {
 
-      // Compute range m_roots_vec[range_beg..range_end) to merge.
-      std::uint64_t range_beg = 0;
-      {
-
-        // First the leftmost element >= begin.
-        std::uint64_t pc = 0;
-        std::uint64_t kn = m_roots_vec.size();
-        while (pc + 1 < kn) {
-          std::uint64_t mid = (pc + kn - 1) / 2;
-          if ((std::uint64_t)(m_roots_vec[mid].first) >= begin)
-            kn = mid + 1;
-          else pc = mid + 1;
-        }
-        range_beg = pc;
-
-        // Skip undeleted elements on the left.
-        while (m_roots_vec[range_beg].second ==
-            std::numeric_limits<text_offset_type>::max())
-          ++range_beg;
-      }
-
-      // Skip one element.
-      ++range_beg;
-
-      // Compute range_end.
+      // Compute the iterators of elements in m_roots_vec to merge.
+      std::uint64_t range_beg = roots_lower_bound(begin);
+      range_beg = roots_next(range_beg);
       std::uint64_t range_end = range_beg;
-
-      {
-
-        // Find the rightmost element <= end.
-        while (range_end != m_roots_vec.size() &&
-            (std::uint64_t)m_roots_vec[range_end].first <= end)
-          ++range_end;
-
-        // Skip undeleted elements on the right.
-        while (range_beg < range_end &&
-            m_roots_vec[range_end - 1].second ==
-            std::numeric_limits<text_offset_type>::max())
-          --range_end;
+      std::uint64_t newend = 0;
+      while (range_end != m_roots_vec.size() &&
+          (std::uint64_t)m_roots_vec[range_end].first <= end) {
+        newend = range_end;
+        range_end = roots_next(range_end);
       }
 
       // Merge roots in m_roots_vec[range_beg..range_end).
       std::uint64_t newroot_id_copy = 0;
       if (range_beg != range_end) {
         std::vector<text_offset_type> v;
-        for (std::uint64_t i = range_beg; i < range_end; ++i)
-          if (m_roots_vec[i].second !=
-              std::numeric_limits<text_offset_type>::max())
-            v.push_back(m_roots_vec[i].second);
+        for (std::uint64_t i = range_beg; i != range_end; i = roots_next(i))
+          v.push_back(m_roots_vec[i].second);
         const std::uint64_t newroot_id = greedy_merge(v);
         newroot_id_copy = newroot_id;
 
         // Update roots.
-        for (std::uint64_t i = range_beg; i < range_end; ++i)
-          m_roots_vec[i].second =
-            std::numeric_limits<text_offset_type>::max();
-        m_roots_vec[range_end - 1].second = newroot_id;
+        for (std::uint64_t i = range_beg; i != range_end; i = roots_next(i))
+          m_roots_vec[i].second = std::numeric_limits<text_offset_type>::max();
+        m_roots_vec[newend].second = newroot_id;
       }
-
 
 
 #if 1 // to be deleted as soon, as m_roots is not needed elsewhere.
@@ -570,9 +574,9 @@ struct avl_grammar_multiroot {
       it_begin = m_roots.lower_bound(begin);
       ++it_begin;
       iter_type it_end = it_begin;
-      std::uint64_t newend = 0;
+      std::uint64_t newend2 = 0;
       while (it_end != m_roots.end() && it_end->first <= end) {
-        newend = (std::uint64_t)it_end->first;
+        newend2 = (std::uint64_t)it_end->first;
         ++it_end;
       }
 
@@ -581,7 +585,7 @@ struct avl_grammar_multiroot {
 
         // Update roots.
         m_roots.erase(it_begin, it_end);
-        m_roots[newend] = newroot_id_copy;
+        m_roots[newend2] = newroot_id_copy;
       }
 #endif
     }
@@ -695,13 +699,13 @@ struct avl_grammar_multiroot {
         std::uint64_t end) const {
 
       // Find leftmost root whose expansion overlaps/touches T[begin..end).
-      const_iter_type it = m_roots.lower_bound(begin);
+      std::uint64_t pos = roots_lower_bound(begin);
 
       // Proper substring or suffix of expansion of `it'.
       std::vector<text_offset_type> ret;
-      if (begin < (std::uint64_t)(it->first)) {
-        const std::uint64_t preflen = it->first;
-        const std::uint64_t id = it->second;
+      if (begin < (std::uint64_t)m_roots_vec[pos].first) {
+        const std::uint64_t preflen = m_roots_vec[pos].first;
+        const std::uint64_t id = m_roots_vec[pos].second;
         const std::uint64_t it_exp_size = get_exp_len(id);
         const std::uint64_t it_exp_beg = preflen - it_exp_size;
         const std::uint64_t local_beg = begin - it_exp_beg;
@@ -715,17 +719,17 @@ struct avl_grammar_multiroot {
       }
 
       // Full expansions of nonterminals.
-      ++it;
-      while (begin < end && (std::uint64_t)(it->first) <= end) {
-        ret.push_back(it->second);
-        begin = (std::uint64_t)(it->first);
-        ++it;
+      pos = roots_next(pos);
+      while (begin < end && (std::uint64_t)m_roots_vec[pos].first <= end) {
+        ret.push_back(m_roots_vec[pos].second);
+        begin = m_roots_vec[pos].first;
+        pos = roots_next(pos);
       }
 
       // Proper suffix of expansion of `it'.
       if (begin < end) {
-        const std::uint64_t preflen = it->first;
-        const std::uint64_t id = it->second;
+        const std::uint64_t preflen = m_roots_vec[pos].first;
+        const std::uint64_t id = m_roots_vec[pos].second;
         const std::uint64_t it_exp_size = get_exp_len(id);
         const std::uint64_t it_exp_beg = preflen - it_exp_size;
         const std::uint64_t local_end = end - it_exp_beg;
