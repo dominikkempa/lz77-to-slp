@@ -102,6 +102,7 @@ struct avl_grammar_multiroot {
     // Class members.
     //=========================================================================
     map_type m_roots;
+    space_efficient_vector<pair_type> m_roots_vec;
     space_efficient_vector<nonterminal_type> m_nonterminals;
     space_efficient_vector<pair_type> m_long_exp_len;
     space_efficient_vector<hash_pair_type> m_long_exp_hashes;
@@ -114,8 +115,12 @@ struct avl_grammar_multiroot {
     // Constructor.
     //=========================================================================
     avl_grammar_multiroot() {
-      m_roots.insert(
-          std::make_pair(0, std::numeric_limits<text_offset_type>::max()));
+      m_roots.insert(std::make_pair(
+            (std::uint64_t)0,
+            (text_offset_type)std::numeric_limits<text_offset_type>::max()));
+      m_roots_vec.push_back(pair_type(
+            (text_offset_type)0,
+            (text_offset_type)std::numeric_limits<text_offset_type>::max()));
       m_snippet = utils::allocate_array<char_type>(256);
     }
 
@@ -161,6 +166,47 @@ struct avl_grammar_multiroot {
         const std::uint64_t pos,
         const text_offset_type id) {
       m_roots[pos] = id;
+    }
+
+    void push_root(
+        const std::uint64_t pos,
+        const text_offset_type id) {
+      m_roots_vec.push_back(pair_type(pos, id));
+    }
+
+    void check_roots() const {
+      std::vector<pair_type> filtered_vec;
+      for (std::uint64_t i = 0; i < m_roots_vec.size(); ++i) {
+        if (i + 1 < m_roots_vec.size()) {
+          if ((std::uint64_t)m_roots_vec[i].first >=
+              (std::uint64_t)m_roots_vec[i + 1].first) {
+            fprintf(stderr, "\nError: check_roots failed!\n");
+            fprintf(stderr, "\tm_roots_vec[%lu].first = %lu\n",
+                i, (std::uint64_t)m_roots_vec[i].first);
+            fprintf(stderr, "\tm_roots_vec[%lu].first = %lu\n",
+                i + 1, (std::uint64_t)m_roots_vec[i + 1].first);
+            std::exit(EXIT_FAILURE);
+          }
+        }
+        if (i == 0 || m_roots_vec[i].second !=
+            std::numeric_limits<text_offset_type>::max())
+          filtered_vec.push_back(m_roots_vec[i]);
+      }
+      if (!std::equal(m_roots.begin(), m_roots.end(), filtered_vec.begin())) {
+        fprintf(stderr, "\nError: check_roots failed!\n");
+        fprintf(stderr, "m_roots:\n");
+        for (const_iter_type it = m_roots.begin(); it != m_roots.end(); ++it)
+          fprintf(stderr, "\t%lu %lu\n",
+              (std::uint64_t)it->first,
+              (std::uint64_t)it->second);
+        fprintf(stderr, "\n");
+        fprintf(stderr, "filtered_vec:\n");
+        for (std::uint64_t i = 0; i < filtered_vec.size(); ++i)
+          fprintf(stderr, "\t%lu %lu\n",
+              (std::uint64_t)filtered_vec[i].first,
+              (std::uint64_t)filtered_vec[i].second);
+        std::exit(EXIT_FAILURE);
+      }
     }
 
     //=========================================================================
@@ -448,11 +494,13 @@ struct avl_grammar_multiroot {
       // Find range [it_begin..it_end) to merge.
       iter_type it_begin = m_roots.end();
       it_begin = m_roots.lower_bound(begin);
-      std::uint64_t begin2 = it_begin->first;
       ++it_begin;
       iter_type it_end = it_begin;
-      while (it_end != m_roots.end() && it_end->first <= end)
+      std::uint64_t newend = 0;
+      while (it_end != m_roots.end() && it_end->first <= end) {
+        newend = (std::uint64_t)it_end->first;
         ++it_end;
+      }
 
       // Merge roots in [it_begin..it_end).
       if (it_begin != it_end) {
@@ -460,12 +508,13 @@ struct avl_grammar_multiroot {
         for (iter_type it = it_begin; it != it_end; ++it)
           v.push_back(it->second);
         const std::uint64_t newroot_id = greedy_merge(v);
-        const std::uint64_t end2 = begin2 + get_exp_len(newroot_id);
 
         // Update roots.
         m_roots.erase(it_begin, it_end);
-        m_roots[end2] = newroot_id;
+        m_roots[newend] = newroot_id;
       }
+
+
     }
 
     //=========================================================================
