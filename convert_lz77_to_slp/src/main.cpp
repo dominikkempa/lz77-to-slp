@@ -152,6 +152,16 @@ void test_conversion(
     fprintf(stderr, "%s\n", eq ? "(OK)" : "(FAILED)");
   }
 
+  // Compare grammar output to text.
+  {
+    fprintf(stderr, "  Check grammar output... ");
+    long double start = utils::wclock();
+    bool eq = grammar->compare_expansion_to_text(text, text_length);
+    long double elapsed = utils::wclock() - start;
+    fprintf(stderr, "%.2Lfs ", elapsed);
+    fprintf(stderr, "%s\n", eq ? "(OK)" : "(FAILED)");
+  }
+
   // Test AVL property.
   {
     fprintf(stderr, "  Test AVL property... ");

@@ -43,6 +43,8 @@ struct nonterminal {
         const grammar_type * const) const;
     void write_expansion(const std::uint64_t, char_type * const,
         const grammar_type * const) const;
+    bool compare_expansion_to_text(const std::uint64_t,
+        const char_type * const, const grammar_type * const) const;
     bool test_avl_property(const std::uint64_t,
         const grammar_type * const) const;
     std::uint64_t collect_mersenne_karp_rabin_hashes(const std::uint64_t,
@@ -448,6 +450,43 @@ struct avl_grammar_multiroot {
           ptr += get_exp_len(id);
         }
       }
+    }
+
+    //=========================================================================
+    // Check if the grammar expands to the given string.
+    //=========================================================================
+    bool compare_expansion_to_text(
+        const char_type * const text,
+        const std::uint64_t text_length) {
+
+      // Compute length of expansion.
+      std::uint64_t exp_total_len = 0;
+      for (std::uint64_t i = roots_begin();
+          i != roots_end(); i = roots_next(i)) {
+        std::uint64_t preflen = m_roots_vec[i].first;
+        std::uint64_t id = m_roots_vec[i].second;
+        if (preflen != 0)
+          exp_total_len += get_exp_len(id);
+      }
+
+      // If they differ, return false.
+      if (text_length != exp_total_len)
+        return false;
+
+      // Otherwise, compare the generated string with `text'.
+      std::uint64_t ptr = 0;
+      for (std::uint64_t i = roots_begin();
+          i != roots_end(); i = roots_next(i)) {
+        const std::uint64_t preflen = m_roots_vec[i].first;
+        const std::uint64_t id = m_roots_vec[i].second;
+        if (preflen != 0) {
+          const nonterminal_type &nonterm = get_nonterminal(id);
+          if (!nonterm.compare_expansion_to_text(id, text + ptr, this))
+            return false;
+          ptr += get_exp_len(id);
+        }
+      }
+      return true;
     }
 
     //=========================================================================
@@ -949,6 +988,33 @@ void nonterminal<char_type, text_offset_type>::write_expansion(
     const nonterminal_type &right = g->get_nonterminal(right_id);
     left.write_expansion(left_id, text, g);
     right.write_expansion(right_id, text + left_exp_len, g);
+  }
+}
+
+//=============================================================================
+// Compare the expansion of the nonterminal to the given text.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+bool nonterminal<char_type, text_offset_type>::compare_expansion_to_text(
+    const std::uint64_t id,
+    const char_type * const text,
+    const avl_grammar_multiroot<char_type, text_offset_type> * const g) const {
+  typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+  const std::uint64_t height = g->get_height(id);
+  if (height == 0) {
+    const char_type my_char = g->get_char(id);
+    return (text[0] == my_char);
+  } else {
+    const std::uint64_t left_id = g->get_left_id(id);
+    const std::uint64_t right_id = g->get_right_id(id);
+    const std::uint64_t left_exp_len = g->get_exp_len(left_id);
+    const nonterminal_type &left = g->get_nonterminal(left_id);
+    const nonterminal_type &right = g->get_nonterminal(right_id);
+    if (!left.compare_expansion_to_text(left_id, text, g))
+      return false;
+    if (!right.compare_expansion_to_text(right_id, text + left_exp_len, g))
+      return false;
+    return true;
   }
 }
 
