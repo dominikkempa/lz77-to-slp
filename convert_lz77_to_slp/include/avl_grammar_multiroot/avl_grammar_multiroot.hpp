@@ -181,6 +181,25 @@ struct avl_grammar_multiroot {
     }
 
     //=========================================================================
+    // Bring the elements in m_roots_vec together.
+    //=========================================================================
+    void roots_garbage_collector() {
+      std::uint64_t filled = 0;
+      for (std::uint64_t i = roots_begin();
+          i != roots_end(); i = roots_next(i)) {
+        if (i != filled)
+          m_roots_vec[filled] = m_roots_vec[i];
+        ++filled;
+      }
+      while (m_roots_vec.size() > filled)
+        m_roots_vec.pop_back();
+    }
+
+    std::uint64_t get_m_roots_vec_size() const {
+      return m_roots_vec.size();
+    }
+
+    //=========================================================================
     // Print the string encoded by the grammar.
     //=========================================================================
     void print_expansion() const {

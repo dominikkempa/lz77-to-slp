@@ -103,6 +103,9 @@ void test_conversion(
   fprintf(stderr, "Number of nonterminals = %lu\n", grammar->size());
 #ifdef MULTIROOT
   fprintf(stderr, "Number of roots = %lu\n", grammar->number_of_roots());
+  fprintf(stderr, "Size of m_roots_vec = %lu\n", grammar->get_m_roots_vec_size());
+  grammar->roots_garbage_collector();
+  fprintf(stderr, "Number of roots = %lu\n", grammar->number_of_roots());
 #endif
   fprintf(stderr, "\n");
 
