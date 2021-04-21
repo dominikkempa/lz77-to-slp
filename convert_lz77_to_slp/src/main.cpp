@@ -13,7 +13,6 @@
 
 #include "../include/types/uint40.hpp"
 #include "../include/utils/utils.hpp"
-//#include "../include/utils/hash_table.hpp"
 #ifdef MULTIROOT
 #include "../include/avl_grammar_multiroot/avl_grammar_multiroot.hpp"
 #include "../include/avl_grammar_multiroot/convert_lz77_to_avl_grammar_multiroot.hpp"
@@ -23,159 +22,131 @@
 #endif
 
 
+//=============================================================================
+// Decode text from streamed LZ77 parsing, and
+// then compare to the output of grammar.
+//=============================================================================
 template<
-  typename char_type = std::uint8_t,
-  typename text_offset_type = std::uint64_t>
-void test_conversion(
-#ifdef TEST_CORRECTNESS
-    std::string text_filename,
-#endif
-    std::string parsing_filename) {
+  typename char_type,
+  typename text_offset_type>
+void check_correctness(
+    const std::string parsing_filename,
+    avl_grammar_multiroot<char_type, text_offset_type> * const grammar) {
 
-  // Declare types.
-  typedef std::pair<text_offset_type, text_offset_type> phrase_type;
-#ifdef MULTIROOT
-  typedef avl_grammar_multiroot<char_type, text_offset_type> grammar_type;
-#else
-  typedef avl_grammar<char_type> grammar_type;
-#endif
+  // Print initial message.
+  fprintf(stderr, "Run correctness tests:\n");
 
-  // Turn paths absolute.
-#ifdef TEST_CORRECTNESS
-  text_filename = utils::absolute_path(text_filename);
-#endif
-  parsing_filename = utils::absolute_path(parsing_filename);
+  // Declare typedefs.
+  typedef async_stream_reader<text_offset_type> reader_type;
 
-  // Obtain some basic statistics about input.
-#ifdef TEST_CORRECTNESS
-  std::uint64_t text_length =
-    utils::file_size(text_filename) / sizeof(char_type);
-#endif  // TEST_CORRECTNESS
-  std::uint64_t parsing_size =
-      utils::file_size(parsing_filename) / sizeof(phrase_type);
-
-  // Print parameters.
-  fprintf(stderr, "Convert LZ77 to SLP\n");
-  fprintf(stderr, "Timestamp = %s", utils::get_timestamp().c_str());
-  fprintf(stderr, "Parsing filename = %s\n", parsing_filename.c_str());
-#ifdef TEST_CORRECTNESS
-  fprintf(stderr, "Text filename = %s\n", text_filename.c_str());
-  fprintf(stderr, "Text length = %lu (%.2LfMiB)\n",
-      text_length, (1.L * text_length * sizeof(char_type)) / (1 << 20));
-  fprintf(stderr, "Average phrase length = %.2Lf\n",
-      (long double)text_length / parsing_size);
-#endif  // TEST_CORRECTNESS
-  fprintf(stderr, "Number of LZ77 phrases = %lu\n", parsing_size);
-  fprintf(stderr, "sizeof(char_type) = %lu\n", sizeof(char_type));
-  fprintf(stderr, "sizeof(text_offset_type) = %lu\n",
-      sizeof(text_offset_type));
-  fprintf(stderr, "\n\n");
-
-  // Read parsing.
-  std::vector<phrase_type> parsing;
+  // Compute text length (needed to allocate text).
+  std::uint64_t text_length = 0;
+  std::uint64_t n_phrases = 0;
   {
-    fprintf(stderr, "Read parsing... ");
+
+    // Start the timer.
+    fprintf(stderr, "  Compute text length... ");
     long double start = utils::wclock();
-    parsing.resize(parsing_size);
-    utils::read_from_file(parsing.data(), parsing_size, parsing_filename);
-    long double elapsed = utils::wclock() - start;
-    fprintf(stderr, "%.2Lfs\n", elapsed);
-  }
 
-  // Convert LZ77 to AVL grammar.
-  grammar_type *grammar = NULL;
-  {
-    fprintf(stderr, "Convert LZ77 to SLP... ");
-    long double start = utils::wclock();
-#ifdef MULTIROOT
-    grammar =
-      convert_lz77_to_avl_grammar_multiroot<char_type, text_offset_type>(
-          parsing_filename);
-#else
-    grammar =
-      convert_lz77_to_avl_grammar<char_type, text_offset_type>(parsing);
-#endif
-    long double elapsed = utils::wclock() - start;
-    fprintf(stderr, "%.2Lfs\n", elapsed);
-  }
+    // Initialize the parsing reader.
+    const std::uint64_t bufsize = (1 << 19);
+    const std::uint64_t n_buffers = 4;
+    reader_type *parsing_reader = new reader_type(
+        parsing_filename, bufsize, n_buffers);
 
-  // Print info. Note that the grammar may
-  // still contain unused nonterminals.
-  fprintf(stderr, "Number of nonterminals = %lu\n", grammar->size());
-#ifdef MULTIROOT
-  fprintf(stderr, "Number of roots = %lu\n", grammar->number_of_roots());
-#endif
-  fprintf(stderr, "\n");
-
-
-#ifdef TEST_CORRECTNESS
-
-  // Run tests of correctness.
-  fprintf(stderr, "Tests of correctness:\n");
-
-  // Check if the resulting grammar indeed expands to the text.
-  // For this, we first read the original text. Note: the text
-  // could be streamed, or I could simple decoded it from LZ77.
-  char_type *text = NULL;
-  {
-    fprintf(stderr, "  Read text... ");
-    long double start = utils::wclock();
-    text = new char_type[text_length];
-    utils::read_from_file(text, text_length, text_filename);
-    long double elapsed = utils::wclock() - start;
-    fprintf(stderr, "%.2Lfs\n", elapsed);
-  }
-
-  // Obtain the string to which the grammar is expanding.
-  std::uint64_t decoded_text_length = 0;
-  char_type *decoded_text = NULL;
-  {
-    fprintf(stderr, "  Decode text from grammar... ");
-    long double start = utils::wclock();
-    grammar->decode(decoded_text, decoded_text_length);
-    long double elapsed = utils::wclock() - start;
-    fprintf(stderr, "%.2Lfs\n", elapsed);
-  }
-
-  // Compare text and decoded text.
-  {
-    fprintf(stderr, "  Compare the texts... ");
-    long double start = utils::wclock();
-    bool eq = true;
-    if (text_length != decoded_text_length) eq = false;
-    else {
-      if (!std::equal(text, text + text_length, decoded_text))
-        eq = false;
+    // Stream the parsing.
+    while (!parsing_reader->empty()) {
+      (void) parsing_reader->read();
+      const std::uint64_t len = parsing_reader->read();
+      std::uint64_t phrase_len = std::max((std::uint64_t)1, len);
+      text_length += phrase_len;
+      ++n_phrases;
     }
+
+    // Clean up.
+    parsing_reader->stop_reading();
+    delete parsing_reader;
+
+    // Print summary.
     long double elapsed = utils::wclock() - start;
-    fprintf(stderr, "%.2Lfs ", elapsed);
-    fprintf(stderr, "%s\n", eq ? "(OK)" : "(FAILED)");
+    fprintf(stderr, "%.2Lfs\n", elapsed);
+    fprintf(stderr, "  Text length = %lu (%.2LfMiB)\n",
+        text_length, (1.L * text_length * sizeof(char_type) / (1 << 20)));
+    fprintf(stderr, "  Average phrase length = %.2Lf\n",
+        (1.L * text_length) / n_phrases);
+  }
+
+  // Allocate text.
+  char_type * const text = utils::allocate_array<char_type>(text_length);
+
+  // Decode text from streamed LZ77 parsing.
+  {
+
+    // Start the timer.
+    fprintf(stderr, "  Decode text from LZ77... ");
+    long double start = utils::wclock();
+
+    // Initialize the parsing reader.
+    const std::uint64_t bufsize = (1 << 19);
+    const std::uint64_t n_buffers = 4;
+    reader_type *parsing_reader = new reader_type(
+        parsing_filename, bufsize, n_buffers);
+
+    // Stream the parsing.
+    std::uint64_t decoded_prefix_length = 0;
+    while (!parsing_reader->empty()) {
+      const std::uint64_t pos = parsing_reader->read();
+      const std::uint64_t len = parsing_reader->read();
+      if (len == 0)
+        text[decoded_prefix_length++] = (char_type)pos;
+      else {
+        for (std::uint64_t i = 0; i < len; ++i)
+          text[decoded_prefix_length++] = text[pos + i];
+      }
+    }
+
+    // Clean up.
+    parsing_reader->stop_reading();
+    delete parsing_reader;
+
+    // Print summary.
+    long double elapsed = utils::wclock() - start;
+    fprintf(stderr, "%.2Lfs\n", elapsed);
   }
 
   // Compare grammar output to text.
   {
-    fprintf(stderr, "  Check grammar output... ");
+
+    // Start the timer.
+    fprintf(stderr, "  Compare grammar output to text... ");
     long double start = utils::wclock();
+
+    // Run the comparison.
     bool eq = grammar->compare_expansion_to_text(text, text_length);
+
+    // Print summary.
     long double elapsed = utils::wclock() - start;
-    fprintf(stderr, "%.2Lfs ", elapsed);
-    fprintf(stderr, "%s\n", eq ? "(OK)" : "(FAILED)");
+    fprintf(stderr, "%.2Lf ", elapsed);
+    fprintf(stderr, "(%s)\n", eq ? "OK" : "FAILED");
   }
 
-  // Test AVL property.
+  // Test AVL property of the grammar.
   {
+
+    // Start the timer.
     fprintf(stderr, "  Test AVL property... ");
     long double start = utils::wclock();
+
+    // Run the test.
     bool result = grammar->test_avl_property();
+
+    // Print summary.
     long double elapsed = utils::wclock() - start;
     fprintf(stderr, "%.2Lfs ", elapsed);
     fprintf(stderr, "%s\n", result ? "(OK)" : "(FAILED)");
   }
 
 #if 0
-  // Collect various statistic about grammar.
-  fprintf(stderr, "\n");
-  fprintf(stderr, "Additional statistics:\n");
 
   // Check the number of different Mersenne KR hashes.
   // These hashes are much better, so there should no collisions.
@@ -238,10 +209,70 @@ void test_conversion(
 #endif
 
   // Clean up.
-  delete[] text;
-  delete[] decoded_text;
+  utils::deallocate(text);
+}
 
-#endif  // TEST_CORRECTNESS
+template<
+  typename char_type = std::uint8_t,
+  typename text_offset_type = std::uint64_t>
+void test_conversion(
+    std::string parsing_filename) {
+
+  // Declare types.
+  typedef std::pair<text_offset_type, text_offset_type> phrase_type;
+#ifdef MULTIROOT
+  typedef avl_grammar_multiroot<char_type, text_offset_type> grammar_type;
+#else
+  typedef avl_grammar<char_type> grammar_type;
+#endif
+
+  // Turn paths absolute.
+  parsing_filename = utils::absolute_path(parsing_filename);
+
+  // Obtain some basic statistics about input.
+  std::uint64_t parsing_size =
+      utils::file_size(parsing_filename) / sizeof(phrase_type);
+
+  // Print parameters.
+  fprintf(stderr, "Convert LZ77 to SLP\n");
+  fprintf(stderr, "Timestamp = %s", utils::get_timestamp().c_str());
+  fprintf(stderr, "Parsing filename = %s\n", parsing_filename.c_str());
+  fprintf(stderr, "Number of LZ77 phrases = %lu\n", parsing_size);
+  fprintf(stderr, "sizeof(char_type) = %lu\n", sizeof(char_type));
+  fprintf(stderr, "sizeof(text_offset_type) = %lu\n", sizeof(text_offset_type));
+  fprintf(stderr, "\n\n");
+
+  // Convert LZ77 to AVL grammar.
+  grammar_type *grammar = NULL;
+  {
+    fprintf(stderr, "Convert LZ77 to SLP... ");
+    long double start = utils::wclock();
+#ifdef MULTIROOT
+    grammar =
+      convert_lz77_to_avl_grammar_multiroot<char_type, text_offset_type>(
+          parsing_filename);
+#else
+    grammar =
+      convert_lz77_to_avl_grammar<char_type, text_offset_type>(parsing);
+#endif
+
+    // Print summary.
+    long double elapsed = utils::wclock() - start;
+    fprintf(stderr, "%.2Lfs\n", elapsed);
+  }
+
+  // Print info. Note that the grammar may
+  // still contain unused nonterminals.
+  fprintf(stderr, "Number of nonterminals = %lu\n", grammar->size());
+#ifdef MULTIROOT
+  fprintf(stderr, "Number of roots = %lu\n", grammar->number_of_roots());
+#endif
+  fprintf(stderr, "\n");
+
+
+#ifdef TEST_CORRECTNESS
+  check_correctness<char_type, text_offset_type>(parsing_filename, grammar);
+#endif
 
   // Clean up.
   delete grammar;
@@ -253,35 +284,20 @@ void test_conversion(
 }
 
 int main(int argc, char **argv) {
-#ifdef TEST_CORRECTNESS
-  if (argc != 3)
-    std::exit(EXIT_FAILURE);
-#else
   if (argc != 2)
     std::exit(EXIT_FAILURE);
-#endif
 
-  // Initialize runtime statistics and randomness.
+  // Initialize runtime statistics.
   utils::initialize_stats();
-  //srand(time(0) + getpid());
 
   // Declare types.
   typedef std::uint8_t char_type;
   typedef uint40 text_offset_type;
 
   // Obtain filenames.
-#ifdef TEST_CORRECTNESS
-  std::string text_filename = argv[1];
   std::string parsing_filename = argv[2];
-#else
-  std::string parsing_filename = argv[2];
-#endif
 
   // Run the algorithm.
-  test_conversion<char_type, text_offset_type>(
-#ifdef TEST_CORRECTNESS
-      text_filename,
-#endif
-      parsing_filename);
+  test_conversion<char_type, text_offset_type>(parsing_filename);
 }
 
