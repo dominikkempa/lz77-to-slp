@@ -30,6 +30,8 @@
 
 template<typename S, typename T>
 struct packed_pair {
+  typedef packed_pair<S, T> pair_type;
+
   packed_pair() {}
   packed_pair(S &f, T &s) {
     first = f;
@@ -39,6 +41,10 @@ struct packed_pair {
   packed_pair(S f, T s) {
     first = f;
     second = s;
+  }
+
+  inline bool operator == (const pair_type &p) const {
+    return (first == p.first) && (second == p.second);
   }
 
   S first;
