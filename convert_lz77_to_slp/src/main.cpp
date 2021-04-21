@@ -295,7 +295,7 @@ int main(int argc, char **argv) {
   typedef uint40 text_offset_type;
 
   // Obtain filenames.
-  std::string parsing_filename = argv[2];
+  std::string parsing_filename = argv[1];
 
   // Run the algorithm.
   test_conversion<char_type, text_offset_type>(parsing_filename);
