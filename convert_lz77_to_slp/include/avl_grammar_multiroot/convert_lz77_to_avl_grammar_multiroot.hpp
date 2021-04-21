@@ -25,6 +25,9 @@ template<
 avl_grammar_multiroot<char_type, text_offset_type>*
 convert_lz77_to_avl_grammar_multiroot(const std::string parsing_filename) {
 
+  // Start the timer.
+  long double start = utils::wclock();
+
   // Declare types.
   typedef nonterminal<char_type, text_offset_type> nonterminal_type;
   typedef avl_grammar_multiroot<char_type, text_offset_type> grammar_type;
@@ -47,6 +50,17 @@ convert_lz77_to_avl_grammar_multiroot(const std::string parsing_filename) {
   grammar_type *grammar = new grammar_type();
   std::uint64_t prefix_length = 0;
   for (std::uint64_t phrase_id = 0; phrase_id < parsing_size; ++phrase_id) {
+
+    if (((phrase_id + 1) % 100000) == 0) {
+      long double elapsed = utils::wclock() - start;
+      fprintf(stderr, "\rInfo: elapsed = %.2Lfs, "
+          "progress = %lu (%.2Lf%%) phrases (%.2LfMiB prefix), "
+          "peak RAM = %.2LfMiB",
+          elapsed, phrase_id + 1,
+          (100.L * (phrase_id + 1)) / parsing_size,
+          (1.L * prefix_length) / (1 << 20),
+          (1.L * utils::get_peak_ram_allocation()) / (1UL << 20));
+    }
 
     // Check if we need to run garbage collector.
     grammar->check_gargage_collector();
@@ -107,6 +121,13 @@ convert_lz77_to_avl_grammar_multiroot(const std::string parsing_filename) {
       grammar->push_root(prefix_length, phrase_roots[t]);
     }
   }
+
+  long double total_time = utils::wclock() - start;
+  fprintf(stderr, "\rInfo: elapsed = %.2Lfs, "
+      "progress = %lu (100.00%%) phrases (%.2LfMiB prefix), "
+      "peak RAM = %.2LfMiB",
+      total_time, parsing_size, (1.L * prefix_length) / (1 << 20),
+      (1.L * utils::get_peak_ram_allocation()) / (1UL << 20));
 
   // Clean up.
   parsing_reader->stop_reading();

@@ -9,7 +9,7 @@
 #include <getopt.h>
 
 #define MULTIROOT
-#define TEST_CORRECTNESS
+//#define TEST_CORRECTNESS
 
 #include "../include/types/uint40.hpp"
 #include "../include/utils/utils.hpp"
@@ -237,7 +237,8 @@ void test_conversion(
   fprintf(stderr, "Convert LZ77 to SLP\n");
   fprintf(stderr, "Timestamp = %s", utils::get_timestamp().c_str());
   fprintf(stderr, "Parsing filename = %s\n", parsing_filename.c_str());
-  fprintf(stderr, "Number of LZ77 phrases = %lu\n", parsing_size);
+  fprintf(stderr, "Number of LZ77 phrases = %lu (%.2LfMiB)\n",
+      parsing_size, (2.L * parsing_size * sizeof(text_offset_type)) / (1 << 20));
   fprintf(stderr, "sizeof(char_type) = %lu\n", sizeof(char_type));
   fprintf(stderr, "sizeof(text_offset_type) = %lu\n", sizeof(text_offset_type));
   fprintf(stderr, "\n\n");
@@ -245,7 +246,7 @@ void test_conversion(
   // Convert LZ77 to AVL grammar.
   grammar_type *grammar = NULL;
   {
-    fprintf(stderr, "Convert LZ77 to SLP... ");
+    fprintf(stderr, "Convert LZ77 to SLP...\n");
     long double start = utils::wclock();
 #ifdef MULTIROOT
     grammar =
@@ -258,7 +259,7 @@ void test_conversion(
 
     // Print summary.
     long double elapsed = utils::wclock() - start;
-    fprintf(stderr, "%.2Lfs\n", elapsed);
+    fprintf(stderr, "\nConversion time: %.2Lfs\n", elapsed);
   }
 
   // Print info. Note that the grammar may
