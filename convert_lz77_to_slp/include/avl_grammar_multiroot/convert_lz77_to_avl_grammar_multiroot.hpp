@@ -31,7 +31,7 @@ convert_lz77_to_avl_grammar_multiroot(const std::string parsing_filename) {
   typedef async_stream_reader<text_offset_type> reader_type;
 
   // Initialize the parsing reader.
-  const std::uint64_t bufsize = (1 << 20);
+  const std::uint64_t bufsize = (1 << 19);
   const std::uint64_t n_buffers = 4;
   reader_type *parsing_reader =
     new reader_type(parsing_filename, bufsize, n_buffers);
