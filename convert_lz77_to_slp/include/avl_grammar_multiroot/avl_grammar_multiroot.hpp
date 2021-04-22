@@ -402,6 +402,13 @@ struct avl_grammar_multiroot {
 
       // Update list of long nonterminals.
       if (new_exp_len >= 255) {
+        m_long_exp_len.push_back(
+            pair_type(
+              (text_offset_type)new_id,
+              (text_offset_type)new_exp_len));
+      }
+
+      if (new_exp_len >= 255) {
         if (!hash_computed) {
           new_kr_hash =
             karp_rabin_hashing::concat(
@@ -410,10 +417,6 @@ struct avl_grammar_multiroot {
                 get_exp_len(right_id));
         }
 
-        m_long_exp_len.push_back(
-            pair_type(
-              (text_offset_type)new_id,
-              (text_offset_type)new_exp_len));
         m_long_exp_hashes.push_back(
             hash_pair_type(
               (text_offset_type)new_id,

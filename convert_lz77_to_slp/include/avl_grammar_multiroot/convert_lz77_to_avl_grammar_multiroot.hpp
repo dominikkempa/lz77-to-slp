@@ -51,7 +51,7 @@ convert_lz77_to_avl_grammar_multiroot(const std::string parsing_filename) {
   std::uint64_t prefix_length = 0;
   for (std::uint64_t phrase_id = 0; phrase_id < parsing_size; ++phrase_id) {
 
-    if (((phrase_id + 1) % 100000) == 0) {
+    if (((phrase_id + 1) & ((1 << 16) - 1)) == 0) {
       long double elapsed = utils::wclock() - start;
       fprintf(stderr, "\rInfo: elapsed = %.2Lfs, "
           "progress = %lu (%.2Lf%%) phrases (%.2LfMiB prefix), "
