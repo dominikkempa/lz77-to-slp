@@ -594,7 +594,7 @@ struct avl_grammar_multiroot {
 
       // Merge roots in m_roots_vec[range_beg..range_end).
       if (range_beg != range_end) {
-        std::vector<text_offset_type> v;
+        space_efficient_vector<text_offset_type> v;
         for (std::uint64_t i = range_beg; i != range_end; i = roots_next(i))
           v.push_back(m_roots_vec[i].second);
         const std::uint64_t newroot_id = greedy_merge(v);
@@ -852,8 +852,8 @@ struct avl_grammar_multiroot {
     //=========================================================================
     void heap_up(
         std::uint64_t i,
-        const std::vector<text_offset_type> &seq,
-        std::vector<text_offset_type> &heap) const {
+        const space_efficient_vector<text_offset_type> &seq,
+        text_offset_type * const heap) const {
       ++i;
       while (i != 1 &&
           get_height(seq[heap[(i >> 1) - 1]]) >
@@ -868,16 +868,17 @@ struct avl_grammar_multiroot {
     //========================================================================
     void heap_down(
         std::uint64_t i,
-        const std::vector<text_offset_type> &seq,
-        std::vector<text_offset_type> &heap) const {
+        const space_efficient_vector<text_offset_type> &seq,
+        text_offset_type * const heap,
+        const std::uint64_t heap_size) const {
       ++i;
       std::uint64_t min_pos = i;
       while (true) {
-        if ((i << 1) <= heap.size() &&
+        if ((i << 1) <= heap_size &&
             get_height(seq[heap[(i << 1) - 1]]) <
             get_height(seq[heap[min_pos - 1]]))
           min_pos = (i << 1);
-        if ((i << 1) + 1 <= heap.size() &&
+        if ((i << 1) + 1 <= heap_size &&
             get_height(seq[heap[i << 1]]) <
             get_height(seq[heap[min_pos - 1]]))
           min_pos = (i << 1) + 1;
@@ -892,13 +893,13 @@ struct avl_grammar_multiroot {
     // Extract min routine.
     //=========================================================================
     std::uint64_t extract_min(
-        const std::vector<text_offset_type> &seq,
-        std::vector<text_offset_type> &heap) const {
+        const space_efficient_vector<text_offset_type> &seq,
+        text_offset_type * const heap,
+        std::uint64_t &heap_size) const {
       std::uint64_t ret = heap[0];
-      heap[0] = heap.back();
-      heap.pop_back();
-      if (!heap.empty())
-        heap_down(0, seq, heap);
+      heap[0] = heap[--heap_size];
+      if (heap_size != 0)
+        heap_down(0, seq, heap, heap_size);
       return ret;
     }
 
@@ -906,11 +907,11 @@ struct avl_grammar_multiroot {
     // Make heap rountine.
     //=========================================================================
     void make_heap(
-        const std::vector<text_offset_type> &seq,
-        std::vector<text_offset_type> &heap) const {
-      std::uint64_t n = heap.size();
-      for (std::uint64_t i = n / 2; i > 0; --i)
-        heap_down(i - 1, seq, heap);
+        const space_efficient_vector<text_offset_type> &seq,
+        text_offset_type * const heap,
+        const std::uint64_t heap_size) const {
+      for (std::uint64_t i = heap_size / 2; i > 0; --i)
+        heap_down(i - 1, seq, heap, heap_size);
     }
 
     //=========================================================================
@@ -918,10 +919,11 @@ struct avl_grammar_multiroot {
     //=========================================================================
     void heap_insert(
         const std::uint64_t x,
-        const std::vector<text_offset_type> &seq,
-        std::vector<text_offset_type> &heap) const {
-      heap.push_back(x);
-      heap_up(heap.size() - 1, seq, heap);
+        const space_efficient_vector<text_offset_type> &seq,
+        text_offset_type * const heap,
+        std::uint64_t &heap_size) const {
+      heap[heap_size++] = x;
+      heap_up(heap_size - 1, seq, heap);
     }
 
     //=========================================================================
@@ -929,11 +931,13 @@ struct avl_grammar_multiroot {
     // Uses binary heap to achieve O(m log m) time.
     //=========================================================================
     std::uint64_t greedy_merge(
-        std::vector<text_offset_type> &seq) {
+        space_efficient_vector<text_offset_type> &seq) {
 
       // Create the priority queue.
       const std::uint64_t num = seq.size();
-      std::vector<text_offset_type> heap;
+      text_offset_type * const heap =
+        utils::allocate_array<text_offset_type>(num);
+      std::uint64_t heap_size = 0;
 
       // Allocate the arrays used to doubly-link remaining nonterminals.
       text_offset_type * const next =
@@ -948,12 +952,12 @@ struct avl_grammar_multiroot {
       for (std::uint64_t i = 0; i < num; ++i) {
         next[i] = i + 1;
         prev[i + 1] = i;
-        heap.push_back(i);
+        heap[heap_size++] = i;
         deleted[i] = false;
       }
       next[sentinel] = 0;
       prev[0] = sentinel;
-      make_heap(seq, heap);
+      make_heap(seq, heap, heap_size);
 
       // The main algorithm.
       std::uint64_t ret = 0;
@@ -962,7 +966,7 @@ struct avl_grammar_multiroot {
 
         // If the element was already deleted, skip it.
         if (deleted[min_elem]) {
-          (void) extract_min(seq, heap);
+          (void) extract_min(seq, heap, heap_size);
           continue;
         }
 
@@ -1001,7 +1005,7 @@ struct avl_grammar_multiroot {
           deleted[right_elem] = true;
           next[min_elem] = next[right_elem];
           prev[next[min_elem]] = min_elem;
-          heap_down(0, seq, heap);
+          heap_down(0, seq, heap, heap_size);
         } else {
 
           // Only left neighbor exists, or both exists
@@ -1025,7 +1029,7 @@ struct avl_grammar_multiroot {
           deleted[left_elem] = true;
           prev[min_elem] = prev[left_elem];
           next[prev[min_elem]] = min_elem;
-          heap_down(0, seq, heap);
+          heap_down(0, seq, heap, heap_size);
         }
       }
 
@@ -1033,6 +1037,7 @@ struct avl_grammar_multiroot {
       utils::deallocate(deleted);
       utils::deallocate(prev);
       utils::deallocate(next);
+      utils::deallocate(heap);
 
       // Return the result.
       return ret;
