@@ -932,8 +932,9 @@ struct avl_grammar_multiroot {
           const std::uint64_t h =
             karp_rabin_hashing::concat(left_hash, right_hash, right_len);
           std::uint64_t id_merged = 0;
-          if (m_hashes.find(h) != NULL)
-            id_merged = *(m_hashes.find(h));
+          const text_offset_type * const hash_ret = m_hashes.find(h);
+          if (hash_ret != NULL)
+            id_merged = *hash_ret;
           else
             id_merged = add_concat_nonterminal(left_id, right_id);
           seq[min_elem] = id_merged;
@@ -955,8 +956,9 @@ struct avl_grammar_multiroot {
           const std::uint64_t h =
             karp_rabin_hashing::concat(left_hash, right_hash, right_len);
           std::uint64_t id_merged = 0;
-          if (m_hashes.find(h) != NULL)
-            id_merged = *(m_hashes.find(h));
+          const text_offset_type * const hash_ret = m_hashes.find(h);
+          if (hash_ret != NULL)
+            id_merged = *hash_ret;
           else
             id_merged = add_concat_nonterminal(left_id, right_id);
           seq[min_elem] = id_merged;
@@ -974,63 +976,6 @@ struct avl_grammar_multiroot {
 
       // Return the result.
       return ret;
-
-#if 0
-      while (seq.size() > 1) {
-
-        // Find the nonterminal with the smallest height.
-        std::uint64_t smallest_height_id = 0;
-        for (std::uint64_t i = 1; i < seq.size(); ++i) {
-          if (get_height((std::uint64_t)seq[i]) <
-              get_height((std::uint64_t)seq[smallest_height_id]))
-            smallest_height_id = i;
-        }
-
-        // Merge the nonterminal with the smaller height with
-        // one of its beighbors (whichever is shorter).
-        if (smallest_height_id == 0 ||
-            (smallest_height_id + 1 < seq.size() &&
-             get_height((std::uint64_t)seq[smallest_height_id + 1]) <=
-             get_height((std::uint64_t)seq[smallest_height_id - 1]))) {
-
-          // Only right neighbor exists, or both exist
-          // and the right one is not taller than the left
-          // one. End result: merge with the right neighbor.
-          const std::uint64_t left_id = seq[smallest_height_id];
-          const std::uint64_t right_id = seq[smallest_height_id + 1];
-          const std::uint64_t left_hash = get_kr_hash(left_id);
-          const std::uint64_t right_hash = get_kr_hash(right_id);
-          const std::uint64_t right_len = get_exp_len(right_id);
-          const std::uint64_t h =
-            karp_rabin_hashing::concat(left_hash, right_hash, right_len);
-          seq.erase(seq.begin() + smallest_height_id);
-          if (m_hashes.find(h) != NULL)
-            seq[smallest_height_id] = *(m_hashes.find(h));
-          else
-            seq[smallest_height_id] =
-              add_concat_nonterminal(left_id, right_id);
-        } else {
-
-          // Only left neighbor exists, or both exists
-          // and the left one is not taller than the
-          // right one. End result: merge with left neighbor.
-          const std::uint64_t left_id = seq[smallest_height_id - 1];
-          const std::uint64_t right_id = seq[smallest_height_id];
-          const std::uint64_t left_hash = get_kr_hash(left_id);
-          const std::uint64_t right_hash = get_kr_hash(right_id);
-          const std::uint64_t right_len = get_exp_len(right_id);
-          const std::uint64_t h =
-            karp_rabin_hashing::concat(left_hash, right_hash, right_len);
-          seq.erase(seq.begin() + (smallest_height_id - 1));
-          if (m_hashes.find(h) != NULL)
-            seq[smallest_height_id - 1] = *(m_hashes.find(h));
-          else
-            seq[smallest_height_id - 1] =
-              add_concat_nonterminal(left_id, right_id);
-        }
-      }
-      return seq[0];
-#endif
     }
 };
 
