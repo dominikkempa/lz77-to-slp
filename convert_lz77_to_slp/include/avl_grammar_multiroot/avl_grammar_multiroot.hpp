@@ -963,22 +963,6 @@ struct avl_grammar_multiroot {
       // The main algorithm.
       std::uint64_t ret = 0;
       while (true) {
-
-        // Extract-min in O(n) time.
-        /*std::uint64_t min_elem = 0;
-        {
-          std::uint64_t min_pos = 0;
-          min_elem = heap[min_pos];
-          for (std::uint64_t i = 1; i < pq.size(); ++i) {
-            if (get_height(seq[pq[i]]) < get_height(seq[min_elem])) {
-              min_pos = i;
-              min_elem = pq[i];
-            }
-          }
-          for (std::uint64_t i = min_pos; i + 1 < pq.size(); ++i)
-            pq[i] = pq[i + 1];
-          pq.pop_back();
-        }*/
         std::uint64_t min_elem = extract_min(seq, heap);
 
         // If the element was already deleted, skip it.
@@ -1020,7 +1004,6 @@ struct avl_grammar_multiroot {
           deleted[right_elem] = true;
           next[min_elem] = next[right_elem];
           prev[next[min_elem]] = min_elem;
-          //pq.push_back(min_elem);
           heap_insert(min_elem, seq, heap);
         } else {
 
@@ -1045,7 +1028,6 @@ struct avl_grammar_multiroot {
           deleted[left_elem] = true;
           prev[min_elem] = prev[left_elem];
           next[prev[min_elem]] = min_elem;
-          //pq.push_back(min_elem);
           heap_insert(min_elem, seq, heap);
         }
       }
