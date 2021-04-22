@@ -58,8 +58,8 @@ struct nonterminal {
         hash_table<text_offset_type, std::uint64_t> &,
         hash_table<std::uint64_t, bool> &,
         std::uint64_t &, const grammar_type * const) const;
-    std::vector<text_offset_type> decomposition(
-        const std::uint64_t, const std::uint64_t, const std::uint64_t,
+    void decomposition(const std::uint64_t, const std::uint64_t,
+        const std::uint64_t, std::vector<text_offset_type> &,
         const grammar_type * const g) const;
 } __attribute__((packed));
 
@@ -710,15 +710,15 @@ struct avl_grammar_multiroot {
     //=========================================================================
     // Get the sequence of nonterminals expanding to T[begin..end).
     //=========================================================================
-    std::vector<text_offset_type> decomposition(
+    void decomposition(
         std::uint64_t begin,
-        std::uint64_t end) {
+        std::uint64_t end,
+        std::vector<text_offset_type> &ret) {
 
       // Find leftmost root whose expansion overlaps/touches T[begin..end).
       std::uint64_t pos = roots_lower_bound(begin);
 
       // Proper substring or suffix of expansion of `it'.
-      std::vector<text_offset_type> ret;
       if (begin < (std::uint64_t)m_roots_vec[pos].first) {
         const std::uint64_t preflen = m_roots_vec[pos].first;
         const std::uint64_t id = m_roots_vec[pos].second;
@@ -728,9 +728,7 @@ struct avl_grammar_multiroot {
         const std::uint64_t local_end = std::min(preflen, end) - it_exp_beg;
         const std::uint64_t local_size = local_end - local_beg;
         const nonterminal_type &nonterm = get_nonterminal(id);
-        std::vector<text_offset_type> dec =
-          nonterm.decomposition(id, local_beg, local_end, this);
-        ret.insert(ret.end(), dec.begin(), dec.end());
+        nonterm.decomposition(id, local_beg, local_end, ret, this);
         begin += local_size;
       }
 
@@ -750,14 +748,11 @@ struct avl_grammar_multiroot {
         const std::uint64_t it_exp_beg = preflen - it_exp_size;
         const std::uint64_t local_end = end - it_exp_beg;
         const nonterminal_type &nonterm = get_nonterminal(id);
-        std::vector<text_offset_type> dec =
-          nonterm.decomposition(id, 0, local_end, this);
+        std::vector<text_offset_type> dec;
+        nonterm.decomposition(id, 0, local_end, dec, this);
         ret.insert(ret.end(), dec.begin(), dec.end());
         begin = end;
       }
-
-      // Return result.
-      return ret;
     }
 
     //=========================================================================
@@ -1299,19 +1294,16 @@ void nonterminal<char_type, text_offset_type>
 // sequence of nonterminals expanding to S[begin..end).
 //=============================================================================
 template<typename char_type, typename text_offset_type>
-std::vector<text_offset_type>
-nonterminal<char_type, text_offset_type>::decomposition(
+void nonterminal<char_type, text_offset_type>::decomposition(
     const std::uint64_t id,
     const std::uint64_t begin,
     const std::uint64_t end,
+    std::vector<text_offset_type> &ret,
     const avl_grammar_multiroot<char_type, text_offset_type> * const g) const {
-
-  // Declare the vector storing the result.
-  std::vector<text_offset_type> ret;
 
   // Handle boundary case.
   if (begin == end)
-    return ret;
+    return;
 
   // Find the deepest nonterminal in the parse tree containing the range
   // [begin..end).
@@ -1397,9 +1389,6 @@ nonterminal<char_type, text_offset_type>::decomposition(
       }
     }
   }
-
-  // Return the result.
-  return ret;
 }
 
 #endif  // __AVL_GRAMMAR_MULTIROOT_HPP_INCLUDED

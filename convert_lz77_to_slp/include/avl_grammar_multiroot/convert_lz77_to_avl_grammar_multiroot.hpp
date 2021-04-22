@@ -88,8 +88,8 @@ convert_lz77_to_avl_grammar_multiroot(const std::string parsing_filename) {
 
           std::uint64_t next = std::min(left, exist);
           grammar->merge_enclosed_roots(pos, pos + next);
-          std::vector<text_offset_type> v =
-            grammar->decomposition(pos, pos + next);
+          std::vector<text_offset_type> v;
+          grammar->decomposition(pos, pos + next, v);
           v = grammar->find_equivalent_seq(v);
 
           for (std::uint64_t t = 0; t < v.size(); ++t) {
@@ -108,7 +108,7 @@ convert_lz77_to_avl_grammar_multiroot(const std::string parsing_filename) {
         std::uint64_t begin = pos;
         std::uint64_t end = begin + len;
         grammar->merge_enclosed_roots(begin, end);
-        phrase_roots = grammar->decomposition(begin, end);
+        grammar->decomposition(begin, end, phrase_roots);
         phrase_roots = grammar->find_equivalent_seq(phrase_roots);
       }
     }
