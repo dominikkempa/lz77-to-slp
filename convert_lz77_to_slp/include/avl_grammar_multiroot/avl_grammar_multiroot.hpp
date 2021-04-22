@@ -853,6 +853,83 @@ struct avl_grammar_multiroot {
   private:
 
     //=========================================================================
+    // Heap up routine.
+    //=========================================================================
+    void heap_up(
+        std::uint64_t i,
+        const std::vector<text_offset_type> &seq,
+        std::vector<text_offset_type> &heap) const {
+      ++i;
+      while (i != 1 &&
+          get_height(seq[heap[(i >> 1) - 1]]) >
+          get_height(seq[heap[i - 1]])) {
+        std::swap(heap[(i >> 1) - 1], heap[i - 1]);
+        i >>= 1;
+      }
+    }
+
+    //=========================================================================
+    // Heap down routine.
+    //========================================================================
+    void heap_down(
+        std::uint64_t i,
+        const std::vector<text_offset_type> &seq,
+        std::vector<text_offset_type> &heap) const {
+      ++i;
+      std::uint64_t min_pos = i;
+      while (true) {
+        if ((i << 1) <= heap.size() &&
+            get_height(seq[heap[(i << 1) - 1]]) <
+            get_height(seq[heap[min_pos - 1]]))
+          min_pos = (i << 1);
+        if ((i << 1) + 1 <= heap.size() &&
+            get_height(seq[heap[i << 1]]) <
+            get_height(seq[heap[min_pos - 1]]))
+          min_pos = (i << 1) + 1;
+        if (min_pos != i) {
+          std::swap(heap[i - 1], heap[min_pos - 1]);
+          i = min_pos;
+        } else break;
+      }
+    }
+
+    //=========================================================================
+    // Extract min routine.
+    //=========================================================================
+    std::uint64_t extract_min(
+        const std::vector<text_offset_type> &seq,
+        std::vector<text_offset_type> &heap) const {
+      std::uint64_t ret = heap[0];
+      heap[0] = heap.back();
+      heap.pop_back();
+      if (!heap.empty())
+        heap_down(0, seq, heap);
+      return ret;
+    }
+
+    //=========================================================================
+    // Make heap rountine.
+    //=========================================================================
+    void make_heap(
+        const std::vector<text_offset_type> &seq,
+        std::vector<text_offset_type> &heap) const {
+      std::uint64_t size = heap.size();
+      for (std::uint64_t i = size / 2; i > 0; --i)
+        heap_down(i - 1, seq, heap);
+    }
+
+    //=========================================================================
+    // Insert heap rountine.
+    //=========================================================================
+    void heap_insert(
+        const std::uint64_t x,
+        const std::vector<text_offset_type> &seq,
+        std::vector<text_offset_type> &heap) const {
+      heap.push_back(x);
+      heap_up(heap.size() - 1, seq, heap);
+    }
+
+    //=========================================================================
     // Merge greedily (shortest first) sequence of nonterminals.
     // Uses binary heap to achieve O(m log m) time.
     //=========================================================================
@@ -861,7 +938,7 @@ struct avl_grammar_multiroot {
 
       // Create the priority queue.
       const std::uint64_t num = seq.size();
-      std::vector<text_offset_type> pq;
+      std::vector<text_offset_type> heap;
 
       // Allocate the arrays used to doubly-link remaining nonterminals.
       text_offset_type * const next =
@@ -871,26 +948,27 @@ struct avl_grammar_multiroot {
       std::uint8_t * const deleted =
         utils::allocate_array<std::uint8_t>(num);
 
-      // Set initial linking and insert elements into pq.
+      // Set initial linking and insert elements into heap.
       const std::uint64_t sentinel = num;
       for (std::uint64_t i = 0; i < num; ++i) {
         next[i] = i + 1;
         prev[i + 1] = i;
-        pq.push_back(i);
+        heap.push_back(i);
         deleted[i] = false;
       }
       next[sentinel] = 0;
       prev[0] = sentinel;
+      make_heap(seq, heap);
 
       // The main algorithm.
       std::uint64_t ret = 0;
       while (true) {
 
         // Extract-min in O(n) time.
-        std::uint64_t min_elem = 0;
+        /*std::uint64_t min_elem = 0;
         {
           std::uint64_t min_pos = 0;
-          min_elem = pq[min_pos];
+          min_elem = heap[min_pos];
           for (std::uint64_t i = 1; i < pq.size(); ++i) {
             if (get_height(seq[pq[i]]) < get_height(seq[min_elem])) {
               min_pos = i;
@@ -900,7 +978,8 @@ struct avl_grammar_multiroot {
           for (std::uint64_t i = min_pos; i + 1 < pq.size(); ++i)
             pq[i] = pq[i + 1];
           pq.pop_back();
-        }
+        }*/
+        std::uint64_t min_elem = extract_min(seq, heap);
 
         // If the element was already deleted, skip it.
         if (deleted[min_elem])
@@ -941,7 +1020,8 @@ struct avl_grammar_multiroot {
           deleted[right_elem] = true;
           next[min_elem] = next[right_elem];
           prev[next[min_elem]] = min_elem;
-          pq.push_back(min_elem);
+          //pq.push_back(min_elem);
+          heap_insert(min_elem, seq, heap);
         } else {
 
           // Only left neighbor exists, or both exists
@@ -965,7 +1045,8 @@ struct avl_grammar_multiroot {
           deleted[left_elem] = true;
           prev[min_elem] = prev[left_elem];
           next[prev[min_elem]] = min_elem;
-          pq.push_back(min_elem);
+          //pq.push_back(min_elem);
+          heap_insert(min_elem, seq, heap);
         }
       }
 
