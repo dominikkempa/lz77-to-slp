@@ -963,11 +963,13 @@ struct avl_grammar_multiroot {
       // The main algorithm.
       std::uint64_t ret = 0;
       while (true) {
-        std::uint64_t min_elem = extract_min(seq, heap);
+        std::uint64_t min_elem = heap[0];
 
         // If the element was already deleted, skip it.
-        if (deleted[min_elem])
+        if (deleted[min_elem]) {
+          (void) extract_min(seq, heap);
           continue;
+        }
 
         // Merge min_elem with one of its
         // beighbors (whichever is shorter).
@@ -1004,7 +1006,7 @@ struct avl_grammar_multiroot {
           deleted[right_elem] = true;
           next[min_elem] = next[right_elem];
           prev[next[min_elem]] = min_elem;
-          heap_insert(min_elem, seq, heap);
+          heap_down(0, seq, heap);
         } else {
 
           // Only left neighbor exists, or both exists
@@ -1028,7 +1030,7 @@ struct avl_grammar_multiroot {
           deleted[left_elem] = true;
           prev[min_elem] = prev[left_elem];
           next[prev[min_elem]] = min_elem;
-          heap_insert(min_elem, seq, heap);
+          heap_down(0, seq, heap);
         }
       }
 
