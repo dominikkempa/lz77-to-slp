@@ -310,10 +310,8 @@ struct avl_grammar_multiroot {
 
         // Recompute the hash from scratch.
         (void) nonterm.write_expansion(id, m_snippet, this);
-        std::uint64_t h = 0;
-        for (std::uint64_t i = 0; i < nonterm.m_exp_len; ++i)
-          h = karp_rabin_hashing::concat(h, (std::uint64_t)m_snippet[i], 1);
-        return h;
+        return karp_rabin_hashing::hash_string<char_type>(
+            m_snippet, nonterm.m_exp_len);
       } else {
 
         // Binary search in m_long_exp_hashes.

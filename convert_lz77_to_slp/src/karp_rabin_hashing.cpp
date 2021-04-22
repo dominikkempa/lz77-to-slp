@@ -10,12 +10,16 @@
 
 namespace karp_rabin_hashing {
 
+//=============================================================================
 // Base and exponent used in Karp-Rabin hashing.
+//=============================================================================
 std::uint64_t hash_variable;
 std::uint64_t mersenne_prime_exponent;
 
+//=============================================================================
 // Return (a * b) mod p, where p = (2^k) - 1.
 // Requires a, b <= 2^k. Tested for k = 1, .., 63.
+//=============================================================================
 std::uint64_t mul_mod_mersenne(
     const std::uint64_t a,
     const std::uint64_t b,
@@ -31,9 +35,11 @@ std::uint64_t mul_mod_mersenne(
   return lo == p ? 0 : lo;
 }
 
+//=============================================================================
 // Return a mod p, where p = (2^k) - 1.
 // Works for any a in [0..2^64).
 // Tested for k = 1, .., 63.
+//=============================================================================
 std::uint64_t mod_mersenne(
     std::uint64_t a,
     const std::uint64_t k) {
@@ -57,14 +63,18 @@ std::uint64_t mod_mersenne(
   }
 }
 
+//=============================================================================
 // Return random number x in [0..p), where p = (2^k) - 1.
+//=============================================================================
 std::uint64_t rand_mod_mersenne(const std::uint64_t k) {
   const std::uint64_t p = ((std::uint64_t)1 << k) - 1;
   return utils::random_int<std::uint64_t>(
       (std::uint64_t)0, (std::uint64_t(p - 1)));
 }
 
+//=============================================================================
 // Return (a^n) mod p, where p = (2^k) - 1.
+//=============================================================================
 std::uint64_t  pow_mod_mersenne(
     const std::uint64_t a,
     std::uint64_t n,
@@ -80,8 +90,10 @@ std::uint64_t  pow_mod_mersenne(
   return ret;
 }
 
+//=============================================================================
 // Given Karp-Rabin hashes of two substrings, return
 // the Karp-Rabin hash of their concatenation.
+//=============================================================================
 std::uint64_t concat(
     const std::uint64_t left_hash,
     const std::uint64_t right_hash,
@@ -95,7 +107,9 @@ std::uint64_t concat(
   return ret;
 }
 
+//=============================================================================
 // Initialize the base and exponent for Karp-Rabin hashing.
+//=============================================================================
 void init() {
   mersenne_prime_exponent = 61;
   hash_variable = rand_mod_mersenne(mersenne_prime_exponent);
