@@ -913,8 +913,8 @@ struct avl_grammar_multiroot {
     void make_heap(
         const std::vector<text_offset_type> &seq,
         std::vector<text_offset_type> &heap) const {
-      std::uint64_t size = heap.size();
-      for (std::uint64_t i = size / 2; i > 0; --i)
+      std::uint64_t n = heap.size();
+      for (std::uint64_t i = n / 2; i > 0; --i)
         heap_down(i - 1, seq, heap);
     }
 
