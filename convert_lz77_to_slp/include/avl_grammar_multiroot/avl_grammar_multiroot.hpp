@@ -41,7 +41,7 @@ struct nonterminal {
     nonterminal(const nonterminal_type &);
     void print_expansion( const std::uint64_t,
         const grammar_type * const) const;
-    void write_expansion(const std::uint64_t, char_type * const,
+    std::uint64_t write_expansion(const std::uint64_t, char_type * const,
         const grammar_type * const) const;
     bool compare_expansion_to_text(const std::uint64_t,
         const char_type * const, const grammar_type * const) const;
@@ -309,7 +309,7 @@ struct avl_grammar_multiroot {
       if (nonterm.m_exp_len < 255) {
 
         // Recompute the hash from scratch.
-        nonterm.write_expansion(id, m_snippet, this);
+        (void) nonterm.write_expansion(id, m_snippet, this);
         std::uint64_t h = 0;
         for (std::uint64_t i = 0; i < nonterm.m_exp_len; ++i)
           h = karp_rabin_hashing::concat(h, (std::uint64_t)m_snippet[i], 1);
@@ -449,8 +449,9 @@ struct avl_grammar_multiroot {
         const std::uint64_t id = m_roots_vec[i].second;
         if (preflen != 0) {
           const nonterminal_type &nonterm = get_nonterminal(id);
-          nonterm.write_expansion(id, text + ptr, this);
-          ptr += get_exp_len(id);
+          const std::uint64_t exp_len =
+            nonterm.write_expansion(id, text + ptr, this);
+          ptr += exp_len;
         }
       }
     }
@@ -1104,7 +1105,7 @@ void nonterminal<char_type, text_offset_type>::print_expansion(
 // Write the expansion into the given array.
 //=============================================================================
 template<typename char_type, typename text_offset_type>
-void nonterminal<char_type, text_offset_type>::write_expansion(
+std::uint64_t nonterminal<char_type, text_offset_type>::write_expansion(
     const std::uint64_t id,
     char_type * const text,
     const avl_grammar_multiroot<char_type, text_offset_type> * const g) const {
@@ -1113,14 +1114,17 @@ void nonterminal<char_type, text_offset_type>::write_expansion(
   if (height == 0) {
     const char_type my_char = g->get_char(id);
     text[0] = my_char;
+    return 1;
   } else {
     const std::uint64_t left_id = g->get_left_id(id);
     const std::uint64_t right_id = g->get_right_id(id);
-    const std::uint64_t left_exp_len = g->get_exp_len(left_id);
     const nonterminal_type &left = g->get_nonterminal(left_id);
     const nonterminal_type &right = g->get_nonterminal(right_id);
-    left.write_expansion(left_id, text, g);
-    right.write_expansion(right_id, text + left_exp_len, g);
+    const std::uint64_t left_exp_len =
+      left.write_expansion(left_id, text, g);
+    const std::uint64_t right_exp_len =
+      right.write_expansion(right_id, text + left_exp_len, g);
+    return left_exp_len + right_exp_len;
   }
 }
 
