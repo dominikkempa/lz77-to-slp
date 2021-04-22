@@ -854,9 +854,128 @@ struct avl_grammar_multiroot {
 
     //=========================================================================
     // Merge greedily (shortest first) sequence of nonterminals.
+    // Uses binary heap to achieve O(m log m) time.
     //=========================================================================
     std::uint64_t greedy_merge(
         std::vector<text_offset_type> &seq) {
+
+      // Create the priority queue.
+      const std::uint64_t num = seq.size();
+      std::vector<text_offset_type> pq;
+
+      // Allocate the arrays used to doubly-link remaining nonterminals.
+      text_offset_type * const next =
+        utils::allocate_array<text_offset_type>(num + 1);
+      text_offset_type * const prev =
+        utils::allocate_array<text_offset_type>(num + 1);
+      std::uint8_t * const deleted =
+        utils::allocate_array<std::uint8_t>(num);
+
+      // Set initial linking and insert elements into pq.
+      const std::uint64_t sentinel = num;
+      for (std::uint64_t i = 0; i < num; ++i) {
+        next[i] = i + 1;
+        prev[i + 1] = i;
+        pq.push_back(i);
+        deleted[i] = false;
+      }
+      next[sentinel] = 0;
+      prev[0] = sentinel;
+
+      // The main algorithm.
+      std::uint64_t ret = 0;
+      while (true) {
+
+        // Extract-min in O(n) time.
+        std::uint64_t min_elem = 0;
+        {
+          std::uint64_t min_pos = 0;
+          min_elem = pq[min_pos];
+          for (std::uint64_t i = 1; i < pq.size(); ++i) {
+            if (get_height(seq[pq[i]]) < get_height(seq[min_elem])) {
+              min_pos = i;
+              min_elem = pq[i];
+            }
+          }
+          for (std::uint64_t i = min_pos; i + 1 < pq.size(); ++i)
+            pq[i] = pq[i + 1];
+          pq.pop_back();
+        }
+
+        // If the element was already deleted, skip it.
+        if (deleted[min_elem])
+          continue;
+
+        // Merge min_elem with one of its
+        // beighbors (whichever is shorter).
+        if ((std::uint64_t)prev[min_elem] == sentinel &&
+            (std::uint64_t)next[min_elem] == sentinel) {
+
+          // We have reached the only nonterminal.
+          // Store it as output and exit the loop.
+          ret = seq[min_elem];
+          break;
+        } else if ((std::uint64_t)prev[min_elem] == sentinel ||
+            ((std::uint64_t)next[min_elem] != sentinel &&
+             get_height(seq[next[min_elem]]) <=
+             get_height(seq[prev[min_elem]]))) {
+
+          // Only right neighbor exists, or both exist
+          // and the right one is not taller than the left
+          // one. End result: merge with the right neighbor.
+          const std::uint64_t right_elem = next[min_elem];
+          const std::uint64_t left_id = seq[min_elem];
+          const std::uint64_t right_id = seq[right_elem];
+          const std::uint64_t left_hash = get_kr_hash(left_id);
+          const std::uint64_t right_hash = get_kr_hash(right_id);
+          const std::uint64_t right_len = get_exp_len(right_id);
+          const std::uint64_t h =
+            karp_rabin_hashing::concat(left_hash, right_hash, right_len);
+          std::uint64_t id_merged = 0;
+          if (m_hashes.find(h) != NULL)
+            id_merged = *(m_hashes.find(h));
+          else
+            id_merged = add_concat_nonterminal(left_id, right_id);
+          seq[min_elem] = id_merged;
+          deleted[right_elem] = true;
+          next[min_elem] = next[right_elem];
+          prev[next[min_elem]] = min_elem;
+          pq.push_back(min_elem);
+        } else {
+
+          // Only left neighbor exists, or both exists
+          // and the left one is not taller than the
+          // right one. End result: merge with left neighbor.
+          const std::uint64_t left_elem = prev[min_elem];
+          const std::uint64_t left_id = seq[left_elem];
+          const std::uint64_t right_id = seq[min_elem];
+          const std::uint64_t left_hash = get_kr_hash(left_id);
+          const std::uint64_t right_hash = get_kr_hash(right_id);
+          const std::uint64_t right_len = get_exp_len(right_id);
+          const std::uint64_t h =
+            karp_rabin_hashing::concat(left_hash, right_hash, right_len);
+          std::uint64_t id_merged = 0;
+          if (m_hashes.find(h) != NULL)
+            id_merged = *(m_hashes.find(h));
+          else
+            id_merged = add_concat_nonterminal(left_id, right_id);
+          seq[min_elem] = id_merged;
+          deleted[left_elem] = true;
+          prev[min_elem] = prev[left_elem];
+          next[prev[min_elem]] = min_elem;
+          pq.push_back(min_elem);
+        }
+      }
+
+      // Clean up.
+      utils::deallocate(deleted);
+      utils::deallocate(prev);
+      utils::deallocate(next);
+
+      // Return the result.
+      return ret;
+
+#if 0
       while (seq.size() > 1) {
 
         // Find the nonterminal with the smallest height.
@@ -911,6 +1030,7 @@ struct avl_grammar_multiroot {
         }
       }
       return seq[0];
+#endif
     }
 };
 
