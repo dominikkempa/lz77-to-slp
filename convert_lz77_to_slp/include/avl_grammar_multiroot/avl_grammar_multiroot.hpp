@@ -11,6 +11,7 @@
 #include "../utils/karp_rabin_hashing.hpp"
 #include "../utils/space_efficient_vector.hpp"
 #include "../utils/packed_pair.hpp"
+#include "../utils/packed_triple.hpp"
 
 
 //=============================================================================
@@ -92,6 +93,8 @@ struct avl_grammar_multiroot {
   //===========================================================================
   typedef nonterminal<char_type, text_offset_type> nonterminal_type;
   typedef packed_pair<text_offset_type, text_offset_type> pair_type;
+  typedef packed_triple<text_offset_type, text_offset_type, std::uint64_t>
+    triple_type;
   typedef packed_pair<text_offset_type, std::uint64_t> hash_pair_type;
 
   private:
@@ -154,7 +157,7 @@ struct avl_grammar_multiroot {
     //=========================================================================
     // Find the first undeleted root.
     //=========================================================================
-    std::uint64_t roots_begin() const {
+    inline std::uint64_t roots_begin() const {
 
       // We use the fact that there is a sentinel at the begnning.
       return 0;
@@ -163,7 +166,7 @@ struct avl_grammar_multiroot {
     //=========================================================================
     // Return the past-the-end position in the roots array.
     //=========================================================================
-    std::uint64_t roots_end() const {
+    inline std::uint64_t roots_end() const {
 
       // We use the fact that there is a sentinel at the begnning.
       return m_roots_vec.size();
@@ -177,7 +180,7 @@ struct avl_grammar_multiroot {
       ++pos;
 
       // Skip deleted elements.
-      while (pos != m_roots_vec.size() &&
+      while (pos != roots_end() &&
           m_roots_vec[pos].second ==
           std::numeric_limits<text_offset_type>::max()) {
         ++pos;
@@ -584,26 +587,30 @@ struct avl_grammar_multiroot {
         const std::uint64_t end) {
 
       // Compute the iterators of elements in m_roots_vec to merge.
+      space_efficient_vector<triple_type> v;
       std::uint64_t range_beg = roots_lower_bound(begin);
+      std::uint64_t prev_end = m_roots_vec[range_beg].first;
       range_beg = roots_next(range_beg);
       std::uint64_t range_end = range_beg;
       std::uint64_t newend = 0;
       while (range_end != roots_end() &&
           (std::uint64_t)m_roots_vec[range_end].first <= end) {
+        const std::uint64_t cur_end = m_roots_vec[range_end].first;
+        const std::uint64_t cur_exp_size = cur_end - prev_end;
+        v.push_back(triple_type(
+              m_roots_vec[range_end].second,
+              (text_offset_type)cur_exp_size,
+              get_kr_hash(m_roots_vec[range_end].second)));
+        m_roots_vec[range_end].second =
+          std::numeric_limits<text_offset_type>::max();
+        prev_end = cur_end;
         newend = range_end;
         range_end = roots_next(range_end);
       }
 
-      // Merge roots in m_roots_vec[range_beg..range_end).
-      if (range_beg != range_end) {
-        space_efficient_vector<text_offset_type> v;
-        for (std::uint64_t i = range_beg; i != range_end; i = roots_next(i))
-          v.push_back(m_roots_vec[i].second);
+      // Merge the roots in the range.
+      if (!v.empty()) {
         const std::uint64_t newroot_id = greedy_merge(v);
-
-        // Update roots.
-        for (std::uint64_t i = range_beg; i != range_end; i = roots_next(i))
-          m_roots_vec[i].second = std::numeric_limits<text_offset_type>::max();
         m_roots_vec[newend].second = newroot_id;
       }
     }
@@ -850,39 +857,23 @@ struct avl_grammar_multiroot {
   private:
 
     //=========================================================================
-    // Heap up routine.
-    //=========================================================================
-    void heap_up(
-        std::uint64_t i,
-        const space_efficient_vector<text_offset_type> &seq,
-        text_offset_type * const heap) const {
-      ++i;
-      while (i != 1 &&
-          get_height(seq[heap[(i >> 1) - 1]]) >
-          get_height(seq[heap[i - 1]])) {
-        std::swap(heap[(i >> 1) - 1], heap[i - 1]);
-        i >>= 1;
-      }
-    }
-
-    //=========================================================================
     // Heap down routine.
     //========================================================================
     void heap_down(
         std::uint64_t i,
-        const space_efficient_vector<text_offset_type> &seq,
+        const space_efficient_vector<triple_type> &seq,
         text_offset_type * const heap,
         const std::uint64_t heap_size) const {
       ++i;
       std::uint64_t min_pos = i;
       while (true) {
         if ((i << 1) <= heap_size &&
-            get_height(seq[heap[(i << 1) - 1]]) <
-            get_height(seq[heap[min_pos - 1]]))
+            get_height(seq[heap[(i << 1) - 1]].first) <
+            get_height(seq[heap[min_pos - 1]].first))
           min_pos = (i << 1);
         if ((i << 1) + 1 <= heap_size &&
-            get_height(seq[heap[i << 1]]) <
-            get_height(seq[heap[min_pos - 1]]))
+            get_height(seq[heap[i << 1]].first) <
+            get_height(seq[heap[min_pos - 1]].first))
           min_pos = (i << 1) + 1;
         if (min_pos != i) {
           std::swap(heap[i - 1], heap[min_pos - 1]);
@@ -895,7 +886,7 @@ struct avl_grammar_multiroot {
     // Extract min routine.
     //=========================================================================
     std::uint64_t extract_min(
-        const space_efficient_vector<text_offset_type> &seq,
+        const space_efficient_vector<triple_type> &seq,
         text_offset_type * const heap,
         std::uint64_t &heap_size) const {
       std::uint64_t ret = heap[0];
@@ -909,7 +900,7 @@ struct avl_grammar_multiroot {
     // Make heap rountine.
     //=========================================================================
     void make_heap(
-        const space_efficient_vector<text_offset_type> &seq,
+        const space_efficient_vector<triple_type> &seq,
         text_offset_type * const heap,
         const std::uint64_t heap_size) const {
       for (std::uint64_t i = heap_size / 2; i > 0; --i)
@@ -917,23 +908,11 @@ struct avl_grammar_multiroot {
     }
 
     //=========================================================================
-    // Insert heap rountine.
-    //=========================================================================
-    void heap_insert(
-        const std::uint64_t x,
-        const space_efficient_vector<text_offset_type> &seq,
-        text_offset_type * const heap,
-        std::uint64_t &heap_size) const {
-      heap[heap_size++] = x;
-      heap_up(heap_size - 1, seq, heap);
-    }
-
-    //=========================================================================
     // Merge greedily (shortest first) sequence of nonterminals.
     // Uses binary heap to achieve O(m log m) time.
     //=========================================================================
     std::uint64_t greedy_merge(
-        space_efficient_vector<text_offset_type> &seq) {
+        space_efficient_vector<triple_type> &seq) {
 
       // Create the priority queue.
       const std::uint64_t num = seq.size();
@@ -979,22 +958,24 @@ struct avl_grammar_multiroot {
 
           // We have reached the only nonterminal.
           // Store it as output and exit the loop.
-          ret = seq[min_elem];
+          ret = seq[min_elem].first;
           break;
         } else if ((std::uint64_t)prev[min_elem] == sentinel ||
             ((std::uint64_t)next[min_elem] != sentinel &&
-             get_height(seq[next[min_elem]]) <=
-             get_height(seq[prev[min_elem]]))) {
+             get_height(seq[next[min_elem]].first) <=
+             get_height(seq[prev[min_elem]].first))) {
 
           // Only right neighbor exists, or both exist
           // and the right one is not taller than the left
           // one. End result: merge with the right neighbor.
           const std::uint64_t right_elem = next[min_elem];
-          const std::uint64_t left_id = seq[min_elem];
-          const std::uint64_t right_id = seq[right_elem];
-          const std::uint64_t left_hash = get_kr_hash(left_id);
-          const std::uint64_t right_hash = get_kr_hash(right_id);
-          const std::uint64_t right_len = get_exp_len(right_id);
+          const std::uint64_t left_id = seq[min_elem].first;
+          const std::uint64_t right_id = seq[right_elem].first;
+          const std::uint64_t left_hash = seq[min_elem].third;
+          const std::uint64_t right_hash = seq[right_elem].third;
+          const std::uint64_t left_len = seq[min_elem].second;
+          const std::uint64_t right_len = seq[right_elem].second;
+          const std::uint64_t merged_len = left_len + right_len;
           const std::uint64_t h =
             karp_rabin_hashing::concat(left_hash, right_hash, right_len);
           std::uint64_t id_merged = 0;
@@ -1003,7 +984,9 @@ struct avl_grammar_multiroot {
             id_merged = *hash_ret;
           else
             id_merged = add_concat_nonterminal(left_id, right_id);
-          seq[min_elem] = id_merged;
+          seq[min_elem].first = id_merged;
+          seq[min_elem].second = merged_len;
+          seq[min_elem].third = h;
           deleted[right_elem] = true;
           next[min_elem] = next[right_elem];
           prev[next[min_elem]] = min_elem;
@@ -1014,11 +997,13 @@ struct avl_grammar_multiroot {
           // and the left one is not taller than the
           // right one. End result: merge with left neighbor.
           const std::uint64_t left_elem = prev[min_elem];
-          const std::uint64_t left_id = seq[left_elem];
-          const std::uint64_t right_id = seq[min_elem];
-          const std::uint64_t left_hash = get_kr_hash(left_id);
-          const std::uint64_t right_hash = get_kr_hash(right_id);
-          const std::uint64_t right_len = get_exp_len(right_id);
+          const std::uint64_t left_id = seq[left_elem].first;
+          const std::uint64_t right_id = seq[min_elem].first;
+          const std::uint64_t left_hash = seq[left_elem].third;
+          const std::uint64_t right_hash = seq[min_elem].third;
+          const std::uint64_t left_len = seq[left_elem].second;
+          const std::uint64_t right_len = seq[min_elem].second;
+          const std::uint64_t merged_len = left_len + right_len;
           const std::uint64_t h =
             karp_rabin_hashing::concat(left_hash, right_hash, right_len);
           std::uint64_t id_merged = 0;
@@ -1027,7 +1012,9 @@ struct avl_grammar_multiroot {
             id_merged = *hash_ret;
           else
             id_merged = add_concat_nonterminal(left_id, right_id);
-          seq[min_elem] = id_merged;
+          seq[min_elem].first = id_merged;
+          seq[min_elem].second = merged_len;
+          seq[min_elem].third = h;
           deleted[left_elem] = true;
           prev[min_elem] = prev[left_elem];
           next[prev[min_elem]] = min_elem;
