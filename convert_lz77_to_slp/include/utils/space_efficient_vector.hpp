@@ -33,14 +33,30 @@
 #include "utils.hpp"
 
 
+//=============================================================================
+// A class that implements essentially the same functionality as std::vector,
+// but with much smaller peak RAM usage during reallocation (which in most
+// implementations is  not inplace). Slowdown of access it very moderate.
+//=============================================================================
 template<typename ValueType>
 class space_efficient_vector {
   public:
+
+    //=========================================================================
+    // Declare types.
+    //=========================================================================
     typedef ValueType value_type;
 
   private:
-    static const std::uint64_t max_blocks = 16;
 
+    //=========================================================================
+    // Set the number of blocks. This controls the peak RAM use.
+    //=========================================================================
+    static const std::uint64_t max_blocks = 32;
+
+    //=========================================================================
+    // Class members.
+    //=========================================================================
     value_type **m_blocks;
     std::uint64_t m_block_size_log;
     std::uint64_t m_block_size_mask;
@@ -51,6 +67,10 @@ class space_efficient_vector {
     std::uint64_t m_size;
 
   public:
+
+    //=========================================================================
+    // Constructor.
+    //=========================================================================
     space_efficient_vector() {
       m_size = 0;
       m_block_size_log = 0;
@@ -63,6 +83,9 @@ class space_efficient_vector {
       m_blocks[0] = utils::allocate_array<value_type>(m_block_size);
     }
 
+    //=========================================================================
+    // Destructor.
+    //=========================================================================
     ~space_efficient_vector() {
       for (std::uint64_t block_id = 0;
           block_id < m_allocated_blocks; ++block_id)
@@ -70,14 +93,32 @@ class space_efficient_vector {
       utils::deallocate(m_blocks);
     }
 
+    //=========================================================================
+    // Return vector size.
+    //=========================================================================
     inline std::uint64_t size() const {
       return m_size;
     }
 
+    //=========================================================================
+    // Check if the vector is empty.
+    //=========================================================================
     inline bool empty() const {
       return m_size == 0;
     }
 
+    //=========================================================================
+    // Set the vector as empty (without deallocating space).
+    //=========================================================================
+    void set_empty() {
+      m_size = 0;
+      m_cur_block_filled = 0;
+      m_cur_block_id = 0;
+    }
+
+    //=========================================================================
+    // Remove the last element (without reducing capacity).
+    //=========================================================================
     inline void pop_back() {
       --m_size;
       --m_cur_block_filled;
@@ -87,6 +128,9 @@ class space_efficient_vector {
       }
     }
 
+    //=========================================================================
+    // Push a new item at the end.
+    //=========================================================================
     inline void push_back(const value_type &value) {
       if (m_cur_block_filled == m_block_size &&
           m_cur_block_id + 1 == max_blocks) {
@@ -126,26 +170,41 @@ class space_efficient_vector {
       ++m_size;
     }
 
+    //=========================================================================
+    // Return the reference to the last element.
+    //=========================================================================
     inline value_type& back() {
       return m_blocks[m_cur_block_id][m_cur_block_filled - 1];
     }
 
+    //=========================================================================
+    // Return the reference to the last element.
+    //=========================================================================
     inline const value_type& back() const {
       return m_blocks[m_cur_block_id][m_cur_block_filled - 1];
     }
 
+    //=========================================================================
+    // Access operator.
+    //=========================================================================
     inline value_type& operator[] (std::uint64_t i) {
       std::uint64_t block_id = (i >> m_block_size_log);
       std::uint64_t block_offset = (i & m_block_size_mask);
       return m_blocks[block_id][block_offset];
     }
 
+    //=========================================================================
+    // Access operator.
+    //=========================================================================
     inline const value_type& operator[] (std::uint64_t i) const {
       std::uint64_t block_id = (i >> m_block_size_log);
       std::uint64_t block_offset = (i & m_block_size_mask);
       return m_blocks[block_id][block_offset];
     }
 
+    //=========================================================================
+    // Remove all elements and deallocate.
+    //=========================================================================
     void clear() {
       for (std::uint64_t block_id = 0;
           block_id < m_allocated_blocks; ++block_id)
@@ -161,6 +220,9 @@ class space_efficient_vector {
       m_blocks[0] = utils::allocate_array<value_type>(m_block_size);
     }
 
+    //=========================================================================
+    // Write contents to given file.
+    //=========================================================================
     void write_to_file(std::string filename) const {
       std::FILE *f = utils::file_open_nobuf(filename, "w");
       for (std::uint64_t block_id = 0; block_id < m_cur_block_id; ++block_id)
