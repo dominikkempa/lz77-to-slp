@@ -8,6 +8,7 @@
 #include <algorithm>
 
 #include "../utils/karp_rabin_hashing.hpp"
+#include "../utils/packed_pair.hpp"
 #include "../io/async_stream_reader.hpp"
 #include "avl_grammar_multiroot.hpp"
 
@@ -32,6 +33,7 @@ convert_lz77_to_avl_grammar_multiroot(const std::string parsing_filename) {
   typedef nonterminal<char_type, text_offset_type> nonterminal_type;
   typedef avl_grammar_multiroot<char_type, text_offset_type> grammar_type;
   typedef async_stream_reader<text_offset_type> reader_type;
+  typedef packed_pair<text_offset_type, text_offset_type> pair_type;
 
   // Initialize the parsing reader.
   const std::uint64_t bufsize = (1 << 19);
@@ -70,13 +72,15 @@ convert_lz77_to_avl_grammar_multiroot(const std::string parsing_filename) {
     std::uint64_t len = parsing_reader->read();
     
     // Compute the AVL grammar expanding to phrase p.
-    std::vector<text_offset_type> phrase_roots;
+    std::vector<pair_type> phrase_roots;
     if (len == 0) {
 
       // If this is a literal phrase, create a trivial grammar.
       const nonterminal_type root((char_type)pos);
       const std::uint64_t root_id = grammar->add_nonterminal(root);
-      phrase_roots.push_back((text_offset_type)root_id);
+      phrase_roots.push_back(pair_type(
+            (text_offset_type)root_id,
+            (text_offset_type)1));
     } else {
 
       // Self-overlapping phrases are unadressed in Rytter's paper.
@@ -87,16 +91,16 @@ convert_lz77_to_avl_grammar_multiroot(const std::string parsing_filename) {
         while (left > 0) {
 
           std::uint64_t next = std::min(left, exist);
+          std::vector<pair_type> v;
           grammar->merge_enclosed_roots(pos, pos + next);
-          std::vector<text_offset_type> v;
           grammar->decomposition(pos, pos + next, v);
-          v = grammar->find_equivalent_seq(v);
+          grammar->find_equivalent_seq(v);
 
           for (std::uint64_t t = 0; t < v.size(); ++t) {
-            const std::uint64_t id = v[t];
-            const std::uint64_t exp_len = grammar->get_exp_len(id);
+            const std::uint64_t id = v[t].first;
+            const std::uint64_t exp_len = v[t].second;
             prefix_length += exp_len;
-            grammar->push_root(prefix_length, v[t]);
+            grammar->push_root(prefix_length, id);
           }
           exist += next;
           left -= next;
@@ -109,16 +113,16 @@ convert_lz77_to_avl_grammar_multiroot(const std::string parsing_filename) {
         std::uint64_t end = begin + len;
         grammar->merge_enclosed_roots(begin, end);
         grammar->decomposition(begin, end, phrase_roots);
-        phrase_roots = grammar->find_equivalent_seq(phrase_roots);
+        grammar->find_equivalent_seq(phrase_roots);
       }
     }
 
     // Update prefix length and add new roots to the grammar.
     for (std::uint64_t t = 0; t < phrase_roots.size(); ++t) {
-      const std::uint64_t id = phrase_roots[t];
-      const std::uint64_t exp_len = grammar->get_exp_len(id);
+      const std::uint64_t id = phrase_roots[t].first;
+      const std::uint64_t exp_len = phrase_roots[t].second;
       prefix_length += exp_len;
-      grammar->push_root(prefix_length, phrase_roots[t]);
+      grammar->push_root(prefix_length, id);
     }
   }
 

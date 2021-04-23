@@ -28,6 +28,7 @@ struct nonterminal {
   private:
     typedef nonterminal<char_type, text_offset_type> nonterminal_type;
     typedef avl_grammar_multiroot<char_type, text_offset_type> grammar_type;
+    typedef packed_pair<text_offset_type, text_offset_type> pair_type;
 
   public:
     std::uint8_t m_height;
@@ -60,7 +61,7 @@ struct nonterminal {
         hash_table<std::uint64_t, bool> &,
         std::uint64_t &, const grammar_type * const) const;
     void decomposition(const std::uint64_t, const std::uint64_t,
-        const std::uint64_t, std::vector<text_offset_type> &,
+        const std::uint64_t, std::vector<pair_type> &,
         const grammar_type * const g) const;
 } __attribute__((packed));
 
@@ -755,19 +756,19 @@ struct avl_grammar_multiroot {
     void decomposition(
         std::uint64_t begin,
         std::uint64_t end,
-        std::vector<text_offset_type> &ret) {
+        std::vector<pair_type> &ret) {
 
       // Find leftmost root whose expansion overlaps/touches T[begin..end).
       std::uint64_t pos = roots_lower_bound(begin);
 
       // Proper substring or suffix of expansion of `it'.
       if (begin < (std::uint64_t)m_roots_vec[pos].first) {
-        const std::uint64_t preflen = m_roots_vec[pos].first;
+        const std::uint64_t cur_end = m_roots_vec[pos].first;
         const std::uint64_t id = m_roots_vec[pos].second;
-        const std::uint64_t it_exp_size = get_exp_len(id);
-        const std::uint64_t it_exp_beg = preflen - it_exp_size;
+        const std::uint64_t exp_len = get_exp_len(id);
+        const std::uint64_t it_exp_beg = cur_end - exp_len;
         const std::uint64_t local_beg = begin - it_exp_beg;
-        const std::uint64_t local_end = std::min(preflen, end) - it_exp_beg;
+        const std::uint64_t local_end = std::min(cur_end, end) - it_exp_beg;
         const std::uint64_t local_size = local_end - local_beg;
         const nonterminal_type &nonterm = get_nonterminal(id);
         nonterm.decomposition(id, local_beg, local_end, ret, this);
@@ -775,22 +776,29 @@ struct avl_grammar_multiroot {
       }
 
       // Full expansions of nonterminals.
+      std::uint64_t prev_end = m_roots_vec[pos].first;
       pos = roots_next(pos);
       while (begin < end && (std::uint64_t)m_roots_vec[pos].first <= end) {
-        ret.push_back(m_roots_vec[pos].second);
-        begin = m_roots_vec[pos].first;
+        const std::uint64_t cur_end = m_roots_vec[pos].first;
+        const std::uint64_t id = m_roots_vec[pos].second;
+        const std::uint64_t exp_len = cur_end - prev_end;
+        ret.push_back(pair_type(
+              (text_offset_type)id,
+              (text_offset_type)exp_len));
+        begin = cur_end;
+        prev_end = cur_end;
         pos = roots_next(pos);
       }
 
       // Proper suffix of expansion of `it'.
       if (begin < end) {
-        const std::uint64_t preflen = m_roots_vec[pos].first;
+        const std::uint64_t cur_end = m_roots_vec[pos].first;
         const std::uint64_t id = m_roots_vec[pos].second;
-        const std::uint64_t it_exp_size = get_exp_len(id);
-        const std::uint64_t it_exp_beg = preflen - it_exp_size;
+        const std::uint64_t exp_len = cur_end - prev_end;
+        const std::uint64_t it_exp_beg = cur_end - exp_len;
         const std::uint64_t local_end = end - it_exp_beg;
         const nonterminal_type &nonterm = get_nonterminal(id);
-        std::vector<text_offset_type> dec;
+        std::vector<pair_type> dec;
         nonterm.decomposition(id, 0, local_end, dec, this);
         ret.insert(ret.end(), dec.begin(), dec.end());
         begin = end;
@@ -800,55 +808,60 @@ struct avl_grammar_multiroot {
     //=========================================================================
     // Return the sequence of nonterminals with the same expansion as seq.
     //=========================================================================
-    std::vector<text_offset_type> find_equivalent_seq(
-      const std::vector<text_offset_type> &seq) const {
-
-      // Create the vector to hold the solution.
-      std::vector<text_offset_type> ret;
+    void find_equivalent_seq(
+      std::vector<pair_type> &seq) const {
 
       // Handle special case.
       if (seq.empty())
-        return ret;
+        return;
+
+      // Create the vector to hold the solution.
+      std::vector<pair_type> ret;
 
       // Allocate the arrays used in the dynamic programming.
       std::uint64_t length = seq.size();
       std::uint64_t *kr_hashes = utils::allocate_array<std::uint64_t>(length);
-      std::uint64_t *exp_lengths = utils::allocate_array<std::uint64_t>(length);
       std::uint64_t **dp = utils::allocate_array<std::uint64_t*>(length);
       std::uint64_t **dp_sol = utils::allocate_array<std::uint64_t*>(length);
       text_offset_type **dp_nonterm = utils::allocate_array<text_offset_type*>(length);
+      text_offset_type **dp_explen = utils::allocate_array<text_offset_type*>(length);
       for (std::uint64_t i = 0; i < length; ++i) {
         dp[i] = utils::allocate_array<std::uint64_t>(length);
         dp_sol[i] = utils::allocate_array<std::uint64_t>(length);
         dp_nonterm[i] = utils::allocate_array<text_offset_type>(length);
+        dp_explen[i] = utils::allocate_array<text_offset_type>(length);
       }
 
       // Fill in the array for len = 1.
       for (std::uint64_t i = 0; i < length; ++i) {
+        const std::uint64_t id = seq[i].first;
+        const std::uint64_t exp_len = seq[i].second;
         dp[i][i] = 1;
         dp_sol[i][i] = 1;
-        dp_nonterm[i][i] = seq[i];
-        kr_hashes[i] = get_kr_hash((std::uint64_t)seq[i]);
-        exp_lengths[i] = get_exp_len((std::uint64_t)seq[i]);
+        dp_nonterm[i][i] = id;
+        dp_explen[i][i] = exp_len;
+        kr_hashes[i] = get_kr_hash(id);
       }
 
       // Solve for subarray of length > 1.
       for (std::uint64_t len = 2; len <= length; ++len) {
         for (std::uint64_t beg = 0; beg <= length - len; ++beg) {
           const std::uint64_t end = beg + len - 1;
+          std::uint64_t exp_len = seq[beg].second;
 
           // Initialize to solution to initial choice.
           dp[beg][end] = 1 + dp[beg + 1][end];
           dp_sol[beg][end] = 1;
-          dp_nonterm[beg][end] = seq[beg];
+          dp_nonterm[beg][end] = seq[beg].first;
+          dp_explen[beg][end] = exp_len;
 
           // Try all other possible choices.
           std::uint64_t h = kr_hashes[beg];
-          for (std::uint64_t leftlen = 2;
-              leftlen <= len; ++leftlen) {
+          for (std::uint64_t leftlen = 2; leftlen <= len; ++leftlen) {
             const std::uint64_t last = beg + leftlen - 1;
             const std::uint64_t right_hash = kr_hashes[last];
-            const std::uint64_t right_len = exp_lengths[last];
+            const std::uint64_t right_len = seq[last].second;
+            exp_len += right_len;
             h = karp_rabin_hashing::concat(h, right_hash, right_len);
             const text_offset_type *nonterm_id_ptr = m_hashes.find(h);
             if (nonterm_id_ptr != NULL) {
@@ -858,6 +871,7 @@ struct avl_grammar_multiroot {
                 dp[beg][end] = sol_cost;
                 dp_sol[beg][end] = leftlen;
                 dp_nonterm[beg][end] = *nonterm_id_ptr;
+                dp_explen[beg][end] = exp_len;
               }
             }
           }
@@ -867,8 +881,12 @@ struct avl_grammar_multiroot {
       // Restore the optimal solution.
       std::uint64_t prefix_length = 0;
       while (prefix_length < length) {
-        ret.push_back(dp_nonterm[prefix_length][length - 1]);
-        prefix_length += dp_sol[prefix_length][length - 1];
+        const std::uint64_t id = dp_nonterm[prefix_length][length - 1];
+        const std::uint64_t exp_len = dp_explen[prefix_length][length - 1];
+        ret.push_back(pair_type(
+              (text_offset_type)id,
+              (text_offset_type)exp_len));
+        prefix_length += dp_sol[prefix_length][length - 1];;
       }
 
       // Clean up.
@@ -876,15 +894,16 @@ struct avl_grammar_multiroot {
         utils::deallocate(dp[i]);
         utils::deallocate(dp_sol[i]);
         utils::deallocate(dp_nonterm[i]);
+        utils::deallocate(dp_explen[i]);
       }
-      utils::deallocate(dp);
-      utils::deallocate(dp_sol);
+      utils::deallocate(dp_explen);
       utils::deallocate(dp_nonterm);
-      utils::deallocate(exp_lengths);
+      utils::deallocate(dp_sol);
+      utils::deallocate(dp);
       utils::deallocate(kr_hashes);
 
-      // Return the result.
-      return ret;
+      // Store the result in seq.
+      seq = ret;
     }
 
   private:
@@ -1328,7 +1347,7 @@ void nonterminal<char_type, text_offset_type>::decomposition(
     const std::uint64_t id,
     const std::uint64_t begin,
     const std::uint64_t end,
-    std::vector<text_offset_type> &ret,
+    std::vector<pair_type> &ret,
     const avl_grammar_multiroot<char_type, text_offset_type> * const g) const {
 
   // Handle boundary case.
@@ -1361,7 +1380,10 @@ void nonterminal<char_type, text_offset_type>::decomposition(
   if (cur_range_beg == begin && cur_range_end == end) {
 
     // If yes, return x as the answer.
-    ret.push_back((text_offset_type)x);
+    const std::uint64_t exp_len = cur_range_end - cur_range_beg;
+    ret.push_back(pair_type(
+          (text_offset_type)x,
+          (text_offset_type)exp_len));
   } else {
 
     // Otherwise, we perform two traversals in the tree.
@@ -1376,12 +1398,16 @@ void nonterminal<char_type, text_offset_type>::decomposition(
         const std::uint64_t y_left = g->get_left_id(y);
         const std::uint64_t y_right = g->get_right_id(y);
         if (y_exp_len == suffix_length) {
-          ret.push_back(y);
+          ret.push_back(pair_type(
+                (text_offset_type)y,
+                (text_offset_type)y_exp_len));
           suffix_length -= y_exp_len;
         } else {
           const std::uint64_t y_right_exp_len = g->get_exp_len(y_right);
           if (suffix_length > y_right_exp_len) {
-            ret.push_back(y_right);
+            ret.push_back(pair_type(
+                  (text_offset_type)y_right,
+                  (text_offset_type)y_right_exp_len));
             suffix_length -= y_right_exp_len;
             y = y_left;
           } else y = y_right;
@@ -1406,12 +1432,16 @@ void nonterminal<char_type, text_offset_type>::decomposition(
         const std::uint64_t y_left = g->get_left_id(y);
         const std::uint64_t y_right = g->get_right_id(y);
         if (y_exp_len == prefix_length) {
-          ret.push_back(y);
+          ret.push_back(pair_type(
+                (text_offset_type)y,
+                (text_offset_type)y_exp_len));
           prefix_length -= y_exp_len;
         } else {
           const std::uint64_t y_left_exp_len = g->get_exp_len(y_left);
           if (prefix_length > y_left_exp_len) {
-            ret.push_back(y_left);
+            ret.push_back(pair_type(
+                  (text_offset_type)y_left,
+                  (text_offset_type)y_left_exp_len));
             prefix_length -= y_left_exp_len;
             y = y_right;
           } else y = y_left;
