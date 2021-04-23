@@ -168,6 +168,20 @@ class hash_table {
     std::uint64_t size() const {
       return m_item_count;
     }
+
+    //=========================================================================
+    // Return RAM used by hash table.
+    //=========================================================================
+    std::uint64_t ram_use() const {
+      const std::uint64_t m_items_ram_use =
+        sizeof(item_type) * m_bucket_count;
+      const std::uint64_t m_buckets_ram_use =
+        sizeof(size_type) * m_bucket_count;
+      const std::uint64_t total =
+        m_items_ram_use +
+        m_buckets_ram_use;
+      return total;
+    }
 };
 
 #endif  // __HASH_TABLE_HPP_INCLUDED

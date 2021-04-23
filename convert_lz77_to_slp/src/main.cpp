@@ -270,6 +270,8 @@ void test_conversion(
 #endif
   fprintf(stderr, "\n");
 
+  // Print RAM use.
+  grammar->print_ram_use();
 
 #ifdef TEST_CORRECTNESS
   check_correctness<char_type, text_offset_type>(parsing_filename, grammar);

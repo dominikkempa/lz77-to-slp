@@ -169,6 +169,16 @@ class space_efficient_vector {
         utils::write_to_file(m_blocks[m_cur_block_id], m_cur_block_filled, f);
       std::fclose(f);
     }
+
+    //=========================================================================
+    // Return used RAM.
+    //=========================================================================
+    std::uint64_t ram_use() const {
+      const std::uint64_t blocks_ram =
+        sizeof(value_type) * m_allocated_blocks * m_block_size;
+      const std::uint64_t total = blocks_ram;
+      return total;
+    }
 };
 
 #endif  // __SPACE_EFFICIENT_VECTOR_HPP_INCLUDED

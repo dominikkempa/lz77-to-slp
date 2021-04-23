@@ -130,6 +130,39 @@ struct avl_grammar_multiroot {
       utils::deallocate(m_snippet);
     }
 
+    void print_ram_use() const {
+      const std::uint64_t m_roots_vec_ram_use = m_roots_vec.ram_use();
+      const std::uint64_t m_nonterminals_ram_use = m_nonterminals.ram_use();
+      const std::uint64_t m_long_exp_hashes_ram_use = m_long_exp_hashes.ram_use();
+      const std::uint64_t m_long_exp_len_ram_use = m_long_exp_len.ram_use();
+      const std::uint64_t m_hashes_ram_use = m_hashes.ram_use();
+      const std::uint64_t total =
+        m_roots_vec_ram_use +
+        m_nonterminals_ram_use + 
+        m_long_exp_hashes_ram_use +
+        m_long_exp_len_ram_use +
+        m_hashes_ram_use;
+      fprintf(stderr, "RAM use:\n");
+      fprintf(stderr, "  m_roots_vec: %.2LfMiB (%.2Lf%%)\n",
+          (1.L * m_roots_vec_ram_use) / (1 << 20),
+          (100.L * m_roots_vec_ram_use) / total);
+      fprintf(stderr, "  m_nonterminals: %.2LfMiB (%.2Lf%%)\n",
+          (1.L * m_nonterminals_ram_use) / (1 << 20),
+          (100.L * m_nonterminals_ram_use) / total);
+      fprintf(stderr, "  m_long_exp_hashes: %.2LfMiB (%.2Lf%%)\n",
+          (1.L * m_long_exp_hashes_ram_use) / (1 << 20),
+          (100.L * m_long_exp_hashes_ram_use) / total);
+      fprintf(stderr, "  m_long_exp_len: %.2LfMiB (%.2Lf%%)\n",
+          (1.L * m_long_exp_len_ram_use) / (1 << 20),
+          (100.L * m_long_exp_len_ram_use) / total);
+      fprintf(stderr, "  m_hashes: %.2LfMiB (%.2Lf%%)\n",
+          (1.L * m_hashes_ram_use) / (1 << 20),
+          (100.L * m_hashes_ram_use) / total);
+      fprintf(stderr, "Total: %.2LfMiB (%.2Lf%%)\n",
+          (1.L * total) / (1 << 20),
+          (100.L * total) / total);
+    }
+
     //=========================================================================
     // Find the leftmost nondeleted root >= key.
     //=========================================================================
