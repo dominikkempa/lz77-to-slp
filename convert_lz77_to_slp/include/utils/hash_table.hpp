@@ -8,6 +8,7 @@
 #include <algorithm>
 
 #include "utils.hpp"
+#include "space_efficient_vector.hpp"
 
 
 //=============================================================================
@@ -45,12 +46,11 @@ class hash_table {
     //=========================================================================
     // After the first item has been inserted into hash table:
     // the following invariant holds at all times:
-    // m_item_count <= m_bucket_count < 2 * m_item_count.
+    // m_item.size() <= m_bucket_count < 2 * m_item.size().
     //=========================================================================
     std::uint64_t m_bucket_count;
-    std::uint64_t m_item_count;
 
-    item_type *m_items;
+    space_efficient_vector<item_type> m_items;
     size_type *m_buckets;
 
   public:
@@ -60,9 +60,6 @@ class hash_table {
     //=========================================================================
     hash_table() {
       m_bucket_count = 1;
-      m_item_count = 0;
-
-      m_items = utils::allocate_array<item_type>(m_bucket_count);
       m_buckets = utils::allocate_array<size_type>(m_bucket_count);
       std::fill(m_buckets, m_buckets + m_bucket_count,
           std::numeric_limits<size_type>::max());
@@ -71,44 +68,24 @@ class hash_table {
   private:
 
     //=========================================================================
-    // Double the capacity of the hash table. There is room for
-    // improvement in the way we rehash all elements.
+    // Double the capacity of the hash table.
     //=========================================================================
     void enlarge() {
 
       // Allocate new arrays.
-      std::uint64_t new_bucket_count = m_bucket_count * 2;
-      item_type *new_items =
-        utils::allocate_array<item_type>(new_bucket_count);
-      size_type *new_buckets =
-        utils::allocate_array<size_type>(new_bucket_count);
-      std::fill(new_buckets, new_buckets + new_bucket_count,
+      m_bucket_count <<= 1;
+      utils::deallocate(m_buckets);
+      m_buckets = utils::allocate_array<size_type>(m_bucket_count);
+      std::fill(m_buckets, m_buckets + m_bucket_count,
           std::numeric_limits<size_type>::max());
 
       // Rehash all items.
-      std::uint64_t item_count = 0;
-      for (std::uint64_t i = 0; i < m_bucket_count; ++i) {
-        std::uint64_t j = m_buckets[i];
-        std::uint64_t size_type_max =
-          (std::uint64_t)std::numeric_limits<size_type>::max();
-        while (j != size_type_max) {
-          std::uint64_t hash =
-            get_hash(m_items[j].m_key) & (new_bucket_count - 1);
-          std::uint64_t new_item = item_count++;
-          new_items[new_item].m_next = new_buckets[hash];
-          new_items[new_item].m_key = m_items[j].m_key;
-          new_items[new_item].m_value = m_items[j].m_value;
-          new_buckets[hash] = new_item;
-          j = m_items[j].m_next;
-        }
+      for (std::uint64_t i = 0; i < m_items.size(); ++i) {
+        const key_type &key = m_items[i].m_key;
+        const std::uint64_t hash = get_hash(key) & (m_bucket_count - 1);
+        m_items[i].m_next = m_buckets[hash];
+        m_buckets[hash] = i;
       }
-
-      // Update arrays.
-      m_bucket_count = new_bucket_count;
-      utils::deallocate(m_buckets);
-      utils::deallocate(m_items);
-      m_items = new_items;
-      m_buckets = new_buckets;
     }
 
   public:
@@ -117,22 +94,24 @@ class hash_table {
     // Insert a new key (and the associated value).
     //=========================================================================
     void insert(const key_type &key, const value_type &value) {
-      if (m_item_count == m_bucket_count)
+      if (m_items.size() == m_bucket_count)
         enlarge();
 
-      std::uint64_t hash = get_hash(key) & (m_bucket_count - 1);
-      std::uint64_t new_item = m_item_count++;
-      m_items[new_item].m_next = m_buckets[hash];
-      m_items[new_item].m_key = key;
-      m_items[new_item].m_value = value;
-      m_buckets[hash] = new_item;
+      const std::uint64_t hash = get_hash(key) & (m_bucket_count - 1);
+      const std::uint64_t new_item_pos = m_items.size();
+      item_type new_item;
+      new_item.m_next = m_buckets[hash];
+      new_item.m_key = key;
+      new_item.m_value = value;
+      m_items.push_back(new_item);
+      m_buckets[hash] = new_item_pos;
     }
 
     //=========================================================================
     // Find the value associated with a given key.
     //=========================================================================
     value_type* find(const key_type &key) {
-      std::uint64_t hash = get_hash(key) & (m_bucket_count - 1);
+      const std::uint64_t hash = get_hash(key) & (m_bucket_count - 1);
       std::uint64_t j = m_buckets[hash];
       while (j != std::numeric_limits<size_type>::max()) {
         if (m_items[j].m_key == key) return &(m_items[j].m_value);
@@ -145,7 +124,7 @@ class hash_table {
     // Find a value associated with a given key.
     //=========================================================================
     const value_type* find(const key_type &key) const {
-      std::uint64_t hash = get_hash(key) & (m_bucket_count - 1);
+      const std::uint64_t hash = get_hash(key) & (m_bucket_count - 1);
       std::uint64_t j = m_buckets[hash];
       while (j != std::numeric_limits<size_type>::max()) {
         if (m_items[j].m_key == key) return &(m_items[j].m_value);
@@ -159,21 +138,20 @@ class hash_table {
     //=========================================================================
     ~hash_table() {
       utils::deallocate(m_buckets);
-      utils::deallocate(m_items);
     }
 
     //=========================================================================
     // Return the number of items in hash table.
     //=========================================================================
     std::uint64_t size() const {
-      return m_item_count;
+      return m_items.size();
     }
 
     //=========================================================================
     // Erase all elements, but keep current capacity.
     //=========================================================================
     void reset() {
-      m_item_count = 0;
+      m_items.set_empty();
       std::fill(m_buckets, m_buckets + m_bucket_count,
           std::numeric_limits<size_type>::max());
     }
@@ -183,7 +161,7 @@ class hash_table {
     //=========================================================================
     std::uint64_t ram_use() const {
       const std::uint64_t m_items_ram_use =
-        sizeof(item_type) * m_bucket_count;
+        m_items.ram_use();
       const std::uint64_t m_buckets_ram_use =
         sizeof(size_type) * m_bucket_count;
       const std::uint64_t total =
