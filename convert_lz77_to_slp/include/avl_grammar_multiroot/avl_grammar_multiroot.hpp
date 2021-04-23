@@ -10,6 +10,7 @@
 #include "../utils/hash_table.hpp"
 #include "../utils/karp_rabin_hashing.hpp"
 #include "../utils/space_efficient_vector.hpp"
+#include "../utils/cache.hpp"
 #include "../utils/packed_pair.hpp"
 #include "../utils/packed_triple.hpp"
 
@@ -108,6 +109,7 @@ struct avl_grammar_multiroot {
     space_efficient_vector<pair_type> m_long_exp_len;
     space_efficient_vector<hash_pair_type> m_long_exp_hashes;
     hash_table<std::uint64_t, text_offset_type> m_hashes;
+    cache<text_offset_type, std::uint64_t> *m_kr_hash_cache;
     char_type *m_snippet;
     std::uint64_t empty_step_counter;
 
@@ -117,11 +119,14 @@ struct avl_grammar_multiroot {
     // Constructor.
     //=========================================================================
     avl_grammar_multiroot() {
+      const std::uint64_t cache_size = (1 << 20);
       empty_step_counter = 0;
       m_roots_vec.push_back(pair_type(
             (text_offset_type)0,
             (text_offset_type)std::numeric_limits<text_offset_type>::max()));
       m_snippet = utils::allocate_array<char_type>(256);
+      m_kr_hash_cache =
+        new cache<text_offset_type, std::uint64_t>(cache_size);
     }
 
     //=========================================================================
@@ -129,20 +134,25 @@ struct avl_grammar_multiroot {
     //=========================================================================
     ~avl_grammar_multiroot() {
       utils::deallocate(m_snippet);
+      delete m_kr_hash_cache;
     }
 
-    void print_ram_use() const {
+    void print_stats() const {
+
+      // Print RAM usage breakdown.
       const std::uint64_t m_roots_vec_ram_use = m_roots_vec.ram_use();
       const std::uint64_t m_nonterminals_ram_use = m_nonterminals.ram_use();
       const std::uint64_t m_long_exp_hashes_ram_use = m_long_exp_hashes.ram_use();
       const std::uint64_t m_long_exp_len_ram_use = m_long_exp_len.ram_use();
       const std::uint64_t m_hashes_ram_use = m_hashes.ram_use();
+      const std::uint64_t m_kr_hash_cache_ram_use = m_kr_hash_cache->ram_use();
       const std::uint64_t total =
         m_roots_vec_ram_use +
         m_nonterminals_ram_use + 
         m_long_exp_hashes_ram_use +
         m_long_exp_len_ram_use +
-        m_hashes_ram_use;
+        m_hashes_ram_use +
+        m_kr_hash_cache_ram_use;
       fprintf(stderr, "RAM use:\n");
       fprintf(stderr, "  m_roots_vec: %.2LfMiB (%.2Lf%%)\n",
           (1.L * m_roots_vec_ram_use) / (1 << 20),
@@ -159,9 +169,15 @@ struct avl_grammar_multiroot {
       fprintf(stderr, "  m_hashes: %.2LfMiB (%.2Lf%%)\n",
           (1.L * m_hashes_ram_use) / (1 << 20),
           (100.L * m_hashes_ram_use) / total);
+      fprintf(stderr, "  m_kr_hash_cache: %.2LfMiB (%.2Lf%%)\n",
+          (1.L * m_kr_hash_cache_ram_use) / (1 << 20),
+          (100.L * m_kr_hash_cache_ram_use) / total);
       fprintf(stderr, "Total: %.2LfMiB (%.2Lf%%)\n",
           (1.L * total) / (1 << 20),
           (100.L * total) / total);
+
+      // Show cache miss rate.
+      m_kr_hash_cache->print_cache_miss_rate();
     }
 
     //=========================================================================
@@ -344,12 +360,21 @@ struct avl_grammar_multiroot {
     // Return the Karp-Rabin hash a given nonterminal.
     //=========================================================================
     std::uint64_t get_kr_hash(const std::uint64_t id) const {
+
+      // Check, if the value is in cache.
+      const std::uint64_t *cache_ret =
+        m_kr_hash_cache->lookup((text_offset_type)id);
+      if (cache_ret != NULL)
+        return *cache_ret;
+
+      // The value is not in cache.
       const nonterminal_type &nonterm = get_nonterminal(id);
+      std::uint64_t ret = 0;
       if (nonterm.m_exp_len < 255) {
 
         // Recompute the hash from scratch.
         (void) nonterm.write_expansion(id, m_snippet, this);
-        return karp_rabin_hashing::hash_string<char_type>(
+        ret = karp_rabin_hashing::hash_string<char_type>(
             m_snippet, nonterm.m_exp_len);
       } else {
 
@@ -363,8 +388,14 @@ struct avl_grammar_multiroot {
             beg = mid;
           else end = mid;
         }
-        return m_long_exp_hashes[beg].second;
+        ret = m_long_exp_hashes[beg].second;
       }
+
+      // Update cache.
+      m_kr_hash_cache->insert(id, ret);
+
+      // Return the result.
+      return ret;
     }
 
     //=========================================================================

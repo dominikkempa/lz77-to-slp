@@ -170,6 +170,15 @@ class hash_table {
     }
 
     //=========================================================================
+    // Erase all elements, but keep current capacity.
+    //=========================================================================
+    void reset() {
+      m_item_count = 0;
+      std::fill(m_buckets, m_buckets + m_bucket_count,
+          std::numeric_limits<size_type>::max());
+    }
+
+    //=========================================================================
     // Return RAM used by hash table.
     //=========================================================================
     std::uint64_t ram_use() const {
