@@ -424,8 +424,13 @@ struct avl_grammar_multiroot {
       // With probability 1/16 add to hash table.
       if (utils::random_int<std::uint64_t>(
             (std::uint64_t)0,
-            (std::uint64_t)15) == 0)
-        m_hashes.insert(get_kr_hash(id), id);
+            (std::uint64_t)15) == 0) {
+        const std::uint64_t kr_hash = get_kr_hash(id);
+        text_offset_type * const ret = m_hashes.find(kr_hash);
+        if (ret == NULL)
+          m_hashes.insert(kr_hash, id);
+        else *ret = (text_offset_type)id;
+      }
 
       // Return the id of the nonterminal.
       return id;
@@ -466,7 +471,10 @@ struct avl_grammar_multiroot {
         new_kr_hash =
           karp_rabin_hashing::concat(left_hash, right_hash, right_exp_len);
         hash_computed = true;
-        m_hashes.insert(new_kr_hash, new_id);
+        text_offset_type * const ret = m_hashes.find(new_kr_hash);
+        if (ret == NULL)
+          m_hashes.insert(new_kr_hash, new_id);
+        else *ret = (text_offset_type)new_id;
       }
 
       // Update list of long nonterminals.
