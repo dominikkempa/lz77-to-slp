@@ -169,10 +169,11 @@ struct avl_grammar_multiroot {
     //=========================================================================
     std::uint64_t roots_lower_bound(const std::uint64_t key) {
       std::uint64_t beg = 0;
-      std::uint64_t end = m_roots_vec.size();
+      std::uint64_t end = roots_end();
       while (beg + 1 < end) {
-        std::uint64_t mid = (beg + end - 1) / 2;
-        if ((std::uint64_t)(m_roots_vec[mid].first) >= key)
+        const std::uint64_t mid = (beg + end - 1) / 2;
+        const std::uint64_t mid_end = m_roots_vec[mid].first;
+        if (mid_end >= key)
           end = mid + 1;
         else beg = mid + 1;
       }
@@ -330,7 +331,8 @@ struct avl_grammar_multiroot {
         std::uint64_t end = m_long_exp_len.size();
         while (beg + 1 < end) {
           const std::uint64_t mid = (beg + end) / 2;
-          if ((std::uint64_t)m_long_exp_len[mid].first <= id)
+          const std::uint64_t mid_id = m_long_exp_len[mid].first;
+          if (mid_id <= id)
             beg = mid;
           else end = mid;
         }
@@ -356,7 +358,8 @@ struct avl_grammar_multiroot {
         std::uint64_t end = m_long_exp_hashes.size();
         while (beg + 1 < end) {
           const std::uint64_t mid = (beg + end) / 2;
-          if ((std::uint64_t)m_long_exp_hashes[mid].first <= id)
+          const std::uint64_t mid_id = m_long_exp_hashes[mid].first;
+          if (mid_id <= id)
             beg = mid;
           else end = mid;
         }
