@@ -405,10 +405,13 @@ struct avl_grammar_multiroot {
         const std::uint64_t right_id) {
 
       // Compute values for the new nonterminal.
-      const std::uint8_t new_height =
-        std::max(get_height(left_id), get_height(right_id)) + 1;
-      const std::uint64_t new_exp_len =
-        get_exp_len(left_id) + get_exp_len(right_id);
+      const std::uint64_t left_exp_len = get_exp_len(left_id);
+      const std::uint64_t right_exp_len = get_exp_len(right_id);
+      const std::uint64_t new_exp_len = left_exp_len + right_exp_len;
+      const std::uint8_t left_height = get_height(left_id);
+      const std::uint8_t right_height = get_height(right_id);
+      const std::uint8_t new_height = std::max(left_height, right_height) + 1;
+      const std::uint64_t new_id = m_nonterminals.size();
 
       // Create and add new nonterminal.
       nonterminal_type new_nonterm;
@@ -416,8 +419,6 @@ struct avl_grammar_multiroot {
       new_nonterm.m_exp_len = std::min(255UL, new_exp_len);
       new_nonterm.m_left = left_id;
       new_nonterm.m_right = right_id;
-
-      const std::uint64_t new_id = m_nonterminals.size();
       m_nonterminals.push_back(new_nonterm);
 
       // With probability 1/16 add to hash table.
@@ -426,11 +427,10 @@ struct avl_grammar_multiroot {
       if (utils::random_int<std::uint64_t>(
             (std::uint64_t)0,
             (std::uint64_t)15) == 0) {
+        const std::uint64_t left_hash = get_kr_hash(left_id);
+        const std::uint64_t right_hash = get_kr_hash(right_id);
         new_kr_hash =
-          karp_rabin_hashing::concat(
-              get_kr_hash(left_id),
-              get_kr_hash(right_id),
-              get_exp_len(right_id));
+          karp_rabin_hashing::concat(left_hash, right_hash, right_exp_len);
         hash_computed = true;
         m_hashes.insert(new_kr_hash, new_id);
       }
@@ -445,11 +445,10 @@ struct avl_grammar_multiroot {
 
       if (new_exp_len >= 255) {
         if (!hash_computed) {
+          const std::uint64_t left_hash = get_kr_hash(left_id);
+          const std::uint64_t right_hash = get_kr_hash(right_id);
           new_kr_hash =
-            karp_rabin_hashing::concat(
-                get_kr_hash(left_id),
-                get_kr_hash(right_id),
-                get_exp_len(right_id));
+            karp_rabin_hashing::concat(left_hash, right_hash, right_exp_len);
         }
 
         m_long_exp_hashes.push_back(
