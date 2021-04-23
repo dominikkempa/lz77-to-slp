@@ -550,7 +550,7 @@ struct avl_grammar_multiroot {
     void count_nonterminals_in_pruned_grammar(
         hash_table<text_offset_type, std::uint64_t> &hashes,
         hash_table<std::uint64_t, bool> &seen_hashes,
-        std::uint64_t &current_count) const {
+        std::uint64_t &current_count) {
       for (std::uint64_t i = roots_begin();
           i != roots_end(); i = roots_next(i)) {
         const std::uint64_t preflen = m_roots_vec[i].first;
