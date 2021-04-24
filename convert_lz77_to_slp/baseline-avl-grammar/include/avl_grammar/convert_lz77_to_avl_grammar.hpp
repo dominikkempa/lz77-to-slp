@@ -89,9 +89,10 @@ convert_lz77_to_avl_grammar(const std::string parsing_filename) {
         const nonterminal_type *suffix_pow_nonterm = suffix_nonterm;
         std::uint64_t curlen = prefix_length - pos;
         while (curlen < len) {
-          const nonterminal_type * const square = new nonterminal_type(
-              suffix_pow_nonterm, suffix_pow_nonterm);
-          grammar->add_nonterminal(square);
+          const nonterminal_type * const square =
+              grammar->add_nonterminal(
+                  suffix_pow_nonterm,
+                  suffix_pow_nonterm);
           curlen <<= 1;
           suffix_pow_nonterm = square;
         }
@@ -109,7 +110,7 @@ convert_lz77_to_avl_grammar(const std::string parsing_filename) {
     }
 
     // Update prefix length and add new root to the grammar.
-    const std::uint64_t exp_len = phrase_root->m_exp_len;
+    const std::uint64_t exp_len = phrase_root->get_exp_len();
     prefix_length += exp_len;
     if (phrase_id == 0) {
       grammar->set_root(phrase_root);
