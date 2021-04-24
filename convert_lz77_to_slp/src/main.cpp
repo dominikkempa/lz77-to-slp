@@ -9,7 +9,8 @@
 #include <getopt.h>
 
 #define MULTIROOT
-//#define TEST_CORRECTNESS
+// #define TEST_CORRECTNESS
+// #define ADDITIONAL_TESTS
 
 #include "../include/types/uint40.hpp"
 #include "../include/utils/utils.hpp"
@@ -34,7 +35,7 @@ void check_correctness(
     avl_grammar_multiroot<char_type, text_offset_type> * const grammar) {
 
   // Print initial message.
-  fprintf(stderr, "Run correctness tests:\n");
+  fprintf(stderr, "\nRun correctness tests:\n");
 
   // Declare typedefs.
   typedef async_stream_reader<text_offset_type> reader_type;
@@ -146,7 +147,18 @@ void check_correctness(
     fprintf(stderr, "%s\n", result ? "(OK)" : "(FAILED)");
   }
 
-#if 0
+  // Clean up.
+  utils::deallocate(text);
+}
+
+template<
+  typename char_type,
+  typename text_offset_type>
+void additional_tests(
+    avl_grammar_multiroot<char_type, text_offset_type> * const grammar) {
+
+  // Print initial message.
+  fprintf(stderr, "\nRun additional tests:\n");
 
   // Check the number of different Mersenne KR hashes.
   // These hashes are much better, so there should no collisions.
@@ -206,10 +218,6 @@ void check_correctness(
     fprintf(stderr, "%.2Lfs ", elapsed);
     fprintf(stderr, "(%lu)\n", pointers.size());
   }
-#endif
-
-  // Clean up.
-  utils::deallocate(text);
 }
 
 template<
@@ -275,6 +283,10 @@ void test_conversion(
 
 #ifdef TEST_CORRECTNESS
   check_correctness<char_type, text_offset_type>(parsing_filename, grammar);
+#endif
+
+#ifdef ADDITIONAL_TESTS
+  additional_tests<char_type, text_offset_type>(grammar);
 #endif
 
   // Clean up.
