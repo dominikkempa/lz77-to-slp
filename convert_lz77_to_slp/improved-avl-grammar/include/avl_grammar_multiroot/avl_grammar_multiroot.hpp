@@ -32,6 +32,7 @@ struct nonterminal {
     // Declare types.
     //=========================================================================
     typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+    typedef text_offset_type ptr_type;
     typedef avl_grammar_multiroot<char_type, text_offset_type> grammar_type;
     typedef packed_pair<text_offset_type, text_offset_type> pair_type;
 
@@ -42,8 +43,8 @@ struct nonterminal {
     //=========================================================================
     std::uint8_t m_height;
     std::uint8_t m_exp_len;
-    text_offset_type m_left;
-    text_offset_type m_right;
+    ptr_type m_left;
+    ptr_type m_right;
 
     //=========================================================================
     // Class methods.
@@ -53,6 +54,9 @@ struct nonterminal {
     nonterminal(const std::uint64_t, const std::uint64_t,
         const grammar_type * const g);
     nonterminal(const nonterminal_type &);
+    std::uint64_t get_height() const;
+    std::uint64_t get_left_p() const;
+    std::uint64_t get_right_p() const;
     void print_expansion( const std::uint64_t,
         const grammar_type * const) const;
     std::uint64_t write_expansion(const std::uint64_t, char_type * const,
@@ -710,97 +714,107 @@ struct avl_grammar_multiroot {
     // nonterminals that expands to XY, and return the pointer to it.
     //=========================================================================
     std::uint64_t add_concat_nonterminal(
-        const std::uint64_t left_id,
-        const std::uint64_t right_id) {
+        const std::uint64_t left_p,
+        const std::uint64_t right_p) {
+      typedef text_offset_type ptr_type;
 
       // Consider two cases, depending on whether
       // left of right nonterminal is taller.
-      if (get_height(left_id) >= get_height(right_id)) {
-        if (get_height(left_id) - get_height(right_id) <= 1) {
+      const nonterminal_type &left = m_nonterminals[left_p];
+      const nonterminal_type &right = m_nonterminals[right_p];
+      if (left.get_height() >= right.get_height()) {
+        if (left.get_height() - right.get_height() <= 1) {
 
           // Height are close. Just merge and return.
-          const std::uint64_t newroot_id =
-            add_nonterminal(left_id, right_id);
-          return newroot_id;
-      } else {
-        const std::uint64_t newright_id = 
-          add_concat_nonterminal(get_right_id(left_id), right_id);
-        if (get_height(newright_id) > get_height(get_left_id(left_id)) &&
-            get_height(newright_id) - get_height(get_left_id(left_id)) > 1) {
+          const ptr_type newroot_p =
+            add_nonterminal(left_p, right_p);
+          return newroot_p;
+        } else {
+          const ptr_type leftleft_p = left.get_left_p();
+          const ptr_type leftright_p = left.get_right_p();
+          const nonterminal_type &leftleft = m_nonterminals[leftleft_p];
+          const ptr_type newright_p =
+            add_concat_nonterminal(leftright_p, right_p);
+          const nonterminal_type &newright = m_nonterminals[newright_p];
+          if (newright.get_height() > leftleft.get_height() &&
+              newright.get_height() - leftleft.get_height() > 1) {
 
             // Rebalancing needed.
-            if (get_height(get_left_id(newright_id)) >
-                get_height(get_right_id(newright_id))) {
+            const ptr_type newright_left_p = newright.get_left_p();
+            const ptr_type newright_right_p = newright.get_right_p();
+            const nonterminal_type &newright_left = m_nonterminals[newright_left_p];
+            const nonterminal_type &newright_right = m_nonterminals[newright_right_p];
+            if (newright_left.get_height() > newright_right.get_height()) {
 
               // Double (right-left) rotation.
-              const std::uint64_t X_id = add_nonterminal(
-                  get_left_id(left_id),
-                  get_left_id(get_left_id(newright_id)));
-              const std::uint64_t Z_id = add_nonterminal(
-                  get_right_id(get_left_id(newright_id)),
-                  get_right_id(newright_id));
-              const std::uint64_t Y_id = add_nonterminal(
-                  X_id, Z_id);
-              return Y_id;
+              const std::uint64_t X_p = add_nonterminal(
+                  get_left_id(left_p),
+                  get_left_id(get_left_id(newright_p)));
+              const std::uint64_t Z_p = add_nonterminal(
+                  get_right_id(get_left_id(newright_p)),
+                  get_right_id(newright_p));
+              const std::uint64_t Y_p = add_nonterminal(
+                  X_p, Z_p);
+              return Y_p;
             } else {
 
               // Single (left) rotation.
-              const std::uint64_t X_id = add_nonterminal(
-                  get_left_id(left_id), get_left_id(newright_id));
-              const std::uint64_t Y_id = add_nonterminal(
-                  X_id, get_right_id(newright_id));
-              return Y_id;
+              const std::uint64_t X_p = add_nonterminal(
+                  get_left_id(left_p), get_left_id(newright_p));
+              const std::uint64_t Y_p = add_nonterminal(
+                  X_p, get_right_id(newright_p));
+              return Y_p;
             }
           } else {
 
             // No need to rebalance.
-            const std::uint64_t newroot_id = add_nonterminal(
-                get_left_id(left_id), newright_id);
-            return newroot_id;
+            const std::uint64_t newroot_p = add_nonterminal(
+                get_left_id(left_p), newright_p);
+            return newroot_p;
           }
         }
       } else {
-        if (get_height(right_id) - get_height(left_id) <= 1) {
+        if (get_height(right_p) - get_height(left_p) <= 1) {
 
           // Heights are close. Just merge and return.
-          const std::uint64_t newroot_id =
-            add_nonterminal(left_id, right_id);
-          return newroot_id;
+          const std::uint64_t newroot_p =
+            add_nonterminal(left_p, right_p);
+          return newroot_p;
         } else {
-          const std::uint64_t newleft_id =
-            add_concat_nonterminal(left_id, get_left_id(right_id));
-          if (get_height(newleft_id) > get_height(get_right_id(right_id)) &&
-              get_height(newleft_id) - get_height(get_right_id(right_id)) > 1) {
+          const std::uint64_t newleft_p =
+            add_concat_nonterminal(left_p, get_left_id(right_p));
+          if (get_height(newleft_p) > get_height(get_right_id(right_p)) &&
+              get_height(newleft_p) - get_height(get_right_id(right_p)) > 1) {
 
             // Rebalancing needed.
-            if (get_height(get_right_id(newleft_id)) >
-                get_height(get_left_id(newleft_id))) {
+            if (get_height(get_right_id(newleft_p)) >
+                get_height(get_left_id(newleft_p))) {
 
               // Double (left-right) rotation.
-              const std::uint64_t X_id = add_nonterminal(
-                  get_left_id(newleft_id),
-                  get_left_id(get_right_id(newleft_id)));
-              const std::uint64_t Z_id = add_nonterminal(
-                  get_right_id(get_right_id(newleft_id)),
-                  get_right_id(right_id));
-              const std::uint64_t Y_id = add_nonterminal(
-                  X_id, Z_id);
-              return Y_id;
+              const std::uint64_t X_p = add_nonterminal(
+                  get_left_id(newleft_p),
+                  get_left_id(get_right_id(newleft_p)));
+              const std::uint64_t Z_p = add_nonterminal(
+                  get_right_id(get_right_id(newleft_p)),
+                  get_right_id(right_p));
+              const std::uint64_t Y_p = add_nonterminal(
+                  X_p, Z_p);
+              return Y_p;
             } else {
 
               // Single (right) rotation.
-              const std::uint64_t Y_id = add_nonterminal(
-                  get_right_id(newleft_id), get_right_id(right_id));
-              const std::uint64_t X_id = add_nonterminal(
-                  get_left_id(newleft_id), Y_id);
-              return X_id;
+              const std::uint64_t Y_p = add_nonterminal(
+                  get_right_id(newleft_p), get_right_id(right_p));
+              const std::uint64_t X_p = add_nonterminal(
+                  get_left_id(newleft_p), Y_p);
+              return X_p;
             }
           } else {
 
             // No need to rebalance.
-            const std::uint64_t newroot_id = add_nonterminal(
-                newleft_id, get_right_id(right_id));
-            return newroot_id;
+            const std::uint64_t newroot_p = add_nonterminal(
+                newleft_p, get_right_id(right_p));
+            return newroot_p;
           }
         }
       }
@@ -1175,6 +1189,30 @@ nonterminal<char_type, text_offset_type>::nonterminal(
     m_exp_len(x.m_exp_len),
     m_left(x.m_left),
     m_right(x.m_right) {}
+
+//=============================================================================
+// Get nonterminal height.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+std::uint64_t nonterminal<char_type, text_offset_type>::get_height() const {
+  return (std::uint64_t)m_height;
+}
+
+//=============================================================================
+// Get nonterminal left ptr.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+std::uint64_t nonterminal<char_type, text_offset_type>::get_left_p() const {
+  return m_left;
+}
+
+//=============================================================================
+// Get nonterminal left ptr.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+std::uint64_t nonterminal<char_type, text_offset_type>::get_right_p() const {
+  return m_right;
+}
 
 //=============================================================================
 // Print expansion of a given nonterminal.
