@@ -39,17 +39,25 @@
 #include "../utils/utils.hpp"
 
 
+//=============================================================================
+// Versatile and highly optimized asynchronous stream (disk/stdin) reader.
+//=============================================================================
 template<typename value_type>
 class async_stream_reader {
   private:
+
+    //=========================================================================
+    // Internal buffer class.
+    //=========================================================================
     template<typename T>
     struct buffer {
-      buffer(std::uint64_t size, T* const mem)
-        : m_content(mem), m_size(size) {
+      buffer(const std::uint64_t size, T* const mem)
+          : m_content(mem),
+            m_size(size) {
         m_filled = 0;
       }
 
-      void read_from_file(std::FILE *f) {
+      void read_from_file(std::FILE * const f) {
         utils::read_from_file(m_content, m_size, m_filled, f);
       }
 
@@ -88,7 +96,7 @@ class async_stream_reader {
             m_tail(0),
             m_data(new T[m_size]) {}
 
-        inline void push(T x) {
+        inline void push(const T x) {
           m_data[m_head++] = x;
           if (m_head == m_size)
             m_head = 0;
@@ -121,13 +129,14 @@ class async_stream_reader {
         }
 
       private:
+
         void enlarge() {
           T *new_data = new T[2 * m_size];
           std::uint64_t left = m_filled;
           m_filled = 0;
 
           while (left > 0) {
-            std::uint64_t tocopy = std::min(left, m_size - m_tail);
+            const std::uint64_t tocopy = std::min(left, m_size - m_tail);
             std::copy(m_data + m_tail,
                 m_data + m_tail + tocopy, new_data + m_filled);
 
@@ -146,13 +155,16 @@ class async_stream_reader {
         }
     };
 
+    //=========================================================================
+    // Queue for storing buffers with protection for parallel access.
+    //=========================================================================
     template<typename T>
     struct buffer_queue {
       typedef buffer<T> buffer_type;
 
       buffer_queue(
-          std::uint64_t n_buffers,
-          std::uint64_t items_per_buf,
+          const std::uint64_t n_buffers,
+          const std::uint64_t items_per_buf,
           T *mem) {
         m_signal_stop = false;
         for (std::uint64_t i = 0; i < n_buffers; ++i) {
@@ -175,7 +187,7 @@ class async_stream_reader {
         return ret;
       }
 
-      void push(buffer_type *buf) {
+      void push(buffer_type * const buf) {
         std::lock_guard<std::mutex> lk(m_mutex);
         m_queue.push(buf);
       }
@@ -222,7 +234,7 @@ class async_stream_reader {
         }
 
         // Extract the buffer from the queue.
-        buffer_type *buffer = caller->m_empty_buffers->pop();
+        buffer_type * const buffer = caller->m_empty_buffers->pop();
         lk.unlock();
 
         // Read the data from disk.
@@ -308,27 +320,30 @@ class async_stream_reader {
     //=========================================================================
     // Constructor, default buffer sizes, given skip.
     //=========================================================================
-    async_stream_reader(std::string filename,
-        std::uint64_t n_skip_items) {
+    async_stream_reader(
+        const std::string filename,
+        const std::uint64_t n_skip_items) {
       init(filename, (8UL << 20), 4UL, n_skip_items);
     }
 
     //=========================================================================
     // Constructor, no skip, given buffer sizes.
     //=========================================================================
-    async_stream_reader(std::string filename,
-        std::uint64_t total_buf_size_bytes,
-        std::uint64_t n_buffers) {
+    async_stream_reader(
+        const std::string filename,
+        const std::uint64_t total_buf_size_bytes,
+        const std::uint64_t n_buffers) {
       init(filename, total_buf_size_bytes, n_buffers, 0UL);
     }
 
     //=========================================================================
     // Constructor, given buffer sizes and skip.
     //=========================================================================
-    async_stream_reader(std::string filename,
-        std::uint64_t total_buf_size_bytes,
-        std::uint64_t n_buffers,
-        std::uint64_t n_skip_items) {
+    async_stream_reader(
+        const std::string filename,
+        const std::uint64_t total_buf_size_bytes,
+        const std::uint64_t n_buffers,
+        const std::uint64_t n_skip_items) {
       init(filename, total_buf_size_bytes, n_buffers, n_skip_items);
     }
 
@@ -336,10 +351,10 @@ class async_stream_reader {
     // Main initializing function.
     //=========================================================================
     void init(
-        std::string filename,
-        std::uint64_t total_buf_size_bytes,
-        std::uint64_t n_buffers,
-        std::uint64_t n_skip_items) {
+        const std::string filename,
+        const std::uint64_t total_buf_size_bytes,
+        const std::uint64_t n_buffers,
+        const std::uint64_t n_skip_items) {
 
       // Sanity check.
       if (n_buffers == 0) {
@@ -363,9 +378,9 @@ class async_stream_reader {
       m_cur_buffer = NULL;
 
       // Computer optimal buffer size.
-      std::uint64_t buf_size_bytes =
+      const std::uint64_t buf_size_bytes =
         std::max((std::uint64_t)1, total_buf_size_bytes / n_buffers);
-      std::uint64_t items_per_buf =
+      const std::uint64_t items_per_buf =
         utils::disk_block_size<value_type>(buf_size_bytes);
 
       // Allocate buffers.
@@ -388,13 +403,14 @@ class async_stream_reader {
     //=========================================================================
     // Read 'howmany' items into 'dest'.
     //=========================================================================
-    void read(value_type *dest, std::uint64_t howmany) {
+    void read(value_type * dest, std::uint64_t howmany) {
       while (howmany > 0) {
         if (m_cur_buffer_pos == m_cur_buffer_filled)
           receive_new_buffer();
 
-        std::uint64_t cur_buf_left = m_cur_buffer_filled - m_cur_buffer_pos;
-        std::uint64_t tocopy = std::min(howmany, cur_buf_left);
+        const std::uint64_t cur_buf_left =
+          m_cur_buffer_filled - m_cur_buffer_pos;
+        const std::uint64_t tocopy = std::min(howmany, cur_buf_left);
         for (std::uint64_t i = 0; i < tocopy; ++i)
           dest[i] = m_cur_buffer->m_content[m_cur_buffer_pos + i];
         m_cur_buffer_pos += tocopy;
@@ -411,7 +427,7 @@ class async_stream_reader {
         if (m_cur_buffer_pos == m_cur_buffer_filled)
           receive_new_buffer();
 
-        std::uint64_t toskip = std::min(howmany,
+        const std::uint64_t toskip = std::min(howmany,
             m_cur_buffer_filled - m_cur_buffer_pos);
         m_cur_buffer_pos += toskip;
         howmany -= toskip;

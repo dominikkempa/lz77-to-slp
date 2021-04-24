@@ -860,7 +860,7 @@ struct avl_grammar_multiroot {
       std::vector<pair_type> ret;
 
       // Allocate the arrays used in the dynamic programming.
-      std::uint64_t length = seq.size();
+      const std::uint64_t length = seq.size();
       std::uint64_t *kr_hashes = utils::allocate_array<std::uint64_t>(length);
       std::uint64_t **dp = utils::allocate_array<std::uint64_t*>(length);
       std::uint64_t **dp_sol = utils::allocate_array<std::uint64_t*>(length);
@@ -889,6 +889,7 @@ struct avl_grammar_multiroot {
         for (std::uint64_t beg = 0; beg <= length - len; ++beg) {
           const std::uint64_t end = beg + len - 1;
           std::uint64_t exp_len = seq[beg].second;
+          std::uint64_t h = kr_hashes[beg];
 
           // Initialize to solution to initial choice.
           dp[beg][end] = 1 + dp[beg + 1][end];
@@ -897,7 +898,6 @@ struct avl_grammar_multiroot {
           dp_explen[beg][end] = exp_len;
 
           // Try all other possible choices.
-          std::uint64_t h = kr_hashes[beg];
           for (std::uint64_t leftlen = 2; leftlen <= len; ++leftlen) {
             const std::uint64_t last = beg + leftlen - 1;
             const std::uint64_t right_hash = kr_hashes[last];
@@ -1036,7 +1036,7 @@ struct avl_grammar_multiroot {
       // The main algorithm.
       std::uint64_t ret = 0;
       while (true) {
-        std::uint64_t min_elem = heap[0];
+        const std::uint64_t min_elem = heap[0];
 
         // If the element was already deleted, skip it.
         if (deleted[min_elem]) {

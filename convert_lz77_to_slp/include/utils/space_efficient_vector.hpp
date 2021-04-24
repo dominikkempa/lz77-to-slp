@@ -134,7 +134,7 @@ class space_efficient_vector {
     inline void push_back(const value_type &value) {
       if (m_cur_block_filled == m_block_size &&
           m_cur_block_id + 1 == max_blocks) {
-        std::uint64_t new_block_size = m_block_size * 2;
+        const std::uint64_t new_block_size = m_block_size * 2;
         for (std::uint64_t block_id = 0;
             block_id < m_allocated_blocks; block_id += 2) {
           value_type *newblock =
@@ -187,18 +187,18 @@ class space_efficient_vector {
     //=========================================================================
     // Access operator.
     //=========================================================================
-    inline value_type& operator[] (std::uint64_t i) {
-      std::uint64_t block_id = (i >> m_block_size_log);
-      std::uint64_t block_offset = (i & m_block_size_mask);
+    inline value_type& operator[] (const std::uint64_t i) {
+      const std::uint64_t block_id = (i >> m_block_size_log);
+      const std::uint64_t block_offset = (i & m_block_size_mask);
       return m_blocks[block_id][block_offset];
     }
 
     //=========================================================================
     // Access operator.
     //=========================================================================
-    inline const value_type& operator[] (std::uint64_t i) const {
-      std::uint64_t block_id = (i >> m_block_size_log);
-      std::uint64_t block_offset = (i & m_block_size_mask);
+    inline const value_type& operator[] (const std::uint64_t i) const {
+      const std::uint64_t block_id = (i >> m_block_size_log);
+      const std::uint64_t block_offset = (i & m_block_size_mask);
       return m_blocks[block_id][block_offset];
     }
 
@@ -223,8 +223,8 @@ class space_efficient_vector {
     //=========================================================================
     // Write contents to given file.
     //=========================================================================
-    void write_to_file(std::string filename) const {
-      std::FILE *f = utils::file_open_nobuf(filename, "w");
+    void write_to_file(const std::string filename) const {
+      std::FILE * const f = utils::file_open_nobuf(filename, "w");
       for (std::uint64_t block_id = 0; block_id < m_cur_block_id; ++block_id)
         utils::write_to_file(m_blocks[block_id], m_block_size, f);
       if (m_cur_block_filled > 0)

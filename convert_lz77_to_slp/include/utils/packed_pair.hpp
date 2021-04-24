@@ -33,12 +33,7 @@ struct packed_pair {
   typedef packed_pair<S, T> pair_type;
 
   packed_pair() {}
-  packed_pair(S &f, T &s) {
-    first = f;
-    second = s;
-  }
-
-  packed_pair(S f, T s) {
+  packed_pair(const S &f, const T &s) {
     first = f;
     second = s;
   }

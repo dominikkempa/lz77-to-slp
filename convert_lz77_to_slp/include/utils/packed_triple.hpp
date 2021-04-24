@@ -33,13 +33,7 @@ struct packed_triple {
   typedef packed_triple<S, T, U> triple_type;
 
   packed_triple() {}
-  packed_triple(S &f, T &s, U &u) {
-    first = f;
-    second = s;
-    third = u;
-  }
-
-  packed_triple(S f, T s, U u) {
+  packed_triple(const S &f, const T &s, const U &u) {
     first = f;
     second = s;
     third = u;
