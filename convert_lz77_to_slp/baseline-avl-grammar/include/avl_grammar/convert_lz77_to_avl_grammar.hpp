@@ -49,7 +49,6 @@ convert_lz77_to_avl_grammar(const std::string parsing_filename) {
 
   // Compute the AVL grammar expanding to T.
   grammar_type *grammar = new grammar_type();
-  const nonterminal_type *root = NULL;
   std::uint64_t prefix_length = 0;
   for (std::uint64_t phrase_id = 0; phrase_id < parsing_size; ++phrase_id) {
 
@@ -110,13 +109,15 @@ convert_lz77_to_avl_grammar(const std::string parsing_filename) {
     }
 
     // Update prefix length and add new root to the grammar.
-    prefix_length += std::max(len, (std::uint64_t)1);
+    const std::uint64_t exp_len = phrase_root->m_exp_len;
+    prefix_length += exp_len;
     if (phrase_id == 0) {
-      root = phrase_root;
-      grammar->set_root(root);
+      grammar->set_root(phrase_root);
     } else {
-      root = grammar->add_concat_nonterminal(root, phrase_root);
-      grammar->set_root(root);
+      const nonterminal_type * const old_root = grammar->get_root();
+      const nonterminal_type * const new_root =
+        grammar->add_concat_nonterminal(old_root, phrase_root);
+      grammar->set_root(new_root);
     }
   }
 
