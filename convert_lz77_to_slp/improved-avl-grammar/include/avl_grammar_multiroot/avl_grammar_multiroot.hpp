@@ -1170,7 +1170,7 @@ nonterminal<char_type, text_offset_type>::nonterminal(const char_type c)
 //=============================================================================
 template<typename char_type, typename text_offset_type>
 nonterminal<char_type, text_offset_type>::nonterminal(
-    const nonterminal<char_type, text_offset_type> &x)
+    const nonterminal_type &x)
   : m_height(x.m_height),
     m_exp_len(x.m_exp_len),
     m_left(x.m_left),
@@ -1182,8 +1182,7 @@ nonterminal<char_type, text_offset_type>::nonterminal(
 template<typename char_type, typename text_offset_type>
 void nonterminal<char_type, text_offset_type>::print_expansion(
     const std::uint64_t id,
-    const avl_grammar_multiroot<char_type, text_offset_type> * const g) const {
-  typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+    const grammar_type * const g) const {
   const std::uint64_t height = g->get_height(id);
   if (height == 0) {
     const char_type my_char = g->get_char(id);
@@ -1205,8 +1204,7 @@ template<typename char_type, typename text_offset_type>
 std::uint64_t nonterminal<char_type, text_offset_type>::write_expansion(
     const std::uint64_t id,
     char_type * const text,
-    const avl_grammar_multiroot<char_type, text_offset_type> * const g) const {
-  typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+    const grammar_type * const g) const {
   const std::uint64_t height = g->get_height(id);
   if (height == 0) {
     const char_type my_char = g->get_char(id);
@@ -1232,8 +1230,7 @@ template<typename char_type, typename text_offset_type>
 bool nonterminal<char_type, text_offset_type>::compare_expansion_to_text(
     const std::uint64_t id,
     const char_type * const text,
-    const avl_grammar_multiroot<char_type, text_offset_type> * const g) const {
-  typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+    const grammar_type * const g) const {
   const std::uint64_t height = g->get_height(id);
   if (height == 0) {
     const char_type my_char = g->get_char(id);
@@ -1258,8 +1255,7 @@ bool nonterminal<char_type, text_offset_type>::compare_expansion_to_text(
 template<typename char_type, typename text_offset_type>
 bool nonterminal<char_type, text_offset_type>::test_avl_property(
     const std::uint64_t id,
-    const avl_grammar_multiroot<char_type, text_offset_type> * const g) const {
-  typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+    const grammar_type * const g) const {
   const std::uint64_t height = g->get_height(id);
   if (height == 0)
     return true;
@@ -1289,8 +1285,7 @@ std::uint64_t nonterminal<char_type, text_offset_type>
 ::collect_mersenne_karp_rabin_hashes(
     const std::uint64_t id,
     std::vector<std::uint64_t> &hashes,
-    const avl_grammar_multiroot<char_type, text_offset_type> * const g) const {
-  typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+    const grammar_type * const g) const {
   const std::uint64_t height = g->get_height(id);
   if (height == 0) {
     const char_type my_char = g->get_char(id);
@@ -1321,8 +1316,7 @@ template<typename char_type, typename text_offset_type>
 void nonterminal<char_type, text_offset_type>::collect_nonterminal_pointers(
     const std::uint64_t id,
     std::vector<text_offset_type> &pointers,
-    const avl_grammar_multiroot<char_type, text_offset_type> * const g) const {
-  typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+    const grammar_type * const g) const {
   const std::uint64_t height = g->get_height(id);
   pointers.push_back(id);
   if (height > 0) {
@@ -1343,8 +1337,7 @@ std::uint64_t nonterminal<char_type, text_offset_type>
 ::collect_mersenne_karp_rabin_hashes_2(
     const std::uint64_t id,
     hash_table<text_offset_type, std::uint64_t> &hashes,
-    const avl_grammar_multiroot<char_type, text_offset_type> * const g) const {
-  typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+    const grammar_type * const g) const {
   const std::uint64_t height = g->get_height(id);
   if (height == 0) {
     const char_type my_char = g->get_char(id);
@@ -1378,8 +1371,7 @@ void nonterminal<char_type, text_offset_type>
     hash_table<text_offset_type, std::uint64_t> &hashes,
     hash_table<std::uint64_t, bool> &seen_hashes,
     std::uint64_t &current_count,
-    const avl_grammar_multiroot<char_type, text_offset_type> * const g) const {
-  typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+    const grammar_type * const g) const {
   const std::uint64_t * const h = hashes.find((text_offset_type)id);
   if (seen_hashes.find(*h) == NULL) {
     seen_hashes.insert(*h, true);
@@ -1408,7 +1400,7 @@ void nonterminal<char_type, text_offset_type>::decomposition(
     const std::uint64_t begin,
     const std::uint64_t end,
     space_efficient_vector<pair_type> &ret,
-    const avl_grammar_multiroot<char_type, text_offset_type> * const g) const {
+    const grammar_type * const g) const {
 
   // Handle boundary case.
   if (begin == end)
