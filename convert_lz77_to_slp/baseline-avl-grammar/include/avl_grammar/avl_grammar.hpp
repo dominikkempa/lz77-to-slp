@@ -448,7 +448,7 @@ nonterminal<char_type, text_offset_type>::nonterminal(const char_type c)
 //=============================================================================
 template<typename char_type, typename text_offset_type>
 nonterminal<char_type, text_offset_type>::nonterminal(
-      const char_type height,
+      const std::uint8_t height,
       const text_offset_type exp_len,
       const std::uint64_t kr_hash,
       const nonterminal_type * const left_p,
