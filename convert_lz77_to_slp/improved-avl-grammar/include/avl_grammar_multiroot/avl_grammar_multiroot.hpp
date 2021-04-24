@@ -726,8 +726,7 @@ struct avl_grammar_multiroot {
         if (left.get_height() - right.get_height() <= 1) {
 
           // Height are close. Just merge and return.
-          const ptr_type newroot_p =
-            add_nonterminal(left_p, right_p);
+          const ptr_type newroot_p = add_nonterminal(left_p, right_p);
           return newroot_p;
         } else {
           const ptr_type leftleft_p = left.get_left_p();
@@ -747,22 +746,17 @@ struct avl_grammar_multiroot {
             if (newright_left.get_height() > newright_right.get_height()) {
 
               // Double (right-left) rotation.
-              const std::uint64_t X_p = add_nonterminal(
-                  get_left_id(left_p),
-                  get_left_id(get_left_id(newright_p)));
-              const std::uint64_t Z_p = add_nonterminal(
-                  get_right_id(get_left_id(newright_p)),
-                  get_right_id(newright_p));
-              const std::uint64_t Y_p = add_nonterminal(
-                  X_p, Z_p);
+              const ptr_type newright_leftleft_p = newright_left.get_left_p();
+              const ptr_type newright_leftright_p = newright_left.get_right_p();
+              const ptr_type X_p = add_nonterminal(leftleft_p, newright_leftleft_p);
+              const ptr_type Z_p = add_nonterminal(newright_leftright_p, newright_right_p);
+              const ptr_type Y_p = add_nonterminal(X_p, Z_p);
               return Y_p;
             } else {
 
               // Single (left) rotation.
-              const std::uint64_t X_p = add_nonterminal(
-                  get_left_id(left_p), get_left_id(newright_p));
-              const std::uint64_t Y_p = add_nonterminal(
-                  X_p, get_right_id(newright_p));
+              const ptr_type X_p = add_nonterminal(leftleft_p, newright_left_p);
+              const ptr_type Y_p = add_nonterminal(X_p, newright_right_p);
               return Y_p;
             }
           } else {
@@ -776,8 +770,7 @@ struct avl_grammar_multiroot {
         if (right.get_height() - left.get_height() <= 1) {
 
           // Heights are close. Just merge and return.
-          const ptr_type newroot_p =
-            add_nonterminal(left_p, right_p);
+          const ptr_type newroot_p = add_nonterminal(left_p, right_p);
           return newroot_p;
         } else {
           const ptr_type rightleft_p = right.get_left_p();
@@ -790,26 +783,24 @@ struct avl_grammar_multiroot {
               newleft.get_height() - rightright.get_height() > 1) {
 
             // Rebalancing needed.
-            if (get_height(get_right_id(newleft_p)) >
-                get_height(get_left_id(newleft_p))) {
+            const ptr_type newleft_left_p = newleft.get_left_p();
+            const ptr_type newleft_right_p = newleft.get_right_p();
+            const nonterminal_type &newleft_left = m_nonterminals[newleft_left_p];
+            const nonterminal_type &newleft_right = m_nonterminals[newleft_right_p];
+            if (newleft_right.get_height() > newleft_left.get_height()) {
 
               // Double (left-right) rotation.
-              const std::uint64_t X_p = add_nonterminal(
-                  get_left_id(newleft_p),
-                  get_left_id(get_right_id(newleft_p)));
-              const std::uint64_t Z_p = add_nonterminal(
-                  get_right_id(get_right_id(newleft_p)),
-                  get_right_id(right_p));
-              const std::uint64_t Y_p = add_nonterminal(
-                  X_p, Z_p);
+              const ptr_type newleft_rightleft_p = newleft_right.get_left_p();
+              const ptr_type newleft_rightright_p = newleft_right.get_right_p();
+              const ptr_type X_p = add_nonterminal(newleft_left_p, newleft_rightleft_p);
+              const ptr_type Z_p = add_nonterminal(newleft_rightright_p, rightright_p);
+              const ptr_type Y_p = add_nonterminal(X_p, Z_p);
               return Y_p;
             } else {
 
               // Single (right) rotation.
-              const std::uint64_t Y_p = add_nonterminal(
-                  get_right_id(newleft_p), get_right_id(right_p));
-              const std::uint64_t X_p = add_nonterminal(
-                  get_left_id(newleft_p), Y_p);
+              const ptr_type Y_p = add_nonterminal(newleft_right_p, rightright_p);
+              const ptr_type X_p = add_nonterminal(newleft_left_p, Y_p);
               return X_p;
             }
           } else {
