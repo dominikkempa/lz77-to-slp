@@ -28,13 +28,13 @@ struct nonterminal {
     // Declare types.
     //=========================================================================
     typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+    typedef avl_grammar<char_type, text_offset_type> grammar_type;
 
   public:
 
     //=========================================================================
     // Class members.
     //=========================================================================
-    const char_type m_char;
     const std::uint8_t m_height;
     const text_offset_type m_exp_len;
     const std::uint64_t m_kr_hash;
@@ -50,6 +50,7 @@ struct nonterminal {
     void print_expansion() const;
     void write_expansion(char_type * const) const;
     bool test_avl_property() const;
+    char_type get_char() const;
     std::uint64_t collect_mersenne_karp_rabin_hashes(
         std::vector<std::uint64_t> &) const;
     void collect_nonterminal_pointers(
@@ -92,10 +93,10 @@ struct avl_grammar {
 
   private:
 
-  //===========================================================================
-  // Declare typedefs.
-  //===========================================================================
-  typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+    //=========================================================================
+    // Declare typedefs.
+    //=========================================================================
+    typedef nonterminal<char_type, text_offset_type> nonterminal_type;
 
   private:
 
@@ -383,8 +384,7 @@ struct avl_grammar {
 //=============================================================================
 template<typename char_type, typename text_offset_type>
 nonterminal<char_type, text_offset_type>::nonterminal()
-  : m_char((char_type)0),
-    m_height(0),
+  : m_height(0),
     m_exp_len(1),
     m_kr_hash(0),
     m_left(NULL),
@@ -395,11 +395,10 @@ nonterminal<char_type, text_offset_type>::nonterminal()
 //=============================================================================
 template<typename char_type, typename text_offset_type>
 nonterminal<char_type, text_offset_type>::nonterminal(const char_type c)
-  : m_char(c),
-    m_height(0),
+  : m_height(0),
     m_exp_len(1),
     m_kr_hash(karp_rabin_hashing::hash_char(c)),
-    m_left(NULL),
+    m_left((const nonterminal_type *)((std::uint64_t)c)),
     m_right(NULL) {}
 
 //=============================================================================
@@ -407,27 +406,27 @@ nonterminal<char_type, text_offset_type>::nonterminal(const char_type c)
 //=============================================================================
 template<typename char_type, typename text_offset_type>
 nonterminal<char_type, text_offset_type>::nonterminal(
-    const nonterminal_type * const left,
-    const nonterminal_type * const right) :
-      m_char((char_type)0),
-      m_height(std::max(left->m_height, right->m_height) + 1),
-      m_exp_len(left->m_exp_len + right->m_exp_len),
-      m_kr_hash(
-          karp_rabin_hashing::concat(
-            left->m_kr_hash,
-            right->m_kr_hash,
-            right->m_exp_len)),
-      m_left(left),
-      m_right(right) {}
+      const nonterminal_type * const left,
+      const nonterminal_type * const right)
+  : m_height(std::max(left->m_height, right->m_height) + 1),
+    m_exp_len(left->m_exp_len + right->m_exp_len),
+    m_kr_hash(
+        karp_rabin_hashing::concat(
+          left->m_kr_hash,
+          right->m_kr_hash,
+          right->m_exp_len)),
+    m_left(left),
+    m_right(right) {}
 
 //=============================================================================
 // Print the string encoded by the grammar.
 //=============================================================================
 template<typename char_type, typename text_offset_type>
 void nonterminal<char_type, text_offset_type>::print_expansion() const {
-  if (m_height == 0)
-    fprintf(stderr, "%c", (char)m_char);
-  else {
+  if (m_height == 0) {
+    const char_type my_char = get_char();
+    fprintf(stderr, "%c", (char)my_char);
+  } else {
     m_left->print_expansion();
     m_right->print_expansion();
   }
@@ -440,11 +439,19 @@ template<typename char_type, typename text_offset_type>
 void nonterminal<char_type, text_offset_type>
 ::write_expansion(char_type * const text) const {
   if (m_height == 0)
-    text[0] = m_char;
+    text[0] = get_char();
   else {
     m_left->write_expansion(text);
     m_right->write_expansion(text + (std::uint64_t)m_left->m_exp_len);
   }
+}
+
+//=============================================================================
+// Return the char stored in a nonterminal.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+char_type nonterminal<char_type, text_offset_type>::get_char() const {
+  return (char_type)m_left;
 }
 
 //=============================================================================
@@ -471,7 +478,8 @@ std::uint64_t nonterminal<char_type, text_offset_type>
 ::collect_mersenne_karp_rabin_hashes(
     std::vector<std::uint64_t> &hashes) const {
   if (m_height == 0) {
-    const std::uint64_t h = karp_rabin_hashing::hash_char(m_char);
+    const char_type my_char = get_char();
+    const std::uint64_t h = karp_rabin_hashing::hash_char(my_char);
     hashes.push_back(h);
     return h;
   } else {
@@ -508,7 +516,8 @@ std::uint64_t nonterminal<char_type, text_offset_type>
 ::collect_mersenne_karp_rabin_hashes_2(
     hash_table<const nonterminal_type*, std::uint64_t> &hashes) const {
   if (m_height == 0) {
-    const std::uint64_t h = karp_rabin_hashing::hash_char(m_char);
+    const char_type my_char = get_char();
+    const std::uint64_t h = karp_rabin_hashing::hash_char(my_char);
     hashes.insert(this, h);
     return h;
   } else {
