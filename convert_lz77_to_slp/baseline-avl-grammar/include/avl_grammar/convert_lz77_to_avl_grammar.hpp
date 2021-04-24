@@ -9,7 +9,6 @@
 
 #include "../utils/karp_rabin_hashing.hpp"
 #include "../utils/packed_pair.hpp"
-#include "nonterminal.hpp"
 #include "../io/async_stream_reader.hpp"
 #include "avl_grammar.hpp"
 
@@ -24,14 +23,15 @@
 template<
   typename char_type,
   typename text_offset_type>
-avl_grammar<char_type> *convert_lz77_to_avl_grammar(const std::string parsing_filename) {
+avl_grammar<char_type, text_offset_type>*
+convert_lz77_to_avl_grammar(const std::string parsing_filename) {
 
   // Start the timer.
   long double start = utils::wclock();
 
   // Declare types.
-  typedef nonterminal<char_type> nonterminal_type;
-  typedef avl_grammar<char_type> grammar_type;
+  typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+  typedef avl_grammar<char_type, text_offset_type> grammar_type;
   typedef async_stream_reader<text_offset_type> reader_type;
 
   // Initialize the parsing reader.

@@ -222,7 +222,7 @@ void test_conversion(
 
   // Declare types.
   typedef std::pair<text_offset_type, text_offset_type> phrase_type;
-  typedef avl_grammar<char_type> grammar_type;
+  typedef avl_grammar<char_type, text_offset_type> grammar_type;
 
   // Turn paths absolute.
   parsing_filename = utils::absolute_path(parsing_filename);
