@@ -39,7 +39,7 @@ class hash_table {
       T m_key;
       S m_value;
       U m_next;
-    };
+    } __attribute__((packed));
 
     typedef hash_item<key_type, value_type, size_type> item_type;
 

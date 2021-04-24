@@ -108,7 +108,7 @@ struct avl_grammar_multiroot {
     space_efficient_vector<nonterminal_type> m_nonterminals;
     space_efficient_vector<pair_type> m_long_exp_len;
     space_efficient_vector<hash_pair_type> m_long_exp_hashes;
-    hash_table<std::uint64_t, text_offset_type> m_hashes;
+    hash_table<std::uint64_t, text_offset_type, text_offset_type> m_hashes;
     cache<text_offset_type, std::uint64_t> *m_kr_hash_cache;
     char_type *m_snippet;
     std::uint64_t empty_step_counter;
@@ -119,7 +119,7 @@ struct avl_grammar_multiroot {
     // Constructor.
     //=========================================================================
     avl_grammar_multiroot() {
-      const std::uint64_t cache_size = (1 << 20);
+      const std::uint64_t cache_size = (1 << 17);
       empty_step_counter = 0;
       m_roots_vec.push_back(pair_type(
             (text_offset_type)0,
@@ -305,7 +305,7 @@ struct avl_grammar_multiroot {
     //=========================================================================
     void push_root(
         const std::uint64_t pos,
-        const text_offset_type id) {
+        const std::uint64_t id) {
       m_roots_vec.push_back(pair_type(pos, id));
     }
 
@@ -424,7 +424,7 @@ struct avl_grammar_multiroot {
       // With probability 1/16 add to hash table.
       if (utils::random_int<std::uint64_t>(
             (std::uint64_t)0,
-            (std::uint64_t)15) == 0) {
+            (std::uint64_t)7) == 0) {
         const std::uint64_t kr_hash = get_kr_hash(id);
         text_offset_type * const ret = m_hashes.find(kr_hash);
         if (ret == NULL)
@@ -465,7 +465,7 @@ struct avl_grammar_multiroot {
       bool hash_computed = false;
       if (utils::random_int<std::uint64_t>(
             (std::uint64_t)0,
-            (std::uint64_t)15) == 0) {
+            (std::uint64_t)7) == 0) {
         const std::uint64_t left_hash = get_kr_hash(left_id);
         const std::uint64_t right_hash = get_kr_hash(right_id);
         new_kr_hash =
@@ -864,13 +864,13 @@ struct avl_grammar_multiroot {
       std::uint64_t *kr_hashes = utils::allocate_array<std::uint64_t>(length);
       std::uint64_t **dp = utils::allocate_array<std::uint64_t*>(length);
       std::uint64_t **dp_sol = utils::allocate_array<std::uint64_t*>(length);
+      std::uint64_t **dp_explen = utils::allocate_array<std::uint64_t*>(length);
       text_offset_type **dp_nonterm = utils::allocate_array<text_offset_type*>(length);
-      text_offset_type **dp_explen = utils::allocate_array<text_offset_type*>(length);
       for (std::uint64_t i = 0; i < length; ++i) {
         dp[i] = utils::allocate_array<std::uint64_t>(length);
         dp_sol[i] = utils::allocate_array<std::uint64_t>(length);
+        dp_explen[i] = utils::allocate_array<std::uint64_t>(length);
         dp_nonterm[i] = utils::allocate_array<text_offset_type>(length);
-        dp_explen[i] = utils::allocate_array<text_offset_type>(length);
       }
 
       // Fill in the array for len = 1.
@@ -931,14 +931,15 @@ struct avl_grammar_multiroot {
       }
 
       // Clean up.
-      for (std::uint64_t i = 0; i < length; ++i) {
-        utils::deallocate(dp[i]);
-        utils::deallocate(dp_sol[i]);
+      for (std::uint64_t len = length; len > 0; --len) {
+        const std::uint64_t i = len - 1;
         utils::deallocate(dp_nonterm[i]);
         utils::deallocate(dp_explen[i]);
+        utils::deallocate(dp_sol[i]);
+        utils::deallocate(dp[i]);
       }
-      utils::deallocate(dp_explen);
       utils::deallocate(dp_nonterm);
+      utils::deallocate(dp_explen);
       utils::deallocate(dp_sol);
       utils::deallocate(dp);
       utils::deallocate(kr_hashes);
