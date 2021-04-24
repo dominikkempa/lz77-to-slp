@@ -217,7 +217,7 @@ struct nonterminal {
           cur_range_end = cur_range_mid;
           x = x_left;
         } else if (begin >= cur_range_mid) {
-          cur_range_beg = cur_range_beg;
+          cur_range_beg = cur_range_mid;
           x = x_right;
         } else break;
       }
@@ -235,7 +235,7 @@ struct nonterminal {
           const std::uint64_t x_left_exp_len = x_left->m_exp_len;
           const std::uint64_t left_range_end = cur_range_beg + x_left_exp_len;
           std::uint64_t suffix_length = left_range_end - begin;
-          const nonterminal_type *y = x->m_left;
+          const nonterminal_type *y = x_left;
           while (suffix_length > 0) {
             const std::uint64_t y_exp_len = y->m_exp_len;
             const nonterminal_type * const y_left = y->m_left;
