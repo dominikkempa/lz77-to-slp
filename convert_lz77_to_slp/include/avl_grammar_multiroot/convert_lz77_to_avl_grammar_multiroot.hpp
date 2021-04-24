@@ -4,11 +4,11 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstdint>
-#include <vector>
 #include <algorithm>
 
 #include "../utils/karp_rabin_hashing.hpp"
 #include "../utils/packed_pair.hpp"
+#include "../utils/space_efficient_vector.hpp"
 #include "../io/async_stream_reader.hpp"
 #include "avl_grammar_multiroot.hpp"
 
@@ -72,7 +72,7 @@ convert_lz77_to_avl_grammar_multiroot(const std::string parsing_filename) {
     std::uint64_t len = parsing_reader->read();
     
     // Compute the AVL grammar expanding to phrase p.
-    std::vector<pair_type> phrase_roots;
+    space_efficient_vector<pair_type> phrase_roots;
     if (len == 0) {
 
       // If this is a literal phrase, create a trivial grammar.
@@ -91,7 +91,7 @@ convert_lz77_to_avl_grammar_multiroot(const std::string parsing_filename) {
         while (left > 0) {
 
           std::uint64_t next = std::min(left, exist);
-          std::vector<pair_type> v;
+          space_efficient_vector<pair_type> v;
           grammar->merge_enclosed_roots(pos, pos + next);
           grammar->decomposition(pos, pos + next, v);
           grammar->find_equivalent_seq(v);

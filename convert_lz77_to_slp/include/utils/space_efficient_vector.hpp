@@ -241,6 +241,16 @@ class space_efficient_vector {
       const std::uint64_t total = blocks_ram;
       return total;
     }
+
+    //=========================================================================
+    // Reverse the vector.
+    //=========================================================================
+    void reverse() {
+      const std::uint64_t all = size();
+      const std::uint64_t half = all / 2;
+      for (std::uint64_t i = 0; i < half; ++i)
+        std::swap((*this)[i], (*this)[all - 1 - i]);
+    }
 };
 
 #endif  // __SPACE_EFFICIENT_VECTOR_HPP_INCLUDED

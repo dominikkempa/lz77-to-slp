@@ -62,7 +62,7 @@ struct nonterminal {
         hash_table<std::uint64_t, bool> &,
         std::uint64_t &, const grammar_type * const) const;
     void decomposition(const std::uint64_t, const std::uint64_t,
-        const std::uint64_t, std::vector<pair_type> &,
+        const std::uint64_t, space_efficient_vector<pair_type> &,
         const grammar_type * const g) const;
 } __attribute__((packed));
 
@@ -797,7 +797,7 @@ struct avl_grammar_multiroot {
     void decomposition(
         std::uint64_t begin,
         std::uint64_t end,
-        std::vector<pair_type> &ret) {
+        space_efficient_vector<pair_type> &ret) {
 
       // Find leftmost root whose expansion overlaps/touches T[begin..end).
       std::uint64_t pos = roots_lower_bound(begin);
@@ -839,9 +839,10 @@ struct avl_grammar_multiroot {
         const std::uint64_t it_exp_beg = cur_end - exp_len;
         const std::uint64_t local_end = end - it_exp_beg;
         const nonterminal_type &nonterm = get_nonterminal(id);
-        std::vector<pair_type> dec;
+        space_efficient_vector<pair_type> dec;
         nonterm.decomposition(id, 0, local_end, dec, this);
-        ret.insert(ret.end(), dec.begin(), dec.end());
+        for (std::uint64_t i = 0; i < dec.size(); ++i)
+          ret.push_back(dec[i]);
         begin = end;
       }
     }
@@ -850,14 +851,14 @@ struct avl_grammar_multiroot {
     // Return the sequence of nonterminals with the same expansion as seq.
     //=========================================================================
     void find_equivalent_seq(
-      std::vector<pair_type> &seq) const {
+      space_efficient_vector<pair_type> &seq) const {
 
       // Handle special case.
       if (seq.empty())
         return;
 
       // Create the vector to hold the solution.
-      std::vector<pair_type> ret;
+      space_efficient_vector<pair_type> ret;
 
       // Allocate the arrays used in the dynamic programming.
       const std::uint64_t length = seq.size();
@@ -945,7 +946,9 @@ struct avl_grammar_multiroot {
       utils::deallocate(kr_hashes);
 
       // Store the result in seq.
-      seq = ret;
+      seq.set_empty();
+      for (std::uint64_t i = 0; i < ret.size(); ++i)
+        seq.push_back(ret[i]);
     }
 
   private:
@@ -1389,7 +1392,7 @@ void nonterminal<char_type, text_offset_type>::decomposition(
     const std::uint64_t id,
     const std::uint64_t begin,
     const std::uint64_t end,
-    std::vector<pair_type> &ret,
+    space_efficient_vector<pair_type> &ret,
     const avl_grammar_multiroot<char_type, text_offset_type> * const g) const {
 
   // Handle boundary case.
@@ -1459,7 +1462,7 @@ void nonterminal<char_type, text_offset_type>::decomposition(
 
     // Reverse the first sequence of nonterminals
     // collected during the left downward traversal.
-    std::reverse(ret.begin(), ret.end());
+    ret.reverse();
 
     // Perform the analogous operation for the right side.
     {
