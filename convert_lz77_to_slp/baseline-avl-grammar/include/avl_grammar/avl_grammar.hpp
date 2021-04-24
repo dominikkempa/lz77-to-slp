@@ -46,7 +46,7 @@ struct nonterminal {
     //=========================================================================
     nonterminal();
     nonterminal(const char_type);
-    nonterminal(const char_type, const text_offset_type, const std::uint64_t,
+    nonterminal(const std::uint8_t, const text_offset_type, const std::uint64_t,
       const nonterminal_type * const, const nonterminal_type * const);
     nonterminal(const nonterminal_type * const, const nonterminal_type * const);
     std::uint64_t get_height() const;
@@ -187,7 +187,8 @@ struct avl_grammar {
 
       // Create and add new nonterminal.
       const ptr_type new_nonterm_p = new nonterminal_type(
-         (char_type)new_height, (text_offset_type)new_exp_len,
+         (std::uint8_t)new_height,
+         (text_offset_type)new_exp_len,
          new_kr_hash, left_p, right_p);
       m_nonterminals.push_back(new_nonterm_p);
 
