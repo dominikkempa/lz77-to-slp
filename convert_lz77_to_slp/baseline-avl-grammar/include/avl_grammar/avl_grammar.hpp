@@ -38,8 +38,8 @@ struct nonterminal {
     const std::uint8_t m_height;
     const text_offset_type m_exp_len;
     const std::uint64_t m_kr_hash;
-    const nonterminal_type * const m_left;
-    const nonterminal_type * const m_right;
+    const nonterminal_type * m_left;
+    const nonterminal_type * m_right;
 
     //=========================================================================
     // Class methods.
@@ -47,6 +47,9 @@ struct nonterminal {
     nonterminal();
     nonterminal(const char_type);
     nonterminal(const nonterminal_type * const, const nonterminal_type * const);
+    std::uint64_t get_height() const;
+    const nonterminal_type * get_left_p() const;
+    const nonterminal_type * get_right_p() const;
     void print_expansion() const;
     void write_expansion(char_type * const) const;
     bool test_avl_property() const;
@@ -237,33 +240,44 @@ struct avl_grammar {
     // nonterminals that expands to XY, and return the pointer to it.
     //=========================================================================
     const nonterminal_type *add_concat_nonterminal(
-        const nonterminal_type * const left,
-        const nonterminal_type * const right) {
+        const nonterminal_type * const left_p,
+        const nonterminal_type * const right_p) {
+      typedef const nonterminal_type * ptr_type;
   
       // Consider two cases, depending on whether
       // left of right nonterminal is taller.
-      if (left->m_height >= right->m_height) {
-        if (left->m_height - right->m_height <= 1) {
+      const nonterminal_type &left = *left_p;
+      const nonterminal_type &right = *right_p;
+      if (left.get_height() >= right.get_height()) {
+        if (left.get_height() - right.get_height() <= 1) {
 
           // Height are close. Just merge and return.
-          const nonterminal_type * const newroot =
-            new nonterminal_type(left, right);
-          add_nonterminal(newroot);
-          return newroot;
+          const ptr_type newroot_p =
+            new nonterminal_type(left_p, right_p);
+          add_nonterminal(newroot_p);
+          return newroot_p;
         } else {
-          const nonterminal_type * const newright =
-            add_concat_nonterminal(left->m_right, right);
-          if (newright->m_height > left->m_left->m_height &&
-              newright->m_height - left->m_left->m_height > 1) {
+          const ptr_type leftleft_p = left.get_left_p();
+          const ptr_type leftright_p = left.get_right_p();
+          const nonterminal_type &leftleft = *leftleft_p;
+          const ptr_type newright_p =
+            add_concat_nonterminal(leftright_p, right_p);
+          const nonterminal_type &newright = *newright_p;
+          if (newright.get_height() > leftleft.get_height() &&
+              newright.get_height() - leftleft.get_height() > 1) {
 
             // Rebalancing needed.
-            if (newright->m_left->m_height > newright->m_right->m_height) {
+            const ptr_type newright_left_p = newright.get_left_p();
+            const ptr_type newright_right_p = newright.get_right_p();
+            const nonterminal_type &newright_left = *newright_left_p;
+            const nonterminal_type &newright_right = *newright_right_p;
+            if (newright_left.get_height() > newright_right.get_height()) {
 
               // Double (right-left) rotation.
               const nonterminal_type * const X = new nonterminal_type(
-                  left->m_left, newright->m_left->m_left);
+                  left_p->m_left, newright_p->m_left->m_left);
               const nonterminal_type * const Z = new nonterminal_type(
-                  newright->m_left->m_right, newright->m_right);
+                  newright_p->m_left->m_right, newright_p->m_right);
               const nonterminal_type * const Y = new nonterminal_type(X, Z);
               add_nonterminal(X);
               add_nonterminal(Y);
@@ -273,9 +287,9 @@ struct avl_grammar {
 
               // Single (left) rotation.
               const nonterminal_type * const X =
-                new nonterminal_type(left->m_left, newright->m_left);
+                new nonterminal_type(left_p->m_left, newright_p->m_left);
               const nonterminal_type * const Y =
-                new nonterminal_type(X, newright->m_right);
+                new nonterminal_type(X, newright_p->m_right);
               add_nonterminal(X);
               add_nonterminal(Y);
               return Y;
@@ -283,34 +297,38 @@ struct avl_grammar {
           } else {
 
             // No need to rebalance.
-            const nonterminal_type * const newroot =
-              new nonterminal_type(left->m_left, newright);
-            add_nonterminal(newroot);
-            return newroot;
+            const ptr_type newroot_p =
+              new nonterminal_type(leftleft_p, newright_p);
+            add_nonterminal(newroot_p);
+            return newroot_p;
           }
         }
       } else {
-        if (right->m_height - left->m_height <= 1) {
+        if (right.get_height() - left.get_height() <= 1) {
 
           // Heights are close. Just merge and return.
-          const nonterminal_type * const newroot =
-            new nonterminal_type(left, right);
-          add_nonterminal(newroot);
-          return newroot;
+          const ptr_type newroot_p =
+            new nonterminal_type(left_p, right_p);
+          add_nonterminal(newroot_p);
+          return newroot_p;
         } else {
-          const nonterminal_type * const newleft =
-            add_concat_nonterminal(left, right->m_left);
-          if (newleft->m_height > right->m_right->m_height &&
-              newleft->m_height - right->m_right->m_height > 1) {
+          const ptr_type rightleft_p = right.get_left_p();
+          const ptr_type rightright_p = right.get_right_p();
+          const nonterminal_type &rightright = *rightright_p;
+          const ptr_type newleft_p =
+            add_concat_nonterminal(left_p, rightleft_p);
+          const nonterminal_type &newleft = *newleft_p;
+          if (newleft.get_height() > rightright.get_height() &&
+              newleft.get_height() - rightright.get_height() > 1) {
 
             // Rebalancing needed.
-            if (newleft->m_right->m_height > newleft->m_left->m_height) {
+            if (newleft_p->m_right->m_height > newleft_p->m_left->m_height) {
 
               // Double (left-right) rotation.
               const nonterminal_type * const X = new nonterminal_type(
-                  newleft->m_left, newleft->m_right->m_left);
+                  newleft_p->m_left, newleft_p->m_right->m_left);
               const nonterminal_type * const Z = new nonterminal_type(
-                  newleft->m_right->m_right, right->m_right);
+                  newleft_p->m_right->m_right, right_p->m_right);
               const nonterminal_type * const Y = new nonterminal_type(X, Z);
               add_nonterminal(X);
               add_nonterminal(Y);
@@ -320,9 +338,9 @@ struct avl_grammar {
 
               // Single (right) rotation.
               const nonterminal_type * const Y =
-                new nonterminal_type(newleft->m_right, right->m_right);
+                new nonterminal_type(newleft_p->m_right, right_p->m_right);
               const nonterminal_type * const X =
-                new nonterminal_type(newleft->m_left, Y);
+                new nonterminal_type(newleft_p->m_left, Y);
               add_nonterminal(X);
               add_nonterminal(Y);
               return X;
@@ -330,10 +348,10 @@ struct avl_grammar {
           } else {
 
             // No need to rebalance.
-            const nonterminal_type * const newroot =
-              new nonterminal_type(newleft, right->m_right);
-            add_nonterminal(newroot);
-            return newroot;
+            const ptr_type newroot_p =
+              new nonterminal_type(newleft_p, rightright_p);
+            add_nonterminal(newroot_p);
+            return newroot_p;
           }
         }
       }
@@ -424,6 +442,32 @@ nonterminal<char_type, text_offset_type>::nonterminal(
           right->m_exp_len)),
     m_left(left),
     m_right(right) {}
+
+//=============================================================================
+// Get nonterminal height.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+std::uint64_t nonterminal<char_type, text_offset_type>::get_height() const {
+  return (std::uint64_t)m_height;
+}
+
+//=============================================================================
+// Get nonterminal left ptr.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+const nonterminal<char_type, text_offset_type>* nonterminal<char_type, text_offset_type>
+::get_left_p() const {
+  return m_left;
+}
+
+//=============================================================================
+// Get nonterminal left ptr.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+const nonterminal<char_type, text_offset_type>* nonterminal<char_type, text_offset_type>
+::get_right_p() const {
+  return m_right;
+}
 
 //=============================================================================
 // Print the string encoded by the grammar.

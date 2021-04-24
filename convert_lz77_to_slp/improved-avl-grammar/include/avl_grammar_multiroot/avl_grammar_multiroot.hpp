@@ -768,23 +768,26 @@ struct avl_grammar_multiroot {
           } else {
 
             // No need to rebalance.
-            const std::uint64_t newroot_p = add_nonterminal(
-                get_left_id(left_p), newright_p);
+            const ptr_type newroot_p = add_nonterminal(leftleft_p, newright_p);
             return newroot_p;
           }
         }
       } else {
-        if (get_height(right_p) - get_height(left_p) <= 1) {
+        if (right.get_height() - left.get_height() <= 1) {
 
           // Heights are close. Just merge and return.
-          const std::uint64_t newroot_p =
+          const ptr_type newroot_p =
             add_nonterminal(left_p, right_p);
           return newroot_p;
         } else {
-          const std::uint64_t newleft_p =
-            add_concat_nonterminal(left_p, get_left_id(right_p));
-          if (get_height(newleft_p) > get_height(get_right_id(right_p)) &&
-              get_height(newleft_p) - get_height(get_right_id(right_p)) > 1) {
+          const ptr_type rightleft_p = right.get_left_p();
+          const ptr_type rightright_p = right.get_right_p();
+          const nonterminal_type &rightright = m_nonterminals[rightright_p];
+          const ptr_type newleft_p =
+            add_concat_nonterminal(left_p, rightleft_p);
+          const nonterminal_type &newleft = m_nonterminals[newleft_p];
+          if (newleft.get_height() > rightright.get_height() &&
+              newleft.get_height() - rightright.get_height() > 1) {
 
             // Rebalancing needed.
             if (get_height(get_right_id(newleft_p)) >
@@ -812,8 +815,7 @@ struct avl_grammar_multiroot {
           } else {
 
             // No need to rebalance.
-            const std::uint64_t newroot_p = add_nonterminal(
-                newleft_p, get_right_id(right_p));
+            const ptr_type newroot_p = add_nonterminal(newleft_p, rightright_p);
             return newroot_p;
           }
         }
