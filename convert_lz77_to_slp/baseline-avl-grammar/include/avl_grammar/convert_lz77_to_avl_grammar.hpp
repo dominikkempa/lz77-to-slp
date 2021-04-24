@@ -8,7 +8,9 @@
 #include <algorithm>
 
 #include "../utils/karp_rabin_hashing.hpp"
+#include "../utils/packed_pair.hpp"
 #include "nonterminal.hpp"
+#include "../io/async_stream_reader.hpp"
 #include "avl_grammar.hpp"
 
 
@@ -22,13 +24,25 @@
 template<
   typename char_type,
   typename text_offset_type>
-avl_grammar<char_type> *convert_lz77_to_avl_grammar(
-    const std::vector<
-      std::pair<text_offset_type, text_offset_type> > &parsing) {
+avl_grammar<char_type> *convert_lz77_to_avl_grammar(const std::string parsing_filename) {
+
+  // Start the timer.
+  long double start = utils::wclock();
 
   // Declare types.
   typedef nonterminal<char_type> nonterminal_type;
   typedef avl_grammar<char_type> grammar_type;
+  typedef async_stream_reader<text_offset_type> reader_type;
+
+  // Initialize the parsing reader.
+  const std::uint64_t bufsize = (1 << 19);
+  const std::uint64_t n_buffers = 4;
+  reader_type *parsing_reader =
+    new reader_type(parsing_filename, bufsize, n_buffers);
+
+  // Compute parsing size.
+  const std::uint64_t parsing_size =
+    utils::file_size(parsing_filename) / (2 * sizeof(text_offset_type));
 
   // Init Karp-Rabin hashing.
   karp_rabin_hashing::init();
@@ -37,14 +51,22 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
   grammar_type *grammar = new grammar_type();
   const nonterminal_type *root = NULL;
   std::uint64_t prefix_length = 0;
-  for (std::uint64_t phrase_id = 0;
-      phrase_id < parsing.size(); ++phrase_id) {
+  for (std::uint64_t phrase_id = 0; phrase_id < parsing_size; ++phrase_id) {
+
+    if (((phrase_id + 1) & ((1 << 16) - 1)) == 0) {
+      long double elapsed = utils::wclock() - start;
+      fprintf(stderr, "\rInfo: elapsed = %.2Lfs, "
+          "progress = %lu (%.2Lf%%) phrases (%.2LfMiB prefix), "
+          "peak RAM = %.2LfMiB",
+          elapsed, phrase_id + 1,
+          (100.L * (phrase_id + 1)) / parsing_size,
+          (1.L * prefix_length) / (1 << 20),
+          (1.L * utils::get_peak_ram_allocation()) / (1UL << 20));
+    }
 
     // Get the next phrase len and pos values.
-    std::pair<text_offset_type, text_offset_type> p =
-      parsing[phrase_id];
-    std::uint64_t pos = p.first;
-    std::uint64_t len = p.second;
+    std::uint64_t pos = parsing_reader->read();
+    std::uint64_t len = parsing_reader->read();
     
     // Compute the AVL grammar expanding to phrase p.
     const nonterminal_type *phrase_root = NULL;
@@ -97,6 +119,17 @@ avl_grammar<char_type> *convert_lz77_to_avl_grammar(
       grammar->set_root(root);
     }
   }
+
+  long double total_time = utils::wclock() - start;
+  fprintf(stderr, "\rInfo: elapsed = %.2Lfs, "
+      "progress = %lu (100.00%%) phrases (%.2LfMiB prefix), "
+      "peak RAM = %.2LfMiB",
+      total_time, parsing_size, (1.L * prefix_length) / (1 << 20),
+      (1.L * utils::get_peak_ram_allocation()) / (1UL << 20));
+
+  // Clean up.
+  parsing_reader->stop_reading();
+  delete parsing_reader;
 
   // Return the result.
   return grammar;

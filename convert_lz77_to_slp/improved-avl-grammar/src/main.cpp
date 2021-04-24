@@ -8,19 +8,13 @@
 #include <unistd.h>
 #include <getopt.h>
 
-#define MULTIROOT
 // #define TEST_CORRECTNESS
 // #define ADDITIONAL_TESTS
 
 #include "../include/types/uint40.hpp"
 #include "../include/utils/utils.hpp"
-#ifdef MULTIROOT
 #include "../include/avl_grammar_multiroot/avl_grammar_multiroot.hpp"
 #include "../include/avl_grammar_multiroot/convert_lz77_to_avl_grammar_multiroot.hpp"
-#else
-#include "../include/avl_grammar/avl_grammar.hpp"
-#include "../include/avl_grammar/convert_lz77_to_avl_grammar.hpp"
-#endif
 
 
 //=============================================================================
@@ -228,11 +222,7 @@ void test_conversion(
 
   // Declare types.
   typedef std::pair<text_offset_type, text_offset_type> phrase_type;
-#ifdef MULTIROOT
   typedef avl_grammar_multiroot<char_type, text_offset_type> grammar_type;
-#else
-  typedef avl_grammar<char_type> grammar_type;
-#endif
 
   // Turn paths absolute.
   parsing_filename = utils::absolute_path(parsing_filename);
@@ -256,14 +246,9 @@ void test_conversion(
   {
     fprintf(stderr, "Convert LZ77 to SLP...\n");
     long double start = utils::wclock();
-#ifdef MULTIROOT
     grammar =
       convert_lz77_to_avl_grammar_multiroot<char_type, text_offset_type>(
           parsing_filename);
-#else
-    grammar =
-      convert_lz77_to_avl_grammar<char_type, text_offset_type>(parsing);
-#endif
 
     // Print summary.
     long double elapsed = utils::wclock() - start;
@@ -273,9 +258,7 @@ void test_conversion(
   // Print info. Note that the grammar may
   // still contain unused nonterminals.
   fprintf(stderr, "Number of nonterminals = %lu\n", grammar->size());
-#ifdef MULTIROOT
   fprintf(stderr, "Number of roots = %lu\n", grammar->number_of_roots());
-#endif
   fprintf(stderr, "\n");
 
   // Print RAM use.
@@ -284,7 +267,6 @@ void test_conversion(
 #ifdef TEST_CORRECTNESS
   check_correctness<char_type, text_offset_type>(parsing_filename, grammar);
 #endif
-
 #ifdef ADDITIONAL_TESTS
   additional_tests<char_type, text_offset_type>(grammar);
 #endif
