@@ -27,16 +27,27 @@ struct avl_grammar_multiroot;
 template<typename char_type, typename text_offset_type>
 struct nonterminal {
   private:
+
+    //=========================================================================
+    // Declare types.
+    //=========================================================================
     typedef nonterminal<char_type, text_offset_type> nonterminal_type;
     typedef avl_grammar_multiroot<char_type, text_offset_type> grammar_type;
     typedef packed_pair<text_offset_type, text_offset_type> pair_type;
 
   public:
+
+    //=========================================================================
+    // Class members.
+    //=========================================================================
     std::uint8_t m_height;
     std::uint8_t m_exp_len;
     text_offset_type m_left;
     text_offset_type m_right;
 
+    //=========================================================================
+    // Class methods.
+    //=========================================================================
     nonterminal();
     nonterminal(const char_type);
     nonterminal(const std::uint64_t, const std::uint64_t,
@@ -70,8 +81,10 @@ struct nonterminal {
 // Hash functions of the appropriate type.
 // Used in the hash table used to prune the grammar.
 //=============================================================================
+typedef const uint40 get_hash_ptr_type;
+
 template<>
-std::uint64_t get_hash(const uint40 &x) {
+std::uint64_t get_hash(const get_hash_ptr_type &x) {
   return (std::uint64_t)x * (std::uint64_t)29996224275833;
 }
 
@@ -84,20 +97,22 @@ std::uint64_t get_hash(const std::uint64_t &x) {
 // Implementation of the avl_grammar_multiroot class.
 //=============================================================================
 template<
-  typename char_type,
-  typename text_offset_type>
+  typename char_type = std::uint8_t,
+  typename text_offset_type = std::uint64_t>
 struct avl_grammar_multiroot {
   static_assert(sizeof(char_type) <= sizeof(text_offset_type),
       "Error: sizeof(char_type) > sizeof(text_offset_type)!");
 
-  //===========================================================================
-  // Declare typedefs
-  //===========================================================================
-  typedef nonterminal<char_type, text_offset_type> nonterminal_type;
-  typedef packed_pair<text_offset_type, text_offset_type> pair_type;
-  typedef packed_triple<text_offset_type, text_offset_type, std::uint64_t>
-    triple_type;
-  typedef packed_pair<text_offset_type, std::uint64_t> hash_pair_type;
+  private:
+
+    //=========================================================================
+    // Declare typedefs.
+    //=========================================================================
+    typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+    typedef packed_pair<text_offset_type, text_offset_type> pair_type;
+    typedef packed_triple<text_offset_type, text_offset_type, std::uint64_t>
+      triple_type;
+    typedef packed_pair<text_offset_type, std::uint64_t> hash_pair_type;
 
   private:
 
