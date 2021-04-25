@@ -133,8 +133,6 @@ struct avl_grammar_multiroot {
       triple_type;
     typedef packed_pair<text_offset_type, std::uint64_t> hash_pair_type;
 
-  private:
-
     //=========================================================================
     // Class members.
     //=========================================================================
