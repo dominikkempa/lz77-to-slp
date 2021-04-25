@@ -26,7 +26,7 @@ template<
   typename text_offset_type>
 void check_correctness(
     const std::string parsing_filename,
-    avl_grammar<char_type> * const grammar) {
+    avl_grammar<char_type, text_offset_type> * const grammar) {
 
   // Print initial message.
   fprintf(stderr, "\nRun correctness tests:\n");
@@ -149,7 +149,7 @@ template<
   typename char_type,
   typename text_offset_type>
 void additional_tests(
-    avl_grammar<char_type> * const grammar) {
+    avl_grammar<char_type, text_offset_type> * const grammar) {
 
   // Print initial message.
   fprintf(stderr, "\nRun additional tests:\n");
@@ -173,11 +173,12 @@ void additional_tests(
   {
     fprintf(stderr, "  Compute different Karp-Rabin hashes (method #2)... ");
     long double start = utils::wclock();
-    std::vector<text_offset_type> pointers;
+    typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+    std::vector<const nonterminal_type *> pointers;
     std::vector<std::uint64_t> hashes;
     grammar->collect_nonterminal_pointers(pointers);
     for (std::uint64_t i = 0; i < pointers.size(); ++i)
-      hashes.push_back(grammar->get_kr_hash(pointers[i]));
+      hashes.push_back(pointers[i]->get_kr_hash());
     std::sort(hashes.begin(), hashes.end());
     hashes.erase(std::unique(hashes.begin(), hashes.end()), hashes.end());
     long double elapsed = utils::wclock() - start;
@@ -189,7 +190,8 @@ void additional_tests(
   {
     fprintf(stderr, "  Count nodes in the pruned grammar... ");
     long double start = utils::wclock();
-    hash_table<text_offset_type, std::uint64_t> hashes;
+    typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+    hash_table<const nonterminal_type *, std::uint64_t> hashes;
     hash_table<std::uint64_t, bool> seen_hashes;
     std::uint64_t count = 0;
     grammar->collect_mersenne_karp_rabin_hashes_2(hashes);
@@ -203,7 +205,8 @@ void additional_tests(
   {
     fprintf(stderr, "  Collect reachable nonterminals... ");
     long double start = utils::wclock();
-    std::vector<text_offset_type> pointers;
+    typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+    std::vector<const nonterminal_type *> pointers;
     grammar->collect_nonterminal_pointers(pointers);
     std::sort(pointers.begin(), pointers.end());
     pointers.erase(std::unique(pointers.begin(),

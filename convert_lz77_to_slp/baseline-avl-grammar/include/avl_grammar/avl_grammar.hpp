@@ -71,6 +71,7 @@ struct nonterminal {
     // Mostly unused.
     //=========================================================================
     void print_expansion() const;
+    bool compare_expansion_to_text(const char_type * const) const;
     bool test_avl_property() const;
     std::uint64_t collect_mersenne_karp_rabin_hashes(
         std::vector<std::uint64_t> &) const;
@@ -217,6 +218,24 @@ struct avl_grammar {
       text_length = m_root->m_exp_len;
       text = new char_type[text_length];
       m_root->write_expansion(text);
+    }
+
+    //=========================================================================
+    // Check if the grammar expands to the given string.
+    //=========================================================================
+    bool compare_expansion_to_text(
+        const char_type * const text,
+        const std::uint64_t text_length) {
+
+      // Compute length of expansion.
+      std::uint64_t exp_total_len = m_root->get_exp_len();
+
+      // If they differ, return false.
+      if (text_length != exp_total_len)
+        return false;
+
+      // Otherwise, compare the generated string with `text'.
+      return m_root->compare_expansion_to_text(text);
     }
 
     //=========================================================================
@@ -488,6 +507,14 @@ std::uint64_t nonterminal<char_type, text_offset_type>::get_exp_len() const {
 }
 
 //=============================================================================
+// Return the char stored in a nonterminal.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+char_type nonterminal<char_type, text_offset_type>::get_char() const {
+  return (char_type)((std::uint64_t)m_left_p);
+}
+
+//=============================================================================
 // Get nonterminal expansion length.
 //=============================================================================
 template<typename char_type, typename text_offset_type>
@@ -549,11 +576,30 @@ void nonterminal<char_type, text_offset_type>
 }
 
 //=============================================================================
-// Return the char stored in a nonterminal.
+// Compare the expansion of the nonterminal to the given text.
 //=============================================================================
 template<typename char_type, typename text_offset_type>
-char_type nonterminal<char_type, text_offset_type>::get_char() const {
-  return (char_type)((std::uint64_t)m_left_p);
+bool nonterminal<char_type, text_offset_type>::compare_expansion_to_text(
+    const char_type * const text) const {
+  typedef const nonterminal_type * ptr_type;
+  const ptr_type x_p = this;
+  const nonterminal_type &x = *x_p;
+  const std::uint64_t x_height = x.get_height();
+  if (x_height == 0) {
+    const char_type my_char = x.get_char();
+    return (text[0] == my_char);
+  } else {
+    const ptr_type x_left_p = x.get_left_p();
+    const ptr_type x_right_p = x.get_right_p();
+    const nonterminal_type &x_left = *x_left_p;
+    const nonterminal_type &x_right = *x_right_p;
+    const std::uint64_t x_left_exp_len = x_left.get_exp_len();
+    if (!x_left.compare_expansion_to_text(text))
+      return false;
+    if (!x_right.compare_expansion_to_text(text + x_left_exp_len))
+      return false;
+    return true;
+  }
 }
 
 //=============================================================================
@@ -617,20 +663,28 @@ template<typename char_type, typename text_offset_type>
 std::uint64_t nonterminal<char_type, text_offset_type>
 ::collect_mersenne_karp_rabin_hashes_2(
     hash_table<const nonterminal_type*, std::uint64_t> &hashes) const {
-  if (m_height == 0) {
-    const char_type my_char = get_char();
+  typedef const nonterminal_type * ptr_type;
+  const ptr_type x_p = this;
+  const nonterminal_type &x = *x_p;
+  const std::uint64_t x_height = x.get_height();
+  if (x_height == 0) {
+    const char_type my_char = x.get_char();
     const std::uint64_t h = karp_rabin_hashing::hash_char(my_char);
-    hashes.insert(this, h);
+    hashes.insert(x_p, h);
     return h;
   } else {
-    const std::uint64_t left_hash =
-      m_left_p->collect_mersenne_karp_rabin_hashes_2(hashes);
-    const std::uint64_t right_hash =
-      m_right_p->collect_mersenne_karp_rabin_hashes_2(hashes);
-    const std::uint64_t right_len = m_right_p->m_exp_len;
+    const ptr_type x_left_p = x.get_left_p();
+    const ptr_type x_right_p = x.get_right_p();
+    const nonterminal_type &x_left = *x_left_p;
+    const nonterminal_type &x_right = *x_right_p;
+    const std::uint64_t x_right_len = x_right.get_exp_len();
+    const std::uint64_t x_left_hash =
+      x_left.collect_mersenne_karp_rabin_hashes_2(hashes);
+    const std::uint64_t x_right_hash =
+      x_right.collect_mersenne_karp_rabin_hashes_2(hashes);
     const std::uint64_t h = karp_rabin_hashing::concat(
-        left_hash, right_hash, right_len);
-    hashes.insert(this, h);
+        x_left_hash, x_right_hash, x_right_len);
+    hashes.insert(x_p, h);
     return h;
   }
 }

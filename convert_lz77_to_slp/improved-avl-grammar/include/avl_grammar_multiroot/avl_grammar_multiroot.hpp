@@ -61,6 +61,7 @@ struct nonterminal {
     //=========================================================================
     std::uint64_t get_height() const;
     std::uint64_t get_truncated_exp_len() const;
+    char_type get_char() const;
     std::uint64_t get_left_p() const;
     std::uint64_t get_right_p() const;
 
@@ -1223,6 +1224,14 @@ std::uint64_t nonterminal<char_type, text_offset_type>
 }
 
 //=============================================================================
+// Return the char stored in a nonterminal.
+//=============================================================================
+template<typename char_type, typename text_offset_type>
+char_type nonterminal<char_type, text_offset_type>::get_char() const {
+  return (char_type)((std::uint64_t)m_left_p);
+}
+
+//=============================================================================
 // Get nonterminal left ptr.
 //=============================================================================
 template<typename char_type, typename text_offset_type>
@@ -1292,22 +1301,24 @@ std::uint64_t nonterminal<char_type, text_offset_type>::write_expansion(
 //=============================================================================
 template<typename char_type, typename text_offset_type>
 bool nonterminal<char_type, text_offset_type>::compare_expansion_to_text(
-    const std::uint64_t id,
+    const std::uint64_t x_p,
     const char_type * const text,
     const grammar_type * const g) const {
-  const std::uint64_t height = g->get_height(id);
-  if (height == 0) {
-    const char_type my_char = g->get_char(id);
+  typedef text_offset_type ptr_type;
+  const nonterminal_type &x = g->get_nonterminal(x_p);
+  const std::uint64_t x_height = x.get_height();
+  if (x_height == 0) {
+    const char_type my_char = x.get_char();
     return (text[0] == my_char);
   } else {
-    const std::uint64_t left_id = g->get_left_id(id);
-    const std::uint64_t right_id = g->get_right_id(id);
-    const std::uint64_t left_exp_len = g->get_exp_len(left_id);
-    const nonterminal_type &left = g->get_nonterminal(left_id);
-    const nonterminal_type &right = g->get_nonterminal(right_id);
-    if (!left.compare_expansion_to_text(left_id, text, g))
+    const ptr_type x_left_p = x.get_left_p();
+    const ptr_type x_right_p = x.get_right_p();
+    const nonterminal_type &x_left = g->get_nonterminal(x_left_p);
+    const nonterminal_type &x_right = g->get_nonterminal(x_right_p);
+    const std::uint64_t x_left_exp_len = g->get_exp_len(x_left_p);
+    if (!x_left.compare_expansion_to_text(x_left_p, text, g))
       return false;
-    if (!right.compare_expansion_to_text(right_id, text + left_exp_len, g))
+    if (!x_right.compare_expansion_to_text(x_right_p, text + x_left_exp_len, g))
       return false;
     return true;
   }
@@ -1399,28 +1410,30 @@ void nonterminal<char_type, text_offset_type>::collect_nonterminal_pointers(
 template<typename char_type, typename text_offset_type>
 std::uint64_t nonterminal<char_type, text_offset_type>
 ::collect_mersenne_karp_rabin_hashes_2(
-    const std::uint64_t id,
+    const std::uint64_t x_p,
     hash_table<text_offset_type, std::uint64_t> &hashes,
     const grammar_type * const g) const {
-  const std::uint64_t height = g->get_height(id);
-  if (height == 0) {
-    const char_type my_char = g->get_char(id);
+  typedef text_offset_type ptr_type;
+  const nonterminal_type &x = g->get_nonterminal(x_p);
+  const std::uint64_t x_height = x.get_height();
+  if (x_height == 0) {
+    const char_type my_char = x.get_char();
     const std::uint64_t h = karp_rabin_hashing::hash_char(my_char);
-    hashes.insert(id, h);
+    hashes.insert(x_p, h);
     return h;
   } else {
-    const std::uint64_t left_id = g->get_left_id(id);
-    const std::uint64_t right_id = g->get_right_id(id);
-    const nonterminal_type &left = g->get_nonterminal(left_id);
-    const nonterminal_type &right = g->get_nonterminal(right_id);
-    const std::uint64_t left_hash =
-      left.collect_mersenne_karp_rabin_hashes_2(left_id, hashes, g);
-    const std::uint64_t right_hash =
-      right.collect_mersenne_karp_rabin_hashes_2(right_id, hashes, g);
-    const std::uint64_t right_len = g->get_exp_len(right_id);
+    const ptr_type x_left_p = x.get_left_p();
+    const ptr_type x_right_p = x.get_right_p();
+    const nonterminal_type &x_left = g->get_nonterminal(x_left_p);
+    const nonterminal_type &x_right = g->get_nonterminal(x_right_p);
+    const std::uint64_t x_right_len = g->get_exp_len(x_right_p);
+    const std::uint64_t x_left_hash =
+      x_left.collect_mersenne_karp_rabin_hashes_2(x_left_p, hashes, g);
+    const std::uint64_t x_right_hash =
+      x_right.collect_mersenne_karp_rabin_hashes_2(x_right_p, hashes, g);
     const std::uint64_t h = karp_rabin_hashing::concat(
-        left_hash, right_hash, right_len);
-    hashes.insert(id, h);
+        x_left_hash, x_right_hash, x_right_len);
+    hashes.insert(x_p, h);
     return h;
   }
 }
