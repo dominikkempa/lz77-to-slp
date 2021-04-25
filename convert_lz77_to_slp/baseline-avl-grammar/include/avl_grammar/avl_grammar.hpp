@@ -493,10 +493,6 @@ struct avl_grammar {
         space_efficient_vector<const nonterminal_type *> &seq) {
       typedef const nonterminal_type * ptr_type;
 
-      // debug ////////////////////////////////////////////////////////////////
-      // fprintf(stderr, "\ngreedy_merge:\n");
-      /////////////////////////////////////////////////////////////////////////
-
       // Create the priority queue.
       const std::uint64_t num = seq.size();
       text_offset_type * const heap =
@@ -527,20 +523,6 @@ struct avl_grammar {
       ptr_type ret = NULL;
       while (true) {
         const std::uint64_t min_elem = heap[0];
-
-        // debug //////////////////////////////////////////////////////////////
-        // {
-        //   fprintf(stderr, "seq: ");
-        //   std::uint64_t t = next[sentinel];
-        //   while (t != sentinel) {
-        //     const nonterminal_type &nonterm = *seq[t];
-        //     const std::uint64_t height = nonterm.get_height();
-        //     fprintf(stderr, "(%lu, %lu) ", t, height);
-        //     t = next[t];
-        //   }
-        //   fprintf(stderr, ". min_elem = %lu\n", min_elem);
-        // }
-        ///////////////////////////////////////////////////////////////////////
 
         // If the element was already deleted, skip it.
         if (deleted[min_elem]) {
