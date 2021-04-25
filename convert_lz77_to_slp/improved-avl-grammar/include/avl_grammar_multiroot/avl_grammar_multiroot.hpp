@@ -421,7 +421,7 @@ struct avl_grammar_multiroot {
       const std::uint64_t new_nonterm_p = m_nonterminals.size();
       m_nonterminals.push_back(nonterm);
 
-      // With probability 1/16 add to hash table.
+      // With probability 1/8 add to hash table.
       if (utils::random_int<std::uint64_t>(
             (std::uint64_t)0,
             (std::uint64_t)7) == 0) {
@@ -463,7 +463,7 @@ struct avl_grammar_multiroot {
          (text_offset_type)right_p);
       m_nonterminals.push_back(new_nonterm);
 
-      // With probability 1/16 add to hash table.
+      // With probability 1/8 add to hash table.
       std::uint64_t kr_hash = 0;
       bool hash_computed = false;
       if (utils::random_int<std::uint64_t>(
@@ -488,6 +488,7 @@ struct avl_grammar_multiroot {
               (text_offset_type)exp_len));
       }
 
+      // Update list of hashes for long nonterminals.
       if (exp_len >= 255) {
         if (!hash_computed) {
           const std::uint64_t left_hash = get_kr_hash(left_p);
