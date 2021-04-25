@@ -9,6 +9,7 @@
 
 #include "../utils/hash_table.hpp"
 #include "../utils/karp_rabin_hashing.hpp"
+#include "../utils/space_efficient_vector.hpp"
 
 
 //=============================================================================
@@ -64,7 +65,7 @@ struct nonterminal {
     // Key methods.
     //=========================================================================
     void decomposition(const std::uint64_t, const std::uint64_t,
-        std::vector<const nonterminal_type*> &) const;
+        space_efficient_vector<const nonterminal_type*> &) const;
     std::uint64_t write_expansion(char_type * const) const;
 
     //=========================================================================
@@ -287,7 +288,7 @@ struct avl_grammar {
         const nonterminal_type *x,
         const std::uint64_t begin,
         const std::uint64_t end) {
-      std::vector<const nonterminal_type*> v;
+      space_efficient_vector<const nonterminal_type*> v;
       x->decomposition(begin, end, v);
       return greedy_merge(v);
     }
@@ -408,47 +409,180 @@ struct avl_grammar {
   private:
 
     //=========================================================================
-    // Merge greedily (shortest first) sequence of nonterminals.
-    //=========================================================================
-    const nonterminal_type* greedy_merge(
-        std::vector<const nonterminal_type*> &seq) {
-      while (seq.size() > 1) {
+    // Heap down routine.
+    //========================================================================
+    void heap_down(
+        std::uint64_t i,
+        const space_efficient_vector<const nonterminal_type *> &seq,
+        text_offset_type * const heap,
+        const std::uint64_t heap_size) const {
+      typedef const nonterminal_type * ptr_type;
+      ++i;
+      std::uint64_t min_pos = i;
+      std::uint64_t height = 0;
+      {
+        const ptr_type nonterm_p = seq[heap[min_pos - 1]];
+        const nonterminal_type &nonterm = *nonterm_p;
+        height = nonterm.get_height();
+      }
+      while (true) {
+        std::uint64_t min_height = height;
+        if ((i << 1) <= heap_size) {
+          const ptr_type left_p = seq[heap[(i << 1) - 1]];
+          const nonterminal_type &left = *left_p;
+          const std::uint64_t left_height = left.get_height();
+          if (left_height < min_height) {
+            min_pos = (i << 1);
+            min_height = left_height;
+          }
+        }
+        if ((i << 1) + 1 <= heap_size) {
+          const ptr_type right_p = seq[heap[i << 1]];
+          const nonterminal_type &right = *right_p;
+          const std::uint64_t right_height = right.get_height();
+          if (right_height < min_height) {
+            min_pos = (i << 1) + 1;
+            min_height = right_height;
+          }
+        }
+        if (min_pos != i) {
+          std::swap(heap[i - 1], heap[min_pos - 1]);
+          i = min_pos;
+        } else break;
+      }
+    }
 
-        // Find the nonterminal with the smallest height.
-        std::uint64_t smallest_height_id = 0;
-        for (std::uint64_t i = 1; i < seq.size(); ++i) {
-          if (seq[i]->get_height() < seq[smallest_height_id]->get_height())
-            smallest_height_id = i;
+    //=========================================================================
+    // Extract min routine.
+    //=========================================================================
+    std::uint64_t extract_min(
+        const space_efficient_vector<const nonterminal_type *> &seq,
+        text_offset_type * const heap,
+        std::uint64_t &heap_size) const {
+      std::uint64_t ret = heap[0];
+      heap[0] = heap[--heap_size];
+      if (heap_size != 0)
+        heap_down(0, seq, heap, heap_size);
+      return ret;
+    }
+
+    //=========================================================================
+    // Make heap rountine.
+    //=========================================================================
+    void make_heap(
+        const space_efficient_vector<const nonterminal_type *> &seq,
+        text_offset_type * const heap,
+        const std::uint64_t heap_size) const {
+      for (std::uint64_t i = heap_size / 2; i > 0; --i)
+        heap_down(i - 1, seq, heap, heap_size);
+    }
+
+    //=========================================================================
+    // Merge greedily (shortest first) sequence of nonterminals.
+    // Uses binary heap to achieve O(m log m) time.
+    //=========================================================================
+    const nonterminal_type * greedy_merge(
+        space_efficient_vector<const nonterminal_type *> &seq) {
+      typedef const nonterminal_type * ptr_type;
+
+      // Create the priority queue.
+      const std::uint64_t num = seq.size();
+      text_offset_type * const heap =
+        utils::allocate_array<text_offset_type>(num);
+      std::uint64_t heap_size = 0;
+
+      // Allocate the arrays used to doubly-link remaining nonterminals.
+      text_offset_type * const next =
+        utils::allocate_array<text_offset_type>(num + 1);
+      text_offset_type * const prev =
+        utils::allocate_array<text_offset_type>(num + 1);
+      std::uint8_t * const deleted =
+        utils::allocate_array<std::uint8_t>(num);
+
+      // Set initial linking and insert elements into heap.
+      const std::uint64_t sentinel = num;
+      for (std::uint64_t i = 0; i < num; ++i) {
+        next[i] = i + 1;
+        prev[i + 1] = i;
+        heap[heap_size++] = i;
+        deleted[i] = false;
+      }
+      next[sentinel] = 0;
+      prev[0] = sentinel;
+      make_heap(seq, heap, heap_size);
+
+      // The main algorithm.
+      ptr_type ret = NULL;
+      while (true) {
+        const std::uint64_t min_elem = heap[0];
+
+        // If the element was already deleted, skip it.
+        if (deleted[min_elem]) {
+          (void) extract_min(seq, heap, heap_size);
+          continue;
         }
 
-        // Merge the nonterminal with the smaller height with
-        // one of its beighbors (whichever is shorter).
-        if (smallest_height_id == 0 ||
-            (smallest_height_id + 1 < seq.size() &&
-             seq[smallest_height_id + 1]->get_height() <=
-             seq[smallest_height_id - 1]->get_height())) {
+        std::uint64_t prev_height = 0;
+        std::uint64_t next_height = 0;
+        if ((std::uint64_t)prev[min_elem] != sentinel) {
+          const std::uint64_t idx = prev[min_elem];
+          const nonterminal_type &prev_nonterm = *(seq[idx]);
+          prev_height = prev_nonterm.get_height();
+        }
+        if ((std::uint64_t)next[min_elem] != sentinel) {
+          const std::uint64_t idx = next[min_elem];
+          const nonterminal_type &next_nonterm = *(seq[idx]);
+          next_height = next_nonterm.get_height();
+        }
+
+        // Merge min_elem with one of its
+        // beighbors (whichever is shorter).
+        if ((std::uint64_t)prev[min_elem] == sentinel &&
+            (std::uint64_t)next[min_elem] == sentinel) {
+
+          // We have reached the only nonterminal.
+          // Store it as output and exit the loop.
+          ret = seq[min_elem];
+          break;
+        } else if ((std::uint64_t)prev[min_elem] == sentinel ||
+            ((std::uint64_t)next[min_elem] != sentinel &&
+             next_height <= prev_height)) {
 
           // Only right neighbor exists, or both exist
           // and the right one is not taller than the left
           // one. End result: merge with the right neighbor.
-          const nonterminal_type * const left = seq[smallest_height_id];
-          const nonterminal_type * const right = seq[smallest_height_id + 1];
-          seq.erase(seq.begin() + smallest_height_id);
-          seq[smallest_height_id] =
-            add_concat_nonterminal(left, right);
+          const std::uint64_t right_elem = next[min_elem];
+          const ptr_type left_p = seq[min_elem];
+          const ptr_type right_p = seq[right_elem];
+          seq[min_elem] = add_concat_nonterminal(left_p, right_p);
+          deleted[right_elem] = true;
+          next[min_elem] = next[right_elem];
+          prev[next[min_elem]] = min_elem;
+          heap_down(0, seq, heap, heap_size);
         } else {
 
           // Only left neighbor exists, or both exists
           // and the left one is not taller than the
           // right one. End result: merge with left neighbor.
-          const nonterminal_type * const left = seq[smallest_height_id - 1];
-          const nonterminal_type * const right = seq[smallest_height_id];
-          seq.erase(seq.begin() + (smallest_height_id - 1));
-          seq[smallest_height_id - 1] =
-            add_concat_nonterminal(left, right);
+          const std::uint64_t left_elem = prev[min_elem];
+          const ptr_type left_p = seq[left_elem];
+          const ptr_type right_p = seq[min_elem];
+          seq[min_elem] = add_concat_nonterminal(left_p, right_p);
+          deleted[left_elem] = true;
+          prev[min_elem] = prev[left_elem];
+          next[prev[min_elem]] = min_elem;
+          heap_down(0, seq, heap, heap_size);
         }
       }
-      return seq[0];
+
+      // Clean up.
+      utils::deallocate(deleted);
+      utils::deallocate(prev);
+      utils::deallocate(next);
+      utils::deallocate(heap);
+
+      // Return the result.
+      return ret;
     }
 };
 
@@ -768,7 +902,7 @@ template<typename char_type, typename text_offset_type>
 void nonterminal<char_type, text_offset_type>::decomposition(
     const std::uint64_t begin,
     const std::uint64_t end,
-    std::vector<const nonterminal_type*> &ret) const {
+    space_efficient_vector<const nonterminal_type*> &ret) const {
   typedef const nonterminal_type * ptr_type;
   ptr_type x_p = this;
 
@@ -846,7 +980,7 @@ void nonterminal<char_type, text_offset_type>::decomposition(
 
     // Reverse the first sequence of nonterminals
     // collected during the left downward traversal.
-    std::reverse(ret.begin(), ret.end());
+    ret.reverse();
 
     // Perform the analogous operation for the right side.
     {
