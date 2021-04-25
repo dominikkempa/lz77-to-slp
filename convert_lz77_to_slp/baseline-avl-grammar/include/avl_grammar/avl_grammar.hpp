@@ -420,29 +420,37 @@ struct avl_grammar {
       ++i;
       std::uint64_t min_pos = i;
       std::uint64_t height = 0;
+      const std::uint64_t val = heap[min_pos - 1];
       {
-        const ptr_type nonterm_p = seq[heap[min_pos - 1]];
+        const ptr_type nonterm_p = seq[val];
         const nonterminal_type &nonterm = *nonterm_p;
         height = nonterm.get_height();
       }
       while (true) {
         std::uint64_t min_height = height;
+        std::uint64_t min_val = val;
         if ((i << 1) <= heap_size) {
-          const ptr_type left_p = seq[heap[(i << 1) - 1]];
+          const std::uint64_t left_val = heap[(i << 1) - 1];
+          const ptr_type left_p = seq[left_val];
           const nonterminal_type &left = *left_p;
           const std::uint64_t left_height = left.get_height();
-          if (left_height < min_height) {
+          if (left_height < min_height ||
+              (left_height == min_height && left_val < min_val)) {
             min_pos = (i << 1);
             min_height = left_height;
+            min_val = left_val;
           }
         }
         if ((i << 1) + 1 <= heap_size) {
-          const ptr_type right_p = seq[heap[i << 1]];
+          const std::uint64_t right_val = heap[i << 1];
+          const ptr_type right_p = seq[right_val];
           const nonterminal_type &right = *right_p;
           const std::uint64_t right_height = right.get_height();
-          if (right_height < min_height) {
+          if (right_height < min_height ||
+              (right_height == min_height && right_val < min_val)) {
             min_pos = (i << 1) + 1;
             min_height = right_height;
+            min_val = right_val;
           }
         }
         if (min_pos != i) {
@@ -485,6 +493,10 @@ struct avl_grammar {
         space_efficient_vector<const nonterminal_type *> &seq) {
       typedef const nonterminal_type * ptr_type;
 
+      // debug ////////////////////////////////////////////////////////////////
+      // fprintf(stderr, "\ngreedy_merge:\n");
+      /////////////////////////////////////////////////////////////////////////
+
       // Create the priority queue.
       const std::uint64_t num = seq.size();
       text_offset_type * const heap =
@@ -515,6 +527,20 @@ struct avl_grammar {
       ptr_type ret = NULL;
       while (true) {
         const std::uint64_t min_elem = heap[0];
+
+        // debug //////////////////////////////////////////////////////////////
+        // {
+        //   fprintf(stderr, "seq: ");
+        //   std::uint64_t t = next[sentinel];
+        //   while (t != sentinel) {
+        //     const nonterminal_type &nonterm = *seq[t];
+        //     const std::uint64_t height = nonterm.get_height();
+        //     fprintf(stderr, "(%lu, %lu) ", t, height);
+        //     t = next[t];
+        //   }
+        //   fprintf(stderr, ". min_elem = %lu\n", min_elem);
+        // }
+        ///////////////////////////////////////////////////////////////////////
 
         // If the element was already deleted, skip it.
         if (deleted[min_elem]) {
