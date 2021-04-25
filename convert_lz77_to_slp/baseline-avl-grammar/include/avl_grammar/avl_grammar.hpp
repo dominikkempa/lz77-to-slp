@@ -59,8 +59,8 @@ struct nonterminal {
     std::uint64_t get_exp_len() const;
     std::uint64_t get_kr_hash() const;
     char_type get_char() const;
-    const nonterminal_type * get_left_p() const;
-    const nonterminal_type * get_right_p() const;
+    ptr_type get_left_p() const;
+    ptr_type get_right_p() const;
 
     //=========================================================================
     // Key methods.
@@ -687,8 +687,8 @@ const nonterminal<char_type, text_offset_type>* nonterminal<char_type, text_offs
 //=============================================================================
 template<typename char_type, typename text_offset_type>
 void nonterminal<char_type, text_offset_type>::print_expansion() const {
-  typedef const nonterminal_type * ptr_type;
-  const nonterminal_type &x = *this;
+  const ptr_type x_p = this;
+  const nonterminal_type &x = *x_p;
   const std::uint64_t height = x.get_height();
   if (height == 0) {
     const char_type my_char = x.get_char();
@@ -709,7 +709,6 @@ void nonterminal<char_type, text_offset_type>::print_expansion() const {
 template<typename char_type, typename text_offset_type>
 std::uint64_t nonterminal<char_type, text_offset_type>
 ::write_expansion(char_type * const text) const {
-  typedef const nonterminal_type * ptr_type;
   const ptr_type x_p = this;
   const nonterminal_type &x = *x_p;
   const std::uint64_t x_height = x.get_height();
@@ -736,7 +735,6 @@ std::uint64_t nonterminal<char_type, text_offset_type>
 template<typename char_type, typename text_offset_type>
 bool nonterminal<char_type, text_offset_type>::compare_expansion_to_text(
     const char_type * const text) const {
-  typedef const nonterminal_type * ptr_type;
   const ptr_type x_p = this;
   const nonterminal_type &x = *x_p;
   const std::uint64_t x_height = x.get_height();
@@ -762,7 +760,6 @@ bool nonterminal<char_type, text_offset_type>::compare_expansion_to_text(
 //=============================================================================
 template<typename char_type, typename text_offset_type>
 bool nonterminal<char_type, text_offset_type>::test_avl_property() const {
-  typedef const nonterminal_type * ptr_type;
   const ptr_type x_p = this;
   const nonterminal_type &x = *x_p;
   const std::uint64_t x_height = x.get_height();
@@ -793,7 +790,6 @@ template<typename char_type, typename text_offset_type>
 std::uint64_t nonterminal<char_type, text_offset_type>
 ::collect_mersenne_karp_rabin_hashes(
     std::vector<std::uint64_t> &hashes) const {
-  typedef const nonterminal_type * ptr_type;
   const ptr_type x_p = this;
   const nonterminal_type &x = *x_p;
   const std::uint64_t x_height = x.get_height();
@@ -824,8 +820,7 @@ std::uint64_t nonterminal<char_type, text_offset_type>
 //=============================================================================
 template<typename char_type, typename text_offset_type>
 void nonterminal<char_type, text_offset_type>::collect_nonterminal_pointers(
-    std::vector<const nonterminal_type*> &pointers) const {
-  typedef const nonterminal_type * ptr_type;
+    std::vector<ptr_type> &pointers) const {
   const ptr_type x_p = this;
   const nonterminal_type &x = *x_p;
   const std::uint64_t x_height = x.get_height();
@@ -846,8 +841,7 @@ void nonterminal<char_type, text_offset_type>::collect_nonterminal_pointers(
 template<typename char_type, typename text_offset_type>
 std::uint64_t nonterminal<char_type, text_offset_type>
 ::collect_mersenne_karp_rabin_hashes_2(
-    hash_table<const nonterminal_type*, std::uint64_t> &hashes) const {
-  typedef const nonterminal_type * ptr_type;
+    hash_table<ptr_type, std::uint64_t> &hashes) const {
   const ptr_type x_p = this;
   const nonterminal_type &x = *x_p;
   const std::uint64_t x_height = x.get_height();
@@ -877,13 +871,13 @@ std::uint64_t nonterminal<char_type, text_offset_type>
 // Compute the number of nonterminals in the pruned grammar.
 //=============================================================================
 template<typename char_type, typename text_offset_type>
-void nonterminal<char_type, text_offset_type>::
-count_nonterminals_in_pruned_grammar(
-    hash_table<const nonterminal_type*, std::uint64_t> &hashes,
+void nonterminal<char_type, text_offset_type>
+::count_nonterminals_in_pruned_grammar(
+    hash_table<ptr_type, std::uint64_t> &hashes,
     hash_table<std::uint64_t, bool> &seen_hashes,
     std::uint64_t &current_count) const {
-  typedef const nonterminal_type * ptr_type;
-  const std::uint64_t * const h = hashes.find(this);
+  const ptr_type x_p = this;
+  const std::uint64_t * const h = hashes.find(x_p);
   if (seen_hashes.find(*h) == NULL) {
     seen_hashes.insert(*h, true);
     ++current_count;
@@ -911,7 +905,6 @@ void nonterminal<char_type, text_offset_type>::decomposition(
     const std::uint64_t begin,
     const std::uint64_t end,
     space_efficient_vector<const nonterminal_type*> &ret) const {
-  typedef const nonterminal_type * ptr_type;
   ptr_type x_p = this;
 
   // Handle boundary case.
