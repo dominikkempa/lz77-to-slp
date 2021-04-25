@@ -970,32 +970,41 @@ struct avl_grammar_multiroot {
         const space_efficient_vector<triple_type> &seq,
         text_offset_type * const heap,
         const std::uint64_t heap_size) const {
+      typedef text_offset_type ptr_type;
       ++i;
       std::uint64_t min_pos = i;
       std::uint64_t height = 0;
+      const std::uint64_t val = heap[min_pos - 1];
       {
-        const std::uint64_t id = seq[heap[min_pos - 1]].first;
-        const nonterminal_type &nonterm = get_nonterminal(id);
+        const ptr_type nonterm_p = seq[val].first;
+        const nonterminal_type &nonterm = get_nonterminal(nonterm_p);
         height = nonterm.get_height();
       }
       while (true) {
         std::uint64_t min_height = height;
+        std::uint64_t min_val = val;
         if ((i << 1) <= heap_size) {
-          const std::uint64_t left_id = seq[heap[(i << 1) - 1]].first;
-          const nonterminal_type &left = get_nonterminal(left_id);
+          const std::uint64_t left_val = heap[(i << 1) - 1];
+          const ptr_type left_p = seq[left_val].first;
+          const nonterminal_type &left = get_nonterminal(left_p);
           const std::uint64_t left_height = left.get_height();
-          if (left_height < min_height) {
+          if (left_height < min_height ||
+              (left_height == min_height && left_val < min_val)) {
             min_pos = (i << 1);
             min_height = left_height;
+            min_val = left_val;
           }
         }
         if ((i << 1) + 1 <= heap_size) {
-          const std::uint64_t right_id = seq[heap[i << 1]].first;
-          const nonterminal_type &right = get_nonterminal(right_id);
+          const std::uint64_t right_val = heap[i << 1];
+          const ptr_type right_p = seq[right_val].first;
+          const nonterminal_type &right = get_nonterminal(right_p);
           const std::uint64_t right_height = right.get_height();
-          if (right_height < min_height) {
+          if (right_height < min_height ||
+              (right_height == min_height && right_val < min_val)) {
             min_pos = (i << 1) + 1;
             min_height = right_height;
+            min_val = right_val;
           }
         }
         if (min_pos != i) {
