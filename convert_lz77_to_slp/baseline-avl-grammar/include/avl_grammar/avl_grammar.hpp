@@ -323,9 +323,9 @@ struct avl_grammar {
         } else {
           const ptr_type leftleft_p = left.get_left_p();
           const ptr_type leftright_p = left.get_right_p();
-          const nonterminal_type &leftleft = *leftleft_p;
           const ptr_type newright_p =
             add_concat_nonterminal(leftright_p, right_p);
+          const nonterminal_type &leftleft = *leftleft_p;
           const nonterminal_type &newright = *newright_p;
           if (newright.get_height() > leftleft.get_height() &&
               newright.get_height() - leftleft.get_height() > 1) {
@@ -367,9 +367,9 @@ struct avl_grammar {
         } else {
           const ptr_type rightleft_p = right.get_left_p();
           const ptr_type rightright_p = right.get_right_p();
-          const nonterminal_type &rightright = *rightright_p;
           const ptr_type newleft_p =
             add_concat_nonterminal(left_p, rightleft_p);
+          const nonterminal_type &rightright = *rightright_p;
           const nonterminal_type &newleft = *newleft_p;
           if (newleft.get_height() > rightright.get_height() &&
               newleft.get_height() - rightright.get_height() > 1) {

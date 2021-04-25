@@ -715,9 +715,13 @@ struct avl_grammar_multiroot {
         } else {
           const ptr_type leftleft_p = left.get_left_p();
           const ptr_type leftright_p = left.get_right_p();
-          const nonterminal_type &leftleft = m_nonterminals[leftleft_p];
+
+          // Careful here: add_concat_nonterminal may reallocate
+          // m_nonterminals, which may invalidate refs to m_nonterminals.
+          // This was a rather nasty bug, that took a while to find.
           const ptr_type newright_p =
             add_concat_nonterminal(leftright_p, right_p);
+          const nonterminal_type &leftleft = m_nonterminals[leftleft_p];
           const nonterminal_type &newright = m_nonterminals[newright_p];
           if (newright.get_height() > leftleft.get_height() &&
               newright.get_height() - leftleft.get_height() > 1) {
@@ -729,7 +733,8 @@ struct avl_grammar_multiroot {
             const nonterminal_type &newright_right = m_nonterminals[newright_right_p];
             if (newright_left.get_height() > newright_right.get_height()) {
 
-              // Double (right-left) rotation.
+              // Double (right-left) rotation. Be careful also here:
+              // add_nonterminal can also invalidate refs to m_nonterminals.
               const ptr_type newright_leftleft_p = newright_left.get_left_p();
               const ptr_type newright_leftright_p = newright_left.get_right_p();
               const ptr_type X_p = add_nonterminal(leftleft_p, newright_leftleft_p);
@@ -759,9 +764,9 @@ struct avl_grammar_multiroot {
         } else {
           const ptr_type rightleft_p = right.get_left_p();
           const ptr_type rightright_p = right.get_right_p();
-          const nonterminal_type &rightright = m_nonterminals[rightright_p];
           const ptr_type newleft_p =
             add_concat_nonterminal(left_p, rightleft_p);
+          const nonterminal_type &rightright = m_nonterminals[rightright_p];
           const nonterminal_type &newleft = m_nonterminals[newleft_p];
           if (newleft.get_height() > rightright.get_height() &&
               newleft.get_height() - rightright.get_height() > 1) {
