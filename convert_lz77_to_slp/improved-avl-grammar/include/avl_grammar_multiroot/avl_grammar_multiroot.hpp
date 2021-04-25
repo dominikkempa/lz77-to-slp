@@ -351,26 +351,6 @@ struct avl_grammar_multiroot {
     }
 
     //=========================================================================
-    // Return the height of a given nonterminal.
-    //=========================================================================
-    std::uint64_t get_height(const std::uint64_t id) const {
-      const nonterminal_type &nonterm = get_nonterminal(id);
-      return nonterm.get_height();
-    }
-
-    //=========================================================================
-    // Return the char associated with a given nonterminal.
-    //=========================================================================
-    char_type get_char(const std::uint64_t id) const {
-      const nonterminal_type &nonterm = get_nonterminal(id);
-      const std::uint64_t height = nonterm.get_height();
-      if (height == 0) {
-        char_type c = (char_type)((std::uint64_t)nonterm.get_left_p());
-        return c;
-      } else return (char_type)0;
-    }
-
-    //=========================================================================
     // Return the expansion length of a given nonterminal.
     //=========================================================================
     std::uint64_t get_exp_len(const std::uint64_t id) const {
@@ -434,22 +414,6 @@ struct avl_grammar_multiroot {
 
       // Return the result.
       return kr_hash;
-    }
-
-    //=========================================================================
-    // Return the ID of the left child a given nonterminal.
-    //=========================================================================
-    std::uint64_t get_left_id(const std::uint64_t id) const {
-      const nonterminal_type &nonterm = get_nonterminal(id);
-      return nonterm.get_left_p();
-    }
-
-    //=========================================================================
-    // Return the ID of a right child a given nonterminal.
-    //=========================================================================
-    std::uint64_t get_right_id(const std::uint64_t id) const {
-      const nonterminal_type &nonterm = get_nonterminal(id);
-      return nonterm.get_right_p();
     }
 
     //=========================================================================
@@ -1005,15 +969,32 @@ struct avl_grammar_multiroot {
         const std::uint64_t heap_size) const {
       ++i;
       std::uint64_t min_pos = i;
+      std::uint64_t height = 0;
+      {
+        const std::uint64_t id = seq[heap[min_pos - 1]].first;
+        const nonterminal_type &nonterm = get_nonterminal(id);
+        height = nonterm.get_height();
+      }
       while (true) {
-        if ((i << 1) <= heap_size &&
-            get_height(seq[heap[(i << 1) - 1]].first) <
-            get_height(seq[heap[min_pos - 1]].first))
-          min_pos = (i << 1);
-        if ((i << 1) + 1 <= heap_size &&
-            get_height(seq[heap[i << 1]].first) <
-            get_height(seq[heap[min_pos - 1]].first))
-          min_pos = (i << 1) + 1;
+        std::uint64_t min_height = height;
+        if ((i << 1) <= heap_size) {
+          const std::uint64_t left_id = seq[heap[(i << 1) - 1]].first;
+          const nonterminal_type &left = get_nonterminal(left_id);
+          const std::uint64_t left_height = left.get_height();
+          if (left_height < min_height) {
+            min_pos = (i << 1);
+            min_height = left_height;
+          }
+        }
+        if ((i << 1) + 1 <= heap_size) {
+          const std::uint64_t right_id = seq[heap[i << 1]].first;
+          const nonterminal_type &right = get_nonterminal(right_id);
+          const std::uint64_t right_height = right.get_height();
+          if (right_height < min_height) {
+            min_pos = (i << 1) + 1;
+            min_height = right_height;
+          }
+        }
         if (min_pos != i) {
           std::swap(heap[i - 1], heap[min_pos - 1]);
           i = min_pos;
@@ -1090,6 +1071,21 @@ struct avl_grammar_multiroot {
           continue;
         }
 
+        std::uint64_t prev_height = 0;
+        std::uint64_t next_height = 0;
+        if ((std::uint64_t)prev[min_elem] != sentinel) {
+          const std::uint64_t idx = prev[min_elem];
+          const nonterminal_type &prev_nonterm =
+            get_nonterminal(seq[idx].first);
+          prev_height = prev_nonterm.get_height();
+        }
+        if ((std::uint64_t)next[min_elem] != sentinel) {
+          const std::uint64_t idx = next[min_elem];
+          const nonterminal_type &next_nonterm =
+            get_nonterminal(seq[idx].first);
+          next_height = next_nonterm.get_height();
+        }
+
         // Merge min_elem with one of its
         // beighbors (whichever is shorter).
         if ((std::uint64_t)prev[min_elem] == sentinel &&
@@ -1101,8 +1097,7 @@ struct avl_grammar_multiroot {
           break;
         } else if ((std::uint64_t)prev[min_elem] == sentinel ||
             ((std::uint64_t)next[min_elem] != sentinel &&
-             get_height(seq[next[min_elem]].first) <=
-             get_height(seq[prev[min_elem]].first))) {
+             next_height <= prev_height)) {
 
           // Only right neighbor exists, or both exist
           // and the right one is not taller than the left
