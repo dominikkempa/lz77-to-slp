@@ -1473,32 +1473,36 @@ void nonterminal<char_type, text_offset_type>::decomposition(
   if (begin == end)
     return;
 
-  // Find the deepest nonterminal in the parse tree containing the range
-  // [begin..end).
-  std::uint64_t cur_range_beg = 0;
-  std::uint64_t cur_range_end = 0;
+  // Compute height and expansion length for x.
+  std::uint64_t x_height = 0;
+  std::uint64_t x_exp_len = 0;
   {
     const nonterminal_type &x = g->get_nonterminal(x_p);
-    std::uint64_t x_height = x.get_height();
-    const std::uint64_t x_exp_len = g->get_exp_len(x_p);
-    cur_range_end = x_exp_len;
-    while (x_height > 0) {
-      const ptr_type x_left_p = x.get_left_p();
-      const ptr_type x_right_p = x.get_right_p();
-      const nonterminal_type &x_left = g->get_nonterminal(x_left_p);
-      const nonterminal_type &x_right = g->get_nonterminal(x_right_p);
-      const std::uint64_t x_left_exp_len = g->get_exp_len(x_left_p);
-      const std::uint64_t cur_range_mid = cur_range_beg + x_left_exp_len;
-      if (end <= cur_range_mid) {
-        cur_range_end = cur_range_mid;
-        x_p = x_left_p;
-        x_height = x_left.get_height();
-      } else if (begin >= cur_range_mid) {
-        cur_range_beg = cur_range_mid;
-        x_p = x_right_p;
-        x_height = x_right.get_height();
-      } else break;
-    }
+    x_height = x.get_height();
+    x_exp_len = g->get_exp_len(x_p);
+  }
+
+  // Find the deepest nonterminal in the parse tree
+  // containing the range [begin..end).
+  std::uint64_t cur_range_beg = 0;
+  std::uint64_t cur_range_end = x_exp_len;
+  while (x_height > 0) {
+    const nonterminal_type &x = g->get_nonterminal(x_p);
+    const ptr_type x_left_p = x.get_left_p();
+    const ptr_type x_right_p = x.get_right_p();
+    const nonterminal_type &x_left = g->get_nonterminal(x_left_p);
+    const nonterminal_type &x_right = g->get_nonterminal(x_right_p);
+    const std::uint64_t x_left_exp_len = g->get_exp_len(x_left_p);
+    const std::uint64_t cur_range_mid = cur_range_beg + x_left_exp_len;
+    if (end <= cur_range_mid) {
+      cur_range_end = cur_range_mid;
+      x_p = x_left_p;
+      x_height = x_left.get_height();
+    } else if (begin >= cur_range_mid) {
+      cur_range_beg = cur_range_mid;
+      x_p = x_right_p;
+      x_height = x_right.get_height();
+    } else break;
   }
 
   // Check if the range of x is exactly [begin..end).
