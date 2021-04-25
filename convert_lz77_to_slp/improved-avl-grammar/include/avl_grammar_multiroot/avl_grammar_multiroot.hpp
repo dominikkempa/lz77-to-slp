@@ -54,7 +54,7 @@ struct nonterminal {
     nonterminal(const std::uint64_t, const std::uint64_t,
         const grammar_type * const g);
     nonterminal(const std::uint8_t, const std::uint8_t,
-      const text_offset_type, const text_offset_type);
+      const ptr_type, const ptr_type);
 
     //=========================================================================
     // Access methods.
@@ -128,6 +128,7 @@ struct avl_grammar_multiroot {
     // Declare typedefs.
     //=========================================================================
     typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+    typedef text_offset_type ptr_type;
     typedef packed_pair<text_offset_type, text_offset_type> pair_type;
     typedef packed_triple<text_offset_type, text_offset_type, std::uint64_t>
       triple_type;
@@ -140,7 +141,7 @@ struct avl_grammar_multiroot {
     space_efficient_vector<nonterminal_type> m_nonterminals;
     space_efficient_vector<pair_type> m_long_exp_len;
     space_efficient_vector<hash_pair_type> m_long_exp_hashes;
-    hash_table<std::uint64_t, text_offset_type, text_offset_type> m_hashes;
+    hash_table<std::uint64_t, ptr_type, text_offset_type> m_hashes;
     cache<text_offset_type, std::uint64_t> *m_kr_hash_cache;
     char_type *m_snippet;
     std::uint64_t empty_step_counter;
@@ -306,7 +307,7 @@ struct avl_grammar_multiroot {
       for (std::uint64_t i = roots_begin();
           i != roots_end(); i = roots_next(i)) {
         const std::uint64_t preflen = m_roots_vec[i].first;
-        const std::uint64_t id = m_roots_vec[i].second;
+        const ptr_type id = m_roots_vec[i].second;
         if (preflen != 0) {
           const nonterminal_type &nonterm = get_nonterminal(id);
           nonterm.print_expansion(id, this);
@@ -337,21 +338,21 @@ struct avl_grammar_multiroot {
     //=========================================================================
     void push_root(
         const std::uint64_t pos,
-        const std::uint64_t id) {
+        const ptr_type id) {
       m_roots_vec.push_back(pair_type(pos, id));
     }
 
     //=========================================================================
     // Gives access to a given nonterminal.
     //=========================================================================
-    const nonterminal_type& get_nonterminal(const std::uint64_t id) const {
-      return m_nonterminals[id];
+    const nonterminal_type& get_nonterminal(const ptr_type id) const {
+      return m_nonterminals[(std::uint64_t)id];
     }
 
     //=========================================================================
     // Return the expansion length of a given nonterminal.
     //=========================================================================
-    std::uint64_t get_exp_len(const std::uint64_t id) const {
+    std::uint64_t get_exp_len(const ptr_type id) const {
       const nonterminal_type &nonterm = get_nonterminal(id);
       const std::uint64_t truncated_exp_len = nonterm.get_truncated_exp_len();
       if (truncated_exp_len == 255) {
@@ -362,7 +363,7 @@ struct avl_grammar_multiroot {
         while (beg + 1 < end) {
           const std::uint64_t mid = (beg + end) / 2;
           const std::uint64_t mid_id = m_long_exp_len[mid].first;
-          if (mid_id <= id)
+          if (mid_id <= (std::uint64_t)id)
             beg = mid;
           else end = mid;
         }
@@ -439,12 +440,11 @@ struct avl_grammar_multiroot {
     //=========================================================================
     // Add a new binary nonterminal.
     //=========================================================================
-    std::uint64_t add_nonterminal(
-        const std::uint64_t left_p,
-        const std::uint64_t right_p) {
-      typedef text_offset_type ptr_type;
-      const nonterminal_type &left = m_nonterminals[left_p];
-      const nonterminal_type &right = m_nonterminals[right_p];
+    ptr_type add_nonterminal(
+        const ptr_type left_p,
+        const ptr_type right_p) {
+      const nonterminal_type &left = get_nonterminal(left_p);
+      const nonterminal_type &right = get_nonterminal(right_p);
 
       // Compute values for the new nonterminal.
       const std::uint64_t left_exp_len = get_exp_len(left_p);
@@ -459,8 +459,8 @@ struct avl_grammar_multiroot {
       nonterminal_type new_nonterm(
          (std::uint8_t)height,
          (std::uint8_t)std::min(255UL, exp_len),
-         (text_offset_type)left_p,
-         (text_offset_type)right_p);
+         left_p,
+         right_p);
       m_nonterminals.push_back(new_nonterm);
 
       // With probability 1/8 add to hash table.
@@ -703,8 +703,8 @@ struct avl_grammar_multiroot {
 
       // Consider two cases, depending on whether
       // left of right nonterminal is taller.
-      const nonterminal_type &left = m_nonterminals[left_p];
-      const nonterminal_type &right = m_nonterminals[right_p];
+      const nonterminal_type &left = get_nonterminal(left_p);
+      const nonterminal_type &right = get_nonterminal(right_p);
       if (left.get_height() >= right.get_height()) {
         if (left.get_height() - right.get_height() <= 1) {
 
@@ -720,16 +720,16 @@ struct avl_grammar_multiroot {
           // This was a rather nasty bug, that took a while to find.
           const ptr_type newright_p =
             add_concat_nonterminal(leftright_p, right_p);
-          const nonterminal_type &leftleft = m_nonterminals[leftleft_p];
-          const nonterminal_type &newright = m_nonterminals[newright_p];
+          const nonterminal_type &leftleft = get_nonterminal(leftleft_p);
+          const nonterminal_type &newright = get_nonterminal(newright_p);
           if (newright.get_height() > leftleft.get_height() &&
               newright.get_height() - leftleft.get_height() > 1) {
 
             // Rebalancing needed.
             const ptr_type newright_left_p = newright.get_left_p();
             const ptr_type newright_right_p = newright.get_right_p();
-            const nonterminal_type &newright_left = m_nonterminals[newright_left_p];
-            const nonterminal_type &newright_right = m_nonterminals[newright_right_p];
+            const nonterminal_type &newright_left = get_nonterminal(newright_left_p);
+            const nonterminal_type &newright_right = get_nonterminal(newright_right_p);
             if (newright_left.get_height() > newright_right.get_height()) {
 
               // Double (right-left) rotation. Be careful also here:
@@ -765,16 +765,16 @@ struct avl_grammar_multiroot {
           const ptr_type rightright_p = right.get_right_p();
           const ptr_type newleft_p =
             add_concat_nonterminal(left_p, rightleft_p);
-          const nonterminal_type &rightright = m_nonterminals[rightright_p];
-          const nonterminal_type &newleft = m_nonterminals[newleft_p];
+          const nonterminal_type &rightright = get_nonterminal(rightright_p);
+          const nonterminal_type &newleft = get_nonterminal(newleft_p);
           if (newleft.get_height() > rightright.get_height() &&
               newleft.get_height() - rightright.get_height() > 1) {
 
             // Rebalancing needed.
             const ptr_type newleft_left_p = newleft.get_left_p();
             const ptr_type newleft_right_p = newleft.get_right_p();
-            const nonterminal_type &newleft_left = m_nonterminals[newleft_left_p];
-            const nonterminal_type &newleft_right = m_nonterminals[newleft_right_p];
+            const nonterminal_type &newleft_left = get_nonterminal(newleft_left_p);
+            const nonterminal_type &newleft_right = get_nonterminal(newleft_right_p);
             if (newleft_right.get_height() > newleft_left.get_height()) {
 
               // Double (left-right) rotation.
@@ -971,7 +971,6 @@ struct avl_grammar_multiroot {
         const space_efficient_vector<triple_type> &seq,
         text_offset_type * const heap,
         const std::uint64_t heap_size) const {
-      typedef text_offset_type ptr_type;
       ++i;
       std::uint64_t min_pos = i;
       std::uint64_t height = 0;
@@ -1088,14 +1087,16 @@ struct avl_grammar_multiroot {
         std::uint64_t next_height = 0;
         if ((std::uint64_t)prev[min_elem] != sentinel) {
           const std::uint64_t idx = prev[min_elem];
+          const ptr_type prev_nonterm_p = seq[idx].first;
           const nonterminal_type &prev_nonterm =
-            get_nonterminal(seq[idx].first);
+            get_nonterminal(prev_nonterm_p);
           prev_height = prev_nonterm.get_height();
         }
         if ((std::uint64_t)next[min_elem] != sentinel) {
           const std::uint64_t idx = next[min_elem];
+          const ptr_type next_nonterm_p = seq[idx].first;
           const nonterminal_type &next_nonterm =
-            get_nonterminal(seq[idx].first);
+            get_nonterminal(next_nonterm_p);
           next_height = next_nonterm.get_height();
         }
 
@@ -1116,8 +1117,8 @@ struct avl_grammar_multiroot {
           // and the right one is not taller than the left
           // one. End result: merge with the right neighbor.
           const std::uint64_t right_elem = next[min_elem];
-          const std::uint64_t left_id = seq[min_elem].first;
-          const std::uint64_t right_id = seq[right_elem].first;
+          const ptr_type left_p = seq[min_elem].first;
+          const ptr_type right_p = seq[right_elem].first;
           const std::uint64_t left_hash = seq[min_elem].third;
           const std::uint64_t right_hash = seq[right_elem].third;
           const std::uint64_t left_len = seq[min_elem].second;
@@ -1125,12 +1126,12 @@ struct avl_grammar_multiroot {
           const std::uint64_t merged_len = left_len + right_len;
           const std::uint64_t h =
             karp_rabin_hashing::concat(left_hash, right_hash, right_len);
-          std::uint64_t id_merged = 0;
+          ptr_type id_merged = 0;
           const text_offset_type * const hash_ret = m_hashes.find(h);
           if (hash_ret != NULL)
             id_merged = *hash_ret;
           else
-            id_merged = add_concat_nonterminal(left_id, right_id);
+            id_merged = add_concat_nonterminal(left_p, right_p);
           seq[min_elem].first = id_merged;
           seq[min_elem].second = merged_len;
           seq[min_elem].third = h;
@@ -1144,8 +1145,8 @@ struct avl_grammar_multiroot {
           // and the left one is not taller than the
           // right one. End result: merge with left neighbor.
           const std::uint64_t left_elem = prev[min_elem];
-          const std::uint64_t left_id = seq[left_elem].first;
-          const std::uint64_t right_id = seq[min_elem].first;
+          const ptr_type left_p = seq[left_elem].first;
+          const ptr_type right_p = seq[min_elem].first;
           const std::uint64_t left_hash = seq[left_elem].third;
           const std::uint64_t right_hash = seq[min_elem].third;
           const std::uint64_t left_len = seq[left_elem].second;
@@ -1153,12 +1154,12 @@ struct avl_grammar_multiroot {
           const std::uint64_t merged_len = left_len + right_len;
           const std::uint64_t h =
             karp_rabin_hashing::concat(left_hash, right_hash, right_len);
-          std::uint64_t id_merged = 0;
+          ptr_type id_merged = 0;
           const text_offset_type * const hash_ret = m_hashes.find(h);
           if (hash_ret != NULL)
             id_merged = *hash_ret;
           else
-            id_merged = add_concat_nonterminal(left_id, right_id);
+            id_merged = add_concat_nonterminal(left_p, right_p);
           seq[min_elem].first = id_merged;
           seq[min_elem].second = merged_len;
           seq[min_elem].third = h;

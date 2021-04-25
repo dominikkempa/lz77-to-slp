@@ -29,16 +29,17 @@ struct nonterminal {
     // Declare types.
     //=========================================================================
     typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+    typedef const nonterminal_type * ptr_type;
     typedef avl_grammar<char_type, text_offset_type> grammar_type;
 
     //=========================================================================
     // Class members.
     //=========================================================================
-    const std::uint8_t m_height;
-    const text_offset_type m_exp_len;
-    const std::uint64_t m_kr_hash;
-    const nonterminal_type * m_left_p;
-    const nonterminal_type * m_right_p;
+    std::uint8_t m_height;
+    text_offset_type m_exp_len;
+    std::uint64_t m_kr_hash;
+    ptr_type m_left_p;
+    ptr_type m_right_p;
 
   public:
 
@@ -118,12 +119,13 @@ struct avl_grammar {
     // Declare typedefs.
     //=========================================================================
     typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+    typedef const nonterminal_type * ptr_type;
 
     //=========================================================================
     // Class members.
     //=========================================================================
-    std::vector<const nonterminal_type*> m_nonterminals;
-    const nonterminal_type *m_root;
+    std::vector<ptr_type> m_nonterminals;
+    ptr_type m_root;
 
   public:
 
@@ -158,7 +160,7 @@ struct avl_grammar {
     //=========================================================================
     // Get the root.
     //=========================================================================
-    const nonterminal_type * get_root() const {
+    ptr_type get_root() const {
       return m_root;
     }
 
@@ -166,24 +168,23 @@ struct avl_grammar {
     // Set the root.
     //=========================================================================
     void set_root(
-        const nonterminal_type * const newroot) {
+        const ptr_type newroot) {
       m_root = newroot;
     }
 
     //=========================================================================
     // Add a nonterminal.
     //=========================================================================
-    void add_nonterminal(const nonterminal_type* nonterm) {
+    void add_nonterminal(const ptr_type nonterm) {
       m_nonterminals.push_back(nonterm);
     }
 
     //=========================================================================
     // Add a new binary nonterminal.
     //=========================================================================
-    const nonterminal_type* add_nonterminal(
-        const nonterminal_type *left_p,
-        const nonterminal_type *right_p) {
-      typedef const nonterminal_type * ptr_type;
+    ptr_type add_nonterminal(
+        const ptr_type left_p,
+        const ptr_type right_p) {
       const nonterminal_type &left = *left_p;
       const nonterminal_type &right = *right_p;
 
@@ -284,11 +285,11 @@ struct avl_grammar {
     //=========================================================================
     // Add a nonterminal expanding to a substring of a given nonterminal.
     //=========================================================================
-    const nonterminal_type* add_substring_nonterminal(
-        const nonterminal_type *x,
+    ptr_type add_substring_nonterminal(
+        const ptr_type x,
         const std::uint64_t begin,
         const std::uint64_t end) {
-      space_efficient_vector<const nonterminal_type*> v;
+      space_efficient_vector<ptr_type> v;
       x->decomposition(begin, end, v);
       return greedy_merge(v);
     }
@@ -307,9 +308,8 @@ struct avl_grammar {
     // nonterminals that expands to XY, and return the pointer to it.
     //=========================================================================
     const nonterminal_type *add_concat_nonterminal(
-        const nonterminal_type * const left_p,
-        const nonterminal_type * const right_p) {
-      typedef const nonterminal_type * ptr_type;
+        const ptr_type left_p,
+        const ptr_type right_p) {
 
       // Consider two cases, depending on whether
       // left of right nonterminal is taller.
@@ -416,7 +416,6 @@ struct avl_grammar {
         const space_efficient_vector<const nonterminal_type *> &seq,
         text_offset_type * const heap,
         const std::uint64_t heap_size) const {
-      typedef const nonterminal_type * ptr_type;
       ++i;
       std::uint64_t min_pos = i;
       std::uint64_t height = 0;
@@ -489,9 +488,8 @@ struct avl_grammar {
     // Merge greedily (shortest first) sequence of nonterminals.
     // Uses binary heap to achieve O(m log m) time.
     //=========================================================================
-    const nonterminal_type * greedy_merge(
-        space_efficient_vector<const nonterminal_type *> &seq) {
-      typedef const nonterminal_type * ptr_type;
+    ptr_type greedy_merge(
+        space_efficient_vector<ptr_type> &seq) {
 
       // Create the priority queue.
       const std::uint64_t num = seq.size();
@@ -534,12 +532,14 @@ struct avl_grammar {
         std::uint64_t next_height = 0;
         if ((std::uint64_t)prev[min_elem] != sentinel) {
           const std::uint64_t idx = prev[min_elem];
-          const nonterminal_type &prev_nonterm = *(seq[idx]);
+          const ptr_type prev_nonterm_p = seq[idx];
+          const nonterminal_type &prev_nonterm = *prev_nonterm_p;
           prev_height = prev_nonterm.get_height();
         }
         if ((std::uint64_t)next[min_elem] != sentinel) {
           const std::uint64_t idx = next[min_elem];
-          const nonterminal_type &next_nonterm = *(seq[idx]);
+          const ptr_type next_nonterm_p = seq[idx];
+          const nonterminal_type &next_nonterm = *next_nonterm_p;
           next_height = next_nonterm.get_height();
         }
 
