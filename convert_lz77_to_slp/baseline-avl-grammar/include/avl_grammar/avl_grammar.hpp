@@ -42,22 +42,36 @@ struct nonterminal {
   public:
 
     //=========================================================================
-    // Class methods.
+    // Constructors.
     //=========================================================================
     nonterminal();
     nonterminal(const char_type);
     nonterminal(const std::uint8_t, const text_offset_type, const std::uint64_t,
       const nonterminal_type * const, const nonterminal_type * const);
     nonterminal(const nonterminal_type * const, const nonterminal_type * const);
+
+    //=========================================================================
+    // Access methods.
+    //=========================================================================
     std::uint64_t get_height() const;
     std::uint64_t get_exp_len() const;
     std::uint64_t get_kr_hash() const;
+    char_type get_char() const;
     const nonterminal_type * get_left_p() const;
     const nonterminal_type * get_right_p() const;
-    void print_expansion() const;
+
+    //=========================================================================
+    // Key methods.
+    //=========================================================================
+    void decomposition(const std::uint64_t, const std::uint64_t,
+        std::vector<const nonterminal_type*> &) const;
     void write_expansion(char_type * const) const;
+
+    //=========================================================================
+    // Mostly unused.
+    //=========================================================================
+    void print_expansion() const;
     bool test_avl_property() const;
-    char_type get_char() const;
     std::uint64_t collect_mersenne_karp_rabin_hashes(
         std::vector<std::uint64_t> &) const;
     void collect_nonterminal_pointers(
@@ -68,9 +82,7 @@ struct nonterminal {
         hash_table<const nonterminal_type*, std::uint64_t> &h,
         hash_table<std::uint64_t, bool> &,
         std::uint64_t &) const;
-    void decomposition(const std::uint64_t, const std::uint64_t,
-        std::vector<const nonterminal_type*> &) const;
-};
+} __attribute__((packed));
 
 //=============================================================================
 // Hash functions of the appropriate type.
@@ -176,10 +188,10 @@ struct avl_grammar {
       // Compute values for the new nonterminal.
       const std::uint64_t left_exp_len = left.get_exp_len();
       const std::uint64_t right_exp_len = right.get_exp_len();
-      const std::uint64_t new_exp_len = left_exp_len + right_exp_len;
+      const std::uint64_t exp_len = left_exp_len + right_exp_len;
       const std::uint8_t left_height = left.get_height();
       const std::uint8_t right_height = right.get_height();
-      const std::uint8_t new_height = std::max(left_height, right_height) + 1;
+      const std::uint8_t height = std::max(left_height, right_height) + 1;
       const std::uint64_t left_kr_hash = left.get_kr_hash();
       const std::uint64_t right_kr_hash = right.get_kr_hash();
       const std::uint64_t new_kr_hash = karp_rabin_hashing::concat(
@@ -187,8 +199,8 @@ struct avl_grammar {
 
       // Create and add new nonterminal.
       const ptr_type new_nonterm_p = new nonterminal_type(
-         (std::uint8_t)new_height,
-         (text_offset_type)new_exp_len,
+         (std::uint8_t)height,
+         (text_offset_type)exp_len,
          new_kr_hash, left_p, right_p);
       m_nonterminals.push_back(new_nonterm_p);
 
@@ -506,12 +518,19 @@ const nonterminal<char_type, text_offset_type>* nonterminal<char_type, text_offs
 //=============================================================================
 template<typename char_type, typename text_offset_type>
 void nonterminal<char_type, text_offset_type>::print_expansion() const {
-  if (m_height == 0) {
-    const char_type my_char = get_char();
+  typedef const nonterminal_type * ptr_type;
+  const nonterminal_type &x = *this;
+  const std::uint64_t height = x.get_height();
+  if (height == 0) {
+    const char_type my_char = x.get_char();
     fprintf(stderr, "%c", (char)my_char);
   } else {
-    m_left_p->print_expansion();
-    m_right_p->print_expansion();
+    const ptr_type x_left_p = x.get_left_p();
+    const ptr_type x_right_p = x.get_right_p();
+    const nonterminal_type &x_left = *x_left_p;
+    const nonterminal_type &x_right = *x_right_p;
+    x_left.print_expansion();
+    x_right.print_expansion();
   }
 }
 
@@ -625,15 +644,22 @@ count_nonterminals_in_pruned_grammar(
     hash_table<const nonterminal_type*, std::uint64_t> &hashes,
     hash_table<std::uint64_t, bool> &seen_hashes,
     std::uint64_t &current_count) const {
+  typedef const nonterminal_type * ptr_type;
   const std::uint64_t * const h = hashes.find(this);
   if (seen_hashes.find(*h) == NULL) {
     seen_hashes.insert(*h, true);
     ++current_count;
-    if (m_height != 0) {
-      m_left_p->count_nonterminals_in_pruned_grammar(hashes,
-          seen_hashes, current_count);
-      m_right_p->count_nonterminals_in_pruned_grammar(hashes,
-          seen_hashes, current_count);
+    const nonterminal_type &x = *this;
+    const std::uint64_t x_height = x.get_height();
+    if (x_height != 0) {
+      const ptr_type x_left_p = x.get_left_p();
+      const ptr_type x_right_p = get_right_p();
+      const nonterminal_type &x_left = *x_left_p;
+      const nonterminal_type &x_right = *x_right_p;
+      x_left.count_nonterminals_in_pruned_grammar(
+          hashes, seen_hashes, current_count);
+      x_right.count_nonterminals_in_pruned_grammar(
+          hashes, seen_hashes, current_count);
     }
   }
 }
@@ -647,6 +673,8 @@ void nonterminal<char_type, text_offset_type>::decomposition(
     const std::uint64_t begin,
     const std::uint64_t end,
     std::vector<const nonterminal_type*> &ret) const {
+  typedef const nonterminal_type * ptr_type;
+  ptr_type x_p = this;
 
   // Handle boundary case.
   if (begin == end)
@@ -654,46 +682,59 @@ void nonterminal<char_type, text_offset_type>::decomposition(
 
   // Find the deepest nonterminal in the parse tree containing the range
   // [begin..end).
-  const nonterminal_type *x = this;
   std::uint64_t cur_range_beg = 0;
-  std::uint64_t cur_range_end = x->m_exp_len;
-  while (x->m_height > 0) {
-    const nonterminal_type * const x_left = x->m_left_p;
-    const nonterminal_type * const x_right = x->m_right_p;
-    const std::uint64_t x_left_exp_len = x_left->m_exp_len;
-    const std::uint64_t cur_range_mid = cur_range_beg + x_left_exp_len;
-    if (end <= cur_range_mid) {
-      cur_range_end = cur_range_mid;
-      x = x_left;
-    } else if (begin >= cur_range_mid) {
-      cur_range_beg = cur_range_mid;
-      x = x_right;
-    } else break;
+  std::uint64_t cur_range_end = 0;
+  {
+    const nonterminal_type &x = *x_p;
+    std::uint64_t x_height = x.get_height();
+    const std::uint64_t x_exp_len = x.get_exp_len();
+    cur_range_end = x_exp_len;
+    while (x_height > 0) {
+      const ptr_type x_left_p = x.get_left_p();
+      const ptr_type x_right_p = x.get_right_p();
+      const nonterminal_type &x_left = *x_left_p;
+      const nonterminal_type &x_right = *x_right_p;
+      const std::uint64_t x_left_exp_len = x_left.get_exp_len();
+      const std::uint64_t cur_range_mid = cur_range_beg + x_left_exp_len;
+      if (end <= cur_range_mid) {
+        cur_range_end = cur_range_mid;
+        x_p = x_left_p;
+        x_height = x_left.get_height();
+      } else if (begin >= cur_range_mid) {
+        cur_range_beg = cur_range_mid;
+        x_p = x_right_p;
+        x_height = x_right.get_height();
+      } else break;
+    }
   }
 
   // Check if the range of x is exactly [begin..end).
   if (cur_range_beg == begin && cur_range_end == end) {
 
     // If yes, return x as the answer.
-    ret.push_back(x);
+    ret.push_back(x_p);
   } else {
 
     // Otherwise, we perform two traversals in the tree.
     {
-      const nonterminal_type * const x_left_p = x->m_left_p;
-      const std::uint64_t x_left_exp_len = x_left_p->m_exp_len;
+      const nonterminal_type &x = *x_p;
+      const ptr_type x_left_p = x.get_left_p();
+      const nonterminal_type &x_left = *x_left_p;
+      const std::uint64_t x_left_exp_len = x_left.get_exp_len();
       const std::uint64_t left_range_end = cur_range_beg + x_left_exp_len;
       std::uint64_t suffix_length = left_range_end - begin;
-      const nonterminal_type *y_p = x_left_p;
+      ptr_type y_p = x_left_p;
       while (suffix_length > 0) {
-        const std::uint64_t y_exp_len = y_p->m_exp_len;
-        const nonterminal_type * const y_left_p = y_p->m_left_p;
-        const nonterminal_type * const y_right_p = y_p->m_right_p;
+        const nonterminal_type &y = *y_p;
+        const std::uint64_t y_exp_len = y.get_exp_len();
+        const ptr_type y_left_p = y.get_left_p();
+        const ptr_type y_right_p = y.get_right_p();
         if (y_exp_len == suffix_length) {
           ret.push_back(y_p);
           suffix_length -= y_exp_len;
         } else {
-          const std::uint64_t y_right_exp_len = y_right_p->m_exp_len;
+          const nonterminal_type &y_right = *y_right_p;
+          const std::uint64_t y_right_exp_len = y_right.get_exp_len();
           if (suffix_length > y_right_exp_len) {
             ret.push_back(y_right_p);
             suffix_length -= y_right_exp_len;
@@ -709,21 +750,25 @@ void nonterminal<char_type, text_offset_type>::decomposition(
 
     // Perform the analogous operation for the right side.
     {
-      const nonterminal_type * const x_left_p = x->m_left_p;
-      const nonterminal_type * const x_right_p = x->m_right_p;
-      const std::uint64_t x_left_exp_len = x_left_p->m_exp_len;
+      const nonterminal_type &x = *x_p;
+      const ptr_type x_left_p = x.get_left_p();
+      const ptr_type x_right_p = x.get_right_p();
+      const nonterminal_type &x_left = *x_left_p;
+      const std::uint64_t x_left_exp_len = x_left.get_exp_len();
       const std::uint64_t right_range_beg = cur_range_beg + x_left_exp_len;
       std::uint64_t prefix_length = end - right_range_beg;
-      const nonterminal_type *y_p = x_right_p;
+      ptr_type y_p = x_right_p;
       while (prefix_length > 0) {
-        const std::uint64_t y_exp_len = y_p->m_exp_len;
-        const nonterminal_type * const y_left_p = y_p->m_left_p;
-        const nonterminal_type * const y_right_p = y_p->m_right_p;
+        const nonterminal_type &y = *y_p;
+        const std::uint64_t y_exp_len = y.get_exp_len();
+        const ptr_type y_left_p = y.get_left_p();
+        const ptr_type y_right_p = y.get_right_p();
         if (y_exp_len == prefix_length) {
           ret.push_back(y_p);
           prefix_length -= y_exp_len;
         } else {
-          const std::uint64_t y_left_exp_len = y_left_p->m_exp_len;
+          const nonterminal_type &y_left = *y_left_p;
+          const std::uint64_t y_left_exp_len = y_left.get_exp_len();
           if (prefix_length > y_left_exp_len) {
             ret.push_back(y_left_p);
             prefix_length -= y_left_exp_len;

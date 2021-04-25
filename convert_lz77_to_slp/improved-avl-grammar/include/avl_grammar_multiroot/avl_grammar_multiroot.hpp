@@ -47,7 +47,7 @@ struct nonterminal {
   public:
 
     //=========================================================================
-    // Class methods.
+    // Constructors.
     //=========================================================================
     nonterminal();
     nonterminal(const char_type);
@@ -55,13 +55,28 @@ struct nonterminal {
         const grammar_type * const g);
     nonterminal(const std::uint8_t, const std::uint8_t,
       const text_offset_type, const text_offset_type);
+
+    //=========================================================================
+    // Access methods.
+    //=========================================================================
     std::uint64_t get_height() const;
     std::uint64_t get_truncated_exp_len() const;
     std::uint64_t get_left_p() const;
     std::uint64_t get_right_p() const;
-    void print_expansion( const std::uint64_t,
-        const grammar_type * const) const;
+
+    //=========================================================================
+    // Key methods.
+    //=========================================================================
+    void decomposition(const std::uint64_t, const std::uint64_t,
+        const std::uint64_t, space_efficient_vector<pair_type> &,
+        const grammar_type * const g) const;
     std::uint64_t write_expansion(const std::uint64_t, char_type * const,
+        const grammar_type * const) const;
+
+    //=========================================================================
+    // Mostly unused.
+    //=========================================================================
+    void print_expansion( const std::uint64_t,
         const grammar_type * const) const;
     bool compare_expansion_to_text(const std::uint64_t,
         const char_type * const, const grammar_type * const) const;
@@ -78,9 +93,6 @@ struct nonterminal {
         hash_table<text_offset_type, std::uint64_t> &,
         hash_table<std::uint64_t, bool> &,
         std::uint64_t &, const grammar_type * const) const;
-    void decomposition(const std::uint64_t, const std::uint64_t,
-        const std::uint64_t, space_efficient_vector<pair_type> &,
-        const grammar_type * const g) const;
 } __attribute__((packed));
 
 //=============================================================================
@@ -394,12 +406,12 @@ struct avl_grammar_multiroot {
       const nonterminal_type &nonterm = get_nonterminal(id);
       const std::uint64_t truncated_exp_len =
         nonterm.get_truncated_exp_len();
-      std::uint64_t ret = 0;
+      std::uint64_t kr_hash = 0;
       if (truncated_exp_len < 255) {
 
         // Recompute the hash from scratch.
         (void) nonterm.write_expansion(id, m_snippet, this);
-        ret = karp_rabin_hashing::hash_string<char_type>(
+        kr_hash = karp_rabin_hashing::hash_string<char_type>(
             m_snippet, truncated_exp_len);
       } else {
 
@@ -413,14 +425,14 @@ struct avl_grammar_multiroot {
             beg = mid;
           else end = mid;
         }
-        ret = m_long_exp_hashes[beg].second;
+        kr_hash = m_long_exp_hashes[beg].second;
       }
 
       // Update cache.
-      m_kr_hash_cache->insert(id, ret);
+      m_kr_hash_cache->insert(id, kr_hash);
 
       // Return the result.
-      return ret;
+      return kr_hash;
     }
 
     //=========================================================================
@@ -474,57 +486,55 @@ struct avl_grammar_multiroot {
       // Compute values for the new nonterminal.
       const std::uint64_t left_exp_len = get_exp_len(left_p);
       const std::uint64_t right_exp_len = get_exp_len(right_p);
-      const std::uint64_t new_exp_len = left_exp_len + right_exp_len;
+      const std::uint64_t exp_len = left_exp_len + right_exp_len;
       const std::uint8_t left_height = left.get_height();
       const std::uint8_t right_height = right.get_height();
-      const std::uint8_t new_height = std::max(left_height, right_height) + 1;
+      const std::uint8_t height = std::max(left_height, right_height) + 1;
 
       // Create and add new nonterminal.
       const ptr_type new_nonterm_p = m_nonterminals.size();
       nonterminal_type new_nonterm(
-         (std::uint8_t)new_height,
-         (std::uint8_t)std::min(255UL, new_exp_len),
+         (std::uint8_t)height,
+         (std::uint8_t)std::min(255UL, exp_len),
          (text_offset_type)left_p,
          (text_offset_type)right_p);
       m_nonterminals.push_back(new_nonterm);
 
       // With probability 1/16 add to hash table.
-      std::uint64_t new_kr_hash = 0;
+      std::uint64_t kr_hash = 0;
       bool hash_computed = false;
       if (utils::random_int<std::uint64_t>(
             (std::uint64_t)0,
             (std::uint64_t)7) == 0) {
         const std::uint64_t left_hash = get_kr_hash(left_p);
         const std::uint64_t right_hash = get_kr_hash(right_p);
-        new_kr_hash = karp_rabin_hashing::concat(
+        kr_hash = karp_rabin_hashing::concat(
             left_hash, right_hash, right_exp_len);
         hash_computed = true;
-        text_offset_type * const ret = m_hashes.find(new_kr_hash);
+        text_offset_type * const ret = m_hashes.find(kr_hash);
         if (ret == NULL)
-          m_hashes.insert(new_kr_hash, new_nonterm_p);
+          m_hashes.insert(kr_hash, new_nonterm_p);
         else *ret = (text_offset_type)new_nonterm_p;
       }
 
       // Update list of long nonterminals.
-      if (new_exp_len >= 255) {
+      if (exp_len >= 255) {
         m_long_exp_len.push_back(
             pair_type(
               (text_offset_type)new_nonterm_p,
-              (text_offset_type)new_exp_len));
+              (text_offset_type)exp_len));
       }
 
-      if (new_exp_len >= 255) {
+      if (exp_len >= 255) {
         if (!hash_computed) {
           const std::uint64_t left_hash = get_kr_hash(left_p);
           const std::uint64_t right_hash = get_kr_hash(right_p);
-          new_kr_hash = karp_rabin_hashing::concat(
+          kr_hash = karp_rabin_hashing::concat(
               left_hash, right_hash, right_exp_len);
         }
 
         m_long_exp_hashes.push_back(
-            hash_pair_type(
-              (text_offset_type)new_nonterm_p,
-              new_kr_hash));
+            hash_pair_type((text_offset_type)new_nonterm_p, kr_hash));
       }
 
       // Return the ptr to the new nonterminal.
@@ -1233,19 +1243,21 @@ std::uint64_t nonterminal<char_type, text_offset_type>::get_right_p() const {
 //=============================================================================
 template<typename char_type, typename text_offset_type>
 void nonterminal<char_type, text_offset_type>::print_expansion(
-    const std::uint64_t id,
+    const std::uint64_t x_p,
     const grammar_type * const g) const {
-  const std::uint64_t height = g->get_height(id);
+  typedef text_offset_type ptr_type;
+  const nonterminal_type &x = g->get_nonterminal(x_p);
+  const std::uint64_t height = x.get_height();
   if (height == 0) {
-    const char_type my_char = g->get_char(id);
+    const char_type my_char = x.get_char();
     fprintf(stderr, "%c", (char)my_char);
   } else {
-    const std::uint64_t left_id = g->get_left_id(id);
-    const std::uint64_t right_id = g->get_right_id(id);
-    const nonterminal_type &left = g->get_nonterminal(left_id);
-    const nonterminal_type &right = g->get_nonterminal(right_id);
-    left.print_expansion(left_id, g);
-    right.print_expansion(right_id, g);
+    const ptr_type x_left_p = x.get_left_p();
+    const ptr_type x_right_p = x.get_right_p();
+    const nonterminal_type &x_left = g->get_nonterminal(x_left_p);
+    const nonterminal_type &x_right = g->get_nonterminal(x_right_p);
+    x_left.print_expansion(x_left_p, g);
+    x_right.print_expansion(x_right_p, g);
   }
 }
 
@@ -1419,25 +1431,27 @@ std::uint64_t nonterminal<char_type, text_offset_type>
 template<typename char_type, typename text_offset_type>
 void nonterminal<char_type, text_offset_type>
 ::count_nonterminals_in_pruned_grammar(
-    const std::uint64_t id,
+    const std::uint64_t x_p,
     hash_table<text_offset_type, std::uint64_t> &hashes,
     hash_table<std::uint64_t, bool> &seen_hashes,
     std::uint64_t &current_count,
     const grammar_type * const g) const {
-  const std::uint64_t * const h = hashes.find((text_offset_type)id);
+  typedef text_offset_type ptr_type;
+  const std::uint64_t * const h = hashes.find((text_offset_type)x_p);
   if (seen_hashes.find(*h) == NULL) {
     seen_hashes.insert(*h, true);
     ++current_count;
-    const std::uint64_t height = g->get_height(id);
-    if (height != 0) {
-      const std::uint64_t left_id = g->get_left_id(id);
-      const std::uint64_t right_id = g->get_right_id(id);
-      const nonterminal_type &left = g->get_nonterminal(left_id);
-      const nonterminal_type &right = g->get_nonterminal(right_id);
-      left.count_nonterminals_in_pruned_grammar(
-          left_id, hashes, seen_hashes, current_count, g);
-      right.count_nonterminals_in_pruned_grammar(
-          right_id, hashes, seen_hashes, current_count, g);
+    const nonterminal_type &x = g->get_nonterminal(x_p);
+    const std::uint64_t x_height = x.get_height();
+    if (x_height != 0) {
+      const ptr_type x_left_p = x.get_left_p();
+      const ptr_type x_right_p = x.get_right_p();
+      const nonterminal_type &x_left = g->get_nonterminal(x_left_p);
+      const nonterminal_type &x_right = g->get_nonterminal(x_right_p);
+      x_left.count_nonterminals_in_pruned_grammar(
+          x_left_p, hashes, seen_hashes, current_count, g);
+      x_right.count_nonterminals_in_pruned_grammar(
+          x_right_p, hashes, seen_hashes, current_count, g);
     }
   }
 }
@@ -1448,11 +1462,12 @@ void nonterminal<char_type, text_offset_type>
 //=============================================================================
 template<typename char_type, typename text_offset_type>
 void nonterminal<char_type, text_offset_type>::decomposition(
-    const std::uint64_t id,
+    std::uint64_t x_p,
     const std::uint64_t begin,
     const std::uint64_t end,
     space_efficient_vector<pair_type> &ret,
     const grammar_type * const g) const {
+  typedef text_offset_type ptr_type;
 
   // Handle boundary case.
   if (begin == end)
@@ -1460,24 +1475,30 @@ void nonterminal<char_type, text_offset_type>::decomposition(
 
   // Find the deepest nonterminal in the parse tree containing the range
   // [begin..end).
-  std::uint64_t x = id;
-  std::uint64_t x_height = g->get_height(x);
   std::uint64_t cur_range_beg = 0;
-  std::uint64_t cur_range_end = g->get_exp_len(x);
-  while (x_height > 0) {
-    const std::uint64_t x_left = g->get_left_id(x);
-    const std::uint64_t x_right = g->get_right_id(x);
-    const std::uint64_t x_left_exp_len = g->get_exp_len(x_left);
-    const std::uint64_t cur_range_mid = cur_range_beg + x_left_exp_len;
-    if (end <= cur_range_mid) {
-      cur_range_end = cur_range_mid;
-      x = x_left;
-      x_height = g->get_height(x);
-    } else if (begin >= cur_range_mid) {
-      cur_range_beg = cur_range_mid;
-      x = x_right;
-      x_height = g->get_height(x);
-    } else break;
+  std::uint64_t cur_range_end = 0;
+  {
+    const nonterminal_type &x = g->get_nonterminal(x_p);
+    std::uint64_t x_height = x.get_height();
+    const std::uint64_t x_exp_len = g->get_exp_len(x_p);
+    cur_range_end = x_exp_len;
+    while (x_height > 0) {
+      const ptr_type x_left_p = x.get_left_p();
+      const ptr_type x_right_p = x.get_right_p();
+      const nonterminal_type &x_left = g->get_nonterminal(x_left_p);
+      const nonterminal_type &x_right = g->get_nonterminal(x_right_p);
+      const std::uint64_t x_left_exp_len = g->get_exp_len(x_left_p);
+      const std::uint64_t cur_range_mid = cur_range_beg + x_left_exp_len;
+      if (end <= cur_range_mid) {
+        cur_range_end = cur_range_mid;
+        x_p = x_left_p;
+        x_height = x_left.get_height();
+      } else if (begin >= cur_range_mid) {
+        cur_range_beg = cur_range_mid;
+        x_p = x_right_p;
+        x_height = x_right.get_height();
+      } else break;
+    }
   }
 
   // Check if the range of x is exactly [begin..end).
@@ -1486,35 +1507,37 @@ void nonterminal<char_type, text_offset_type>::decomposition(
     // If yes, return x as the answer.
     const std::uint64_t exp_len = cur_range_end - cur_range_beg;
     ret.push_back(pair_type(
-          (text_offset_type)x,
+          (text_offset_type)x_p,
           (text_offset_type)exp_len));
   } else {
 
     // Otherwise, we perform two traversals in the tree.
     {
-      const std::uint64_t x_left = g->get_left_id(x);
-      const std::uint64_t x_left_exp_len = g->get_exp_len(x_left);
+      const nonterminal_type &x = g->get_nonterminal(x_p);
+      const ptr_type x_left_p = x.get_left_p();
+      const std::uint64_t x_left_exp_len = g->get_exp_len(x_left_p);
       const std::uint64_t left_range_end = cur_range_beg + x_left_exp_len;
       std::uint64_t suffix_length = left_range_end - begin;
-      std::uint64_t y = x_left;
+      ptr_type y_p = x_left_p;
       while (suffix_length > 0) {
-        const std::uint64_t y_exp_len = g->get_exp_len(y);
-        const std::uint64_t y_left = g->get_left_id(y);
-        const std::uint64_t y_right = g->get_right_id(y);
+        const nonterminal_type &y = g->get_nonterminal(y_p);
+        const std::uint64_t y_exp_len = g->get_exp_len(y_p);
+        const ptr_type y_left_p = y.get_left_p();
+        const ptr_type y_right_p = y.get_right_p();
         if (y_exp_len == suffix_length) {
           ret.push_back(pair_type(
-                (text_offset_type)y,
+                (text_offset_type)y_p,
                 (text_offset_type)y_exp_len));
           suffix_length -= y_exp_len;
         } else {
-          const std::uint64_t y_right_exp_len = g->get_exp_len(y_right);
+          const std::uint64_t y_right_exp_len = g->get_exp_len(y_right_p);
           if (suffix_length > y_right_exp_len) {
             ret.push_back(pair_type(
-                  (text_offset_type)y_right,
+                  (text_offset_type)y_right_p,
                   (text_offset_type)y_right_exp_len));
             suffix_length -= y_right_exp_len;
-            y = y_left;
-          } else y = y_right;
+            y_p = y_left_p;
+          } else y_p = y_right_p;
         }
       }
     }
@@ -1525,30 +1548,32 @@ void nonterminal<char_type, text_offset_type>::decomposition(
 
     // Perform the analogous operation for the right side.
     {
-      const std::uint64_t x_left = g->get_left_id(x);
-      const std::uint64_t x_right = g->get_right_id(x);
-      const std::uint64_t x_left_exp_len = g->get_exp_len(x_left);
+      const nonterminal_type &x = g->get_nonterminal(x_p);
+      const ptr_type x_left_p = x.get_left_p();
+      const ptr_type x_right_p = x.get_right_p();
+      const std::uint64_t x_left_exp_len = g->get_exp_len(x_left_p);
       const std::uint64_t right_range_beg = cur_range_beg + x_left_exp_len;
       std::uint64_t prefix_length = end - right_range_beg;
-      std::uint64_t y = x_right;
+      ptr_type y_p = x_right_p;
       while (prefix_length > 0) {
-        const std::uint64_t y_exp_len = g->get_exp_len(y);
-        const std::uint64_t y_left = g->get_left_id(y);
-        const std::uint64_t y_right = g->get_right_id(y);
+        const nonterminal_type &y = g->get_nonterminal(y_p);
+        const std::uint64_t y_exp_len = g->get_exp_len(y_p);
+        const ptr_type y_left_p = y.get_left_p();
+        const ptr_type y_right_p = y.get_right_p();
         if (y_exp_len == prefix_length) {
           ret.push_back(pair_type(
-                (text_offset_type)y,
+                (text_offset_type)y_p,
                 (text_offset_type)y_exp_len));
           prefix_length -= y_exp_len;
         } else {
-          const std::uint64_t y_left_exp_len = g->get_exp_len(y_left);
+          const std::uint64_t y_left_exp_len = g->get_exp_len(y_left_p);
           if (prefix_length > y_left_exp_len) {
             ret.push_back(pair_type(
-                  (text_offset_type)y_left,
+                  (text_offset_type)y_left_p,
                   (text_offset_type)y_left_exp_len));
             prefix_length -= y_left_exp_len;
-            y = y_right;
-          } else y = y_left;
+            y_p = y_right_p;
+          } else y_p = y_left_p;
         }
       }
     }
