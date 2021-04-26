@@ -14,7 +14,6 @@
 #include "../utils/packed_pair.hpp"
 #include "../utils/packed_triple.hpp"
 
-
 //=============================================================================
 // Class used to represent multiroot AVL grammar. Forward declaration.
 //=============================================================================
@@ -144,27 +143,44 @@ struct avl_grammar_multiroot {
     hash_table<std::uint64_t, ptr_type, text_offset_type> m_hashes;
     cache<ptr_type, std::uint64_t> *m_kr_hash_cache;
     char_type *m_snippet;
-    std::uint64_t empty_step_counter;
+    std::uint64_t m_empty_step_counter;
+    bool m_enable_kr_hashing;
+    long double m_kr_hashing_prob;
 
   public:
 
     //=========================================================================
     // Constructor.
     //=========================================================================
-    avl_grammar_multiroot() {
-      const std::uint64_t cache_size = (1 << 17);
-      empty_step_counter = 0;
+    avl_grammar_multiroot(
+        bool enable_kr_hashing,
+        long double kr_hashing_prob = (long double)0.0) {
+      const std::uint64_t cache_size = (1 << 14);
+
+      // Initialize standard members.
+      m_empty_step_counter = 0;
+      m_enable_kr_hashing = enable_kr_hashing;
+      m_kr_hashing_prob = kr_hashing_prob;
       m_roots_vec.push_back(pair_type(0, std::numeric_limits<ptr_type>::max()));
-      m_snippet = utils::allocate_array<char_type>(256);
-      m_kr_hash_cache = new cache<ptr_type, std::uint64_t>(cache_size);
+
+      // Initialize KR hashing (optional).
+      if (m_enable_kr_hashing) {
+        m_kr_hash_cache = new cache<ptr_type, std::uint64_t>(cache_size);
+        m_snippet = utils::allocate_array<char_type>(256);
+      } else {
+        m_kr_hash_cache = NULL;
+        m_snippet = NULL;
+      }
     }
 
     //=========================================================================
     // Destructor.
     //=========================================================================
     ~avl_grammar_multiroot() {
-      utils::deallocate(m_snippet);
-      delete m_kr_hash_cache;
+      if (m_enable_kr_hashing) {
+        utils::deallocate(m_snippet);
+        delete m_kr_hash_cache;
+      }
     }
 
     //=========================================================================
@@ -290,9 +306,8 @@ struct avl_grammar_multiroot {
       m_nonterminals.push_back(nonterm);
 
       // With probability 1/8 add to hash table.
-      if (utils::random_int<std::uint64_t>(
-            (std::uint64_t)0,
-            (std::uint64_t)7) == 0) {
+      if (m_enable_kr_hashing &&
+          utils::random_real() < m_kr_hashing_prob) {
         const std::uint64_t kr_hash = get_kr_hash(new_nonterm_p);
         ptr_type * const ret = m_hashes.find(kr_hash);
         if (ret == NULL)
@@ -317,25 +332,21 @@ struct avl_grammar_multiroot {
       const std::uint64_t left_exp_len = get_exp_len(left_p);
       const std::uint64_t right_exp_len = get_exp_len(right_p);
       const std::uint64_t exp_len = left_exp_len + right_exp_len;
+      const std::uint64_t truncated_exp_len = std::min(255UL, exp_len);
       const std::uint8_t left_height = left.get_height();
       const std::uint8_t right_height = right.get_height();
       const std::uint8_t height = std::max(left_height, right_height) + 1;
 
       // Create and add new nonterminal.
       const ptr_type new_nonterm_p = m_nonterminals.size();
-      nonterminal_type new_nonterm(
-         (std::uint8_t)height,
-         (std::uint8_t)std::min(255UL, exp_len),
-         left_p,
-         right_p);
+      nonterminal_type new_nonterm(height, truncated_exp_len, left_p, right_p);
       m_nonterminals.push_back(new_nonterm);
 
       // With probability 1/8 add to hash table.
       std::uint64_t kr_hash = 0;
       bool hash_computed = false;
-      if (utils::random_int<std::uint64_t>(
-            (std::uint64_t)0,
-            (std::uint64_t)7) == 0) {
+      if (m_enable_kr_hashing &&
+          utils::random_real() < m_kr_hashing_prob) {
         const std::uint64_t left_hash = get_kr_hash(left_p);
         const std::uint64_t right_hash = get_kr_hash(right_p);
         kr_hash = karp_rabin_hashing::concat(
@@ -352,12 +363,13 @@ struct avl_grammar_multiroot {
         m_long_exp_len.push_back(pair_type(new_nonterm_p, exp_len));
 
       // Update list of hashes for long nonterminals.
-      if (exp_len >= 255) {
+      if (m_enable_kr_hashing && exp_len >= 255) {
         if (!hash_computed) {
           const std::uint64_t left_hash = get_kr_hash(left_p);
           const std::uint64_t right_hash = get_kr_hash(right_p);
           kr_hash = karp_rabin_hashing::concat(
               left_hash, right_hash, right_exp_len);
+          hash_computed = true;
         }
         m_long_exp_hashes.push_back(
             hash_pair_type(new_nonterm_p, kr_hash));
@@ -631,10 +643,15 @@ struct avl_grammar_multiroot {
       // Print RAM usage breakdown.
       const std::uint64_t m_roots_vec_ram_use = m_roots_vec.ram_use();
       const std::uint64_t m_nonterminals_ram_use = m_nonterminals.ram_use();
-      const std::uint64_t m_long_exp_hashes_ram_use = m_long_exp_hashes.ram_use();
       const std::uint64_t m_long_exp_len_ram_use = m_long_exp_len.ram_use();
-      const std::uint64_t m_hashes_ram_use = m_hashes.ram_use();
-      const std::uint64_t m_kr_hash_cache_ram_use = m_kr_hash_cache->ram_use();
+      std::uint64_t m_long_exp_hashes_ram_use = 0;
+      std::uint64_t m_hashes_ram_use = 0;
+      std::uint64_t m_kr_hash_cache_ram_use = 0;;
+      if (m_enable_kr_hashing) {
+        m_long_exp_hashes_ram_use = m_long_exp_hashes.ram_use();
+        m_hashes_ram_use = m_hashes.ram_use();
+        m_kr_hash_cache_ram_use = m_kr_hash_cache->ram_use();
+      }
       const std::uint64_t total =
         m_roots_vec_ram_use +
         m_nonterminals_ram_use + 
@@ -649,12 +666,12 @@ struct avl_grammar_multiroot {
       fprintf(stderr, "  m_nonterminals: %.2LfMiB (%.2Lf%%)\n",
           (1.L * m_nonterminals_ram_use) / (1 << 20),
           (100.L * m_nonterminals_ram_use) / total);
-      fprintf(stderr, "  m_long_exp_hashes: %.2LfMiB (%.2Lf%%)\n",
-          (1.L * m_long_exp_hashes_ram_use) / (1 << 20),
-          (100.L * m_long_exp_hashes_ram_use) / total);
       fprintf(stderr, "  m_long_exp_len: %.2LfMiB (%.2Lf%%)\n",
           (1.L * m_long_exp_len_ram_use) / (1 << 20),
           (100.L * m_long_exp_len_ram_use) / total);
+      fprintf(stderr, "  m_long_exp_hashes: %.2LfMiB (%.2Lf%%)\n",
+          (1.L * m_long_exp_hashes_ram_use) / (1 << 20),
+          (100.L * m_long_exp_hashes_ram_use) / total);
       fprintf(stderr, "  m_hashes: %.2LfMiB (%.2Lf%%)\n",
           (1.L * m_hashes_ram_use) / (1 << 20),
           (100.L * m_hashes_ram_use) / total);
@@ -666,7 +683,12 @@ struct avl_grammar_multiroot {
           (100.L * total) / total);
 
       // Show cache miss rate.
-      m_kr_hash_cache->print_cache_miss_rate();
+      if (m_enable_kr_hashing) {
+        const std::uint64_t cache_misses = m_kr_hash_cache->get_cache_misses();
+        const std::uint64_t query_counter = m_kr_hash_cache->get_query_counter();
+        fprintf(stderr, "KR hash cache misses: %lu (%.2Lf%%)\n",
+            cache_misses, (100.L * cache_misses) / query_counter);
+      }
     }
 
   private:
@@ -689,7 +711,7 @@ struct avl_grammar_multiroot {
       while (m_roots_vec[beg].second ==
           std::numeric_limits<ptr_type>::max()) {
         ++beg;
-        ++empty_step_counter;
+        ++m_empty_step_counter;
       }
 
       // Return the result.
@@ -726,7 +748,7 @@ struct avl_grammar_multiroot {
           m_roots_vec[pos].second ==
           std::numeric_limits<ptr_type>::max()) {
         ++pos;
-        ++empty_step_counter;
+        ++m_empty_step_counter;
       }
 
       // Return the result.
@@ -768,12 +790,12 @@ struct avl_grammar_multiroot {
           (std::uint64_t)m_roots_vec[range_end].first <= end) {
         const std::uint64_t cur_end = m_roots_vec[range_end].first;
         const std::uint64_t cur_exp_size = cur_end - prev_end;
-        v.push_back(triple_type(
-              m_roots_vec[range_end].second,
-              cur_exp_size,
-              get_kr_hash(m_roots_vec[range_end].second)));
-        m_roots_vec[range_end].second =
-          std::numeric_limits<ptr_type>::max();
+        const std::uint64_t nonterm_p = m_roots_vec[range_end].second;
+        std::uint64_t kr_hash = 0;
+        if (m_enable_kr_hashing)
+          kr_hash = get_kr_hash(nonterm_p);
+        v.push_back(triple_type(nonterm_p, cur_exp_size, kr_hash));
+        m_roots_vec[range_end].second = std::numeric_limits<ptr_type>::max();
         prev_end = cur_end;
         newend = range_end;
         range_end = roots_next(range_end);
@@ -790,9 +812,9 @@ struct avl_grammar_multiroot {
     // Run garbage collector if needed.
     //=========================================================================
     void check_gargage_collector() {
-      if (empty_step_counter > m_roots_vec.size()) {
+      if (m_empty_step_counter > m_roots_vec.size()) {
         roots_garbage_collector();
-        empty_step_counter = 0;
+        m_empty_step_counter = 0;
       }
     }
 
@@ -857,7 +879,7 @@ struct avl_grammar_multiroot {
       space_efficient_vector<pair_type> &seq) const {
 
       // Handle special case.
-      if (seq.empty())
+      if (!m_enable_kr_hashing || seq.empty())
         return;
 
       // Create the vector to hold the solution.
@@ -1109,19 +1131,19 @@ struct avl_grammar_multiroot {
           const std::uint64_t right_elem = next[min_elem];
           const ptr_type left_p = seq[min_elem].first;
           const ptr_type right_p = seq[right_elem].first;
-          const std::uint64_t left_hash = seq[min_elem].third;
-          const std::uint64_t right_hash = seq[right_elem].third;
           const std::uint64_t left_len = seq[min_elem].second;
           const std::uint64_t right_len = seq[right_elem].second;
           const std::uint64_t merged_len = left_len + right_len;
-          const std::uint64_t h =
-            karp_rabin_hashing::concat(left_hash, right_hash, right_len);
+          std::uint64_t h = 0;
           ptr_type id_merged = 0;
-          const ptr_type * const hash_ret = m_hashes.find(h);
-          if (hash_ret != NULL)
-            id_merged = *hash_ret;
-          else
-            id_merged = add_concat_nonterminal(left_p, right_p);
+          if (m_enable_kr_hashing) {
+            const std::uint64_t left_hash = seq[min_elem].third;
+            const std::uint64_t right_hash = seq[right_elem].third;
+            h = karp_rabin_hashing::concat(left_hash, right_hash, right_len);
+            const ptr_type * const hash_ret = m_hashes.find(h);
+            if (hash_ret != NULL) id_merged = *hash_ret;
+            else id_merged = add_concat_nonterminal(left_p, right_p);
+          } else id_merged = add_concat_nonterminal(left_p, right_p);
           seq[min_elem].first = id_merged;
           seq[min_elem].second = merged_len;
           seq[min_elem].third = h;
@@ -1137,19 +1159,19 @@ struct avl_grammar_multiroot {
           const std::uint64_t left_elem = prev[min_elem];
           const ptr_type left_p = seq[left_elem].first;
           const ptr_type right_p = seq[min_elem].first;
-          const std::uint64_t left_hash = seq[left_elem].third;
-          const std::uint64_t right_hash = seq[min_elem].third;
           const std::uint64_t left_len = seq[left_elem].second;
           const std::uint64_t right_len = seq[min_elem].second;
           const std::uint64_t merged_len = left_len + right_len;
-          const std::uint64_t h =
-            karp_rabin_hashing::concat(left_hash, right_hash, right_len);
+          std::uint64_t h = 0;
           ptr_type id_merged = 0;
-          const ptr_type * const hash_ret = m_hashes.find(h);
-          if (hash_ret != NULL)
-            id_merged = *hash_ret;
-          else
-            id_merged = add_concat_nonterminal(left_p, right_p);
+          if (m_enable_kr_hashing) {
+            const std::uint64_t left_hash = seq[left_elem].third;
+            const std::uint64_t right_hash = seq[min_elem].third;
+            h = karp_rabin_hashing::concat(left_hash, right_hash, right_len);
+            const ptr_type * const hash_ret = m_hashes.find(h);
+            if (hash_ret != NULL) id_merged = *hash_ret;
+            else id_merged = add_concat_nonterminal(left_p, right_p);
+          } else id_merged = add_concat_nonterminal(left_p, right_p);
           seq[min_elem].first = id_merged;
           seq[min_elem].second = merged_len;
           seq[min_elem].third = h;
