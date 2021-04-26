@@ -96,7 +96,7 @@ struct nonterminal {
 // Hash functions of the appropriate type.
 // Used in the hash table used to prune the grammar.
 //=============================================================================
-typedef const nonterminal<std::uint8_t, uint40>* get_hash_ptr_type;
+typedef const uint40 get_hash_ptr_type;
 
 template<>
 std::uint64_t get_hash(const get_hash_ptr_type &x) {
@@ -172,8 +172,8 @@ struct avl_grammar {
     // Set the root.
     //=========================================================================
     void set_root(
-        const ptr_type newroot) {
-      m_root = newroot;
+        const ptr_type id) {
+      m_root = id;
     }
 
     //=========================================================================
@@ -193,11 +193,15 @@ struct avl_grammar {
     }
 
     //=========================================================================
-    // Return the expansion length of a given nonterminal.
+    // Return the Karp-Rabin hash of a given nonterminal.
     //=========================================================================
     std::uint64_t get_kr_hash(const ptr_type id) const {
+
+      // Obtain/compute the hash.
       const nonterminal_type &nonterm = get_nonterminal(id);
       const std::uint64_t kr_hash = nonterm.get_kr_hash();
+
+      // Return the result.
       return kr_hash;
     }
 
@@ -247,7 +251,7 @@ struct avl_grammar {
     //=========================================================================
     void decode(
         char_type* &text,
-        std::uint64_t &text_length) const {
+        std::uint64_t &text_length) {
       text_length = get_exp_len(m_root);
       text = new char_type[text_length];
       const nonterminal_type &nonterm = get_nonterminal(m_root);
@@ -276,7 +280,7 @@ struct avl_grammar {
     //=========================================================================
     // Test the AVL property of all nonterminals.
     //=========================================================================
-    bool test_avl_property() const {
+    bool test_avl_property() {
       const nonterminal_type &nonterm = get_nonterminal(m_root);
       return nonterm.test_avl_property(m_root, this);
     }
@@ -285,7 +289,7 @@ struct avl_grammar {
     // Collect Mersenne Karp-Rabin hashes in a vector.
     //=========================================================================
     void collect_mersenne_karp_rabin_hashes(
-        std::vector<std::uint64_t> &hashes) const {
+        std::vector<std::uint64_t> &hashes) {
       const nonterminal_type &nonterm = get_nonterminal(m_root);
       (void) nonterm.collect_mersenne_karp_rabin_hashes(m_root, hashes, this);
     }
@@ -294,7 +298,7 @@ struct avl_grammar {
     // Collect Mersenne Karp-Rabin hashes in a hash table.
     //=========================================================================
     void collect_mersenne_karp_rabin_hashes_2(
-        hash_table<ptr_type, std::uint64_t> &hashes) const {
+        hash_table<ptr_type, std::uint64_t> &hashes) {
       const nonterminal_type &nonterm = get_nonterminal(m_root);
       (void) nonterm.collect_mersenne_karp_rabin_hashes_2(
         m_root, hashes, this);
@@ -306,7 +310,7 @@ struct avl_grammar {
     void count_nonterminals_in_pruned_grammar(
         hash_table<ptr_type, std::uint64_t> &hashes,
         hash_table<std::uint64_t, bool> &seen_hashes,
-        std::uint64_t &current_count) const {
+        std::uint64_t &current_count) {
       const nonterminal_type &nonterm = get_nonterminal(m_root);
       nonterm.count_nonterminals_in_pruned_grammar(
           m_root, hashes, seen_hashes, current_count, this);
@@ -316,7 +320,7 @@ struct avl_grammar {
     // Collect pointers to all nonterminals reachable from the root.
     //=========================================================================
     void collect_nonterminal_pointers(
-        std::vector<ptr_type> &pointers) const {
+        std::vector<ptr_type> &pointers) {
       const nonterminal_type &nonterm = get_nonterminal(m_root);
       nonterm.collect_nonterminal_pointers(m_root, pointers, this);
     }
