@@ -34,9 +34,10 @@ convert_lz77_to_avl_grammar_multiroot(
 
   // Declare types.
   typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+  typedef text_offset_type ptr_type;
   typedef avl_grammar_multiroot<char_type, text_offset_type> grammar_type;
   typedef async_stream_reader<text_offset_type> reader_type;
-  typedef packed_pair<text_offset_type, text_offset_type> pair_type;
+  typedef packed_pair<ptr_type, text_offset_type> pair_type;
 
   // Initialize the parsing reader.
   const std::uint64_t bufsize = (1 << 19);

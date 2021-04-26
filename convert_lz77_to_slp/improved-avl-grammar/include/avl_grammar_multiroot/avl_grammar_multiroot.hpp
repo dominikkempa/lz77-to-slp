@@ -14,6 +14,7 @@
 #include "../utils/packed_pair.hpp"
 #include "../utils/packed_triple.hpp"
 
+
 //=============================================================================
 // Class used to represent multiroot AVL grammar. Forward declaration.
 //=============================================================================
@@ -136,8 +137,8 @@ struct avl_grammar_multiroot {
     //=========================================================================
     // Class members.
     //=========================================================================
-    space_efficient_vector<pair_type> m_roots_vec;
     space_efficient_vector<nonterminal_type> m_nonterminals;
+    space_efficient_vector<pair_type> m_roots_vec;
     space_efficient_vector<pair_type> m_long_exp_len;
     space_efficient_vector<hash_pair_type> m_long_exp_hashes;
     hash_table<std::uint64_t, ptr_type, text_offset_type> m_hashes;
@@ -237,6 +238,7 @@ struct avl_grammar_multiroot {
     //=========================================================================
     std::uint64_t get_exp_len(const ptr_type id) const {
       const nonterminal_type &nonterm = get_nonterminal(id);
+      std::uint64_t exp_len = 0;
       const std::uint64_t truncated_exp_len = nonterm.get_truncated_exp_len();
       if (truncated_exp_len == 255) {
 
@@ -250,12 +252,13 @@ struct avl_grammar_multiroot {
             beg = mid;
           else end = mid;
         }
-        return (std::uint64_t)m_long_exp_len[beg].second;
-      } else return truncated_exp_len;
+        exp_len = m_long_exp_len[beg].second;
+      } else exp_len = truncated_exp_len;
+      return exp_len;
     }
 
     //=========================================================================
-    // Return the Karp-Rabin hash a given nonterminal.
+    // Return the Karp-Rabin hash of a given nonterminal.
     //=========================================================================
     std::uint64_t get_kr_hash(const ptr_type id) const {
 
@@ -265,7 +268,7 @@ struct avl_grammar_multiroot {
       if (cache_ret != NULL)
         return *cache_ret;
 
-      // The value is not in cache.
+      // Obtain/compute the hash.
       const nonterminal_type &nonterm = get_nonterminal(id);
       const std::uint64_t truncated_exp_len =
         nonterm.get_truncated_exp_len();
@@ -299,7 +302,7 @@ struct avl_grammar_multiroot {
     }
 
     //=========================================================================
-    // Add nonterminal expanding to single symbol.
+    // Add a nonterminal.
     //=========================================================================
     ptr_type add_nonterminal(const nonterminal_type &nonterm) {
       const ptr_type new_nonterm_p = m_nonterminals.size();
@@ -1210,7 +1213,7 @@ template<typename char_type, typename text_offset_type>
 nonterminal<char_type, text_offset_type>::nonterminal(const char_type c)
   : m_height(0),
     m_exp_len(1),
-    m_left_p((text_offset_type)c),
+    m_left_p((text_offset_type)((std::uint64_t)c)),
     m_right_p(std::numeric_limits<text_offset_type>::max()) {}
 
 //=============================================================================
