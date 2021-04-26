@@ -40,7 +40,7 @@ struct nonterminal {
     // Class members.
     //=========================================================================
     std::uint8_t m_height;
-    std::uint8_t m_exp_len;
+    std::uint8_t m_truncated_exp_len;
     ptr_type m_left_p;
     ptr_type m_right_p;
 
@@ -51,8 +51,6 @@ struct nonterminal {
     //=========================================================================
     nonterminal();
     nonterminal(const char_type);
-    nonterminal(const std::uint64_t, const std::uint64_t,
-        const grammar_type * const g);
     nonterminal(const std::uint8_t, const std::uint8_t,
       const ptr_type, const ptr_type);
 
@@ -1202,7 +1200,7 @@ struct avl_grammar_multiroot {
 template<typename char_type, typename text_offset_type>
 nonterminal<char_type, text_offset_type>::nonterminal()
   : m_height(0),
-    m_exp_len(1),
+    m_truncated_exp_len(1),
     m_left_p(std::numeric_limits<text_offset_type>::max()),
     m_right_p(std::numeric_limits<text_offset_type>::max()) {}
 
@@ -1212,7 +1210,7 @@ nonterminal<char_type, text_offset_type>::nonterminal()
 template<typename char_type, typename text_offset_type>
 nonterminal<char_type, text_offset_type>::nonterminal(const char_type c)
   : m_height(0),
-    m_exp_len(1),
+    m_truncated_exp_len(1),
     m_left_p((text_offset_type)((std::uint64_t)c)),
     m_right_p(std::numeric_limits<text_offset_type>::max()) {}
 
@@ -1222,11 +1220,11 @@ nonterminal<char_type, text_offset_type>::nonterminal(const char_type c)
 template<typename char_type, typename text_offset_type>
 nonterminal<char_type, text_offset_type>::nonterminal(
       const std::uint8_t height,
-      const std::uint8_t exp_len,
+      const std::uint8_t truncated_exp_len,
       const ptr_type left_p,
       const ptr_type right_p)
   : m_height(height),
-    m_exp_len(exp_len),
+    m_truncated_exp_len(truncated_exp_len),
     m_left_p(left_p),
     m_right_p(right_p) {}
 
@@ -1244,7 +1242,7 @@ std::uint64_t nonterminal<char_type, text_offset_type>::get_height() const {
 template<typename char_type, typename text_offset_type>
 std::uint64_t nonterminal<char_type, text_offset_type>
 ::get_truncated_exp_len() const {
-  return (std::uint64_t)m_exp_len;
+  return (std::uint64_t)m_truncated_exp_len;
 }
 
 //=============================================================================
