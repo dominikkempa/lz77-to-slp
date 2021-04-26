@@ -37,7 +37,6 @@ struct nonterminal {
     //=========================================================================
     std::uint8_t m_height;
     text_offset_type m_exp_len;
-    std::uint64_t m_kr_hash;
     ptr_type m_left_p;
     ptr_type m_right_p;
 
@@ -48,7 +47,7 @@ struct nonterminal {
     //=========================================================================
     nonterminal();
     nonterminal(const char_type);
-    nonterminal(const std::uint8_t, const text_offset_type, const std::uint64_t,
+    nonterminal(const std::uint8_t, const text_offset_type,
       const ptr_type, const ptr_type);
 
     //=========================================================================
@@ -56,7 +55,6 @@ struct nonterminal {
     //=========================================================================
     std::uint64_t get_height() const;
     std::uint64_t get_exp_len() const;
-    std::uint64_t get_kr_hash() const;
     char_type get_char() const;
     ptr_type get_left_p() const;
     ptr_type get_right_p() const;
@@ -193,19 +191,6 @@ struct avl_grammar {
     }
 
     //=========================================================================
-    // Return the Karp-Rabin hash of a given nonterminal.
-    //=========================================================================
-    std::uint64_t get_kr_hash(const ptr_type id) const {
-
-      // Obtain/compute the hash.
-      const nonterminal_type &nonterm = get_nonterminal(id);
-      const std::uint64_t kr_hash = nonterm.get_kr_hash();
-
-      // Return the result.
-      return kr_hash;
-    }
-
-    //=========================================================================
     // Add a nonterminal.
     //=========================================================================
     ptr_type add_nonterminal(const nonterminal_type &nonterm) {
@@ -232,14 +217,10 @@ struct avl_grammar {
       const std::uint8_t left_height = left.get_height();
       const std::uint8_t right_height = right.get_height();
       const std::uint8_t height = std::max(left_height, right_height) + 1;
-      const std::uint64_t left_kr_hash = left.get_kr_hash();
-      const std::uint64_t right_kr_hash = right.get_kr_hash();
-      const std::uint64_t kr_hash = karp_rabin_hashing::concat(
-          left_kr_hash, right_kr_hash, right_exp_len);
 
       // Create and add new nonterminal.
       const ptr_type new_nonterm_p = m_nonterminals.size();
-      nonterminal_type new_nonterm(height, exp_len, kr_hash, left_p, right_p);
+      nonterminal_type new_nonterm(height, exp_len, left_p, right_p);
       m_nonterminals.push_back(new_nonterm);
 
       // Return the ptr to the new nonterminal.
@@ -651,7 +632,6 @@ template<typename char_type, typename text_offset_type>
 nonterminal<char_type, text_offset_type>::nonterminal()
   : m_height(0),
     m_exp_len(1),
-    m_kr_hash(0),
     m_left_p(std::numeric_limits<text_offset_type>::max()),
     m_right_p(std::numeric_limits<text_offset_type>::max()) {}
 
@@ -662,7 +642,6 @@ template<typename char_type, typename text_offset_type>
 nonterminal<char_type, text_offset_type>::nonterminal(const char_type c)
   : m_height(0),
     m_exp_len(1),
-    m_kr_hash(karp_rabin_hashing::hash_char(c)),
     m_left_p((text_offset_type)((std::uint64_t)c)),
     m_right_p(std::numeric_limits<text_offset_type>::max()) {}
 
@@ -673,12 +652,10 @@ template<typename char_type, typename text_offset_type>
 nonterminal<char_type, text_offset_type>::nonterminal(
       const std::uint8_t height,
       const text_offset_type exp_len,
-      const std::uint64_t kr_hash,
       const ptr_type left_p,
       const ptr_type right_p)
   : m_height(height),
     m_exp_len(exp_len),
-    m_kr_hash(kr_hash),
     m_left_p(left_p),
     m_right_p(right_p) {}
 
@@ -704,14 +681,6 @@ std::uint64_t nonterminal<char_type, text_offset_type>::get_exp_len() const {
 template<typename char_type, typename text_offset_type>
 char_type nonterminal<char_type, text_offset_type>::get_char() const {
   return (char_type)((std::uint64_t)m_left_p);
-}
-
-//=============================================================================
-// Get nonterminal KR hash.
-//=============================================================================
-template<typename char_type, typename text_offset_type>
-std::uint64_t nonterminal<char_type, text_offset_type>::get_kr_hash() const {
-  return (std::uint64_t)m_kr_hash;
 }
 
 //=============================================================================

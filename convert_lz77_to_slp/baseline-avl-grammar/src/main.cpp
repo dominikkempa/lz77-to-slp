@@ -157,7 +157,7 @@ void additional_tests(
   // Check the number of different Mersenne KR hashes.
   // These hashes are much better, so there should no collisions.
   {
-    fprintf(stderr, "  Compute different Karp-Rabin hashes (method #1)... ");
+    fprintf(stderr, "  Compute different Karp-Rabin hashes... ");
     std::vector<std::uint64_t> mersenne_hashes;
     long double start = utils::wclock();
     grammar->collect_mersenne_karp_rabin_hashes(mersenne_hashes);
@@ -167,22 +167,6 @@ void additional_tests(
     long double elapsed = utils::wclock() - start;
     fprintf(stderr, "%.2Lfs ", elapsed);
     fprintf(stderr, "(%lu)\n", mersenne_hashes.size());
-  }
-
-  // Check the number of different Mersenne hashes (method #2).
-  {
-    fprintf(stderr, "  Compute different Karp-Rabin hashes (method #2)... ");
-    long double start = utils::wclock();
-    std::vector<text_offset_type> pointers;
-    std::vector<std::uint64_t> hashes;
-    grammar->collect_nonterminal_pointers(pointers);
-    for (std::uint64_t i = 0; i < pointers.size(); ++i)
-      hashes.push_back(grammar->get_kr_hash(pointers[i]));
-    std::sort(hashes.begin(), hashes.end());
-    hashes.erase(std::unique(hashes.begin(), hashes.end()), hashes.end());
-    long double elapsed = utils::wclock() - start;
-    fprintf(stderr, "%.2Lfs ", elapsed);
-    fprintf(stderr, "(%lu)\n", hashes.size());
   }
 
   // Compute the number of nodes in the pruned grammar.
