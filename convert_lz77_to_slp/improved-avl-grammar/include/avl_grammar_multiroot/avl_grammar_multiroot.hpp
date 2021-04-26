@@ -154,12 +154,9 @@ struct avl_grammar_multiroot {
     avl_grammar_multiroot() {
       const std::uint64_t cache_size = (1 << 17);
       empty_step_counter = 0;
-      m_roots_vec.push_back(pair_type(
-            (text_offset_type)0,
-            (text_offset_type)std::numeric_limits<text_offset_type>::max()));
+      m_roots_vec.push_back(pair_type(0, std::numeric_limits<ptr_type>::max()));
       m_snippet = utils::allocate_array<char_type>(256);
-      m_kr_hash_cache =
-        new cache<ptr_type, std::uint64_t>(cache_size);
+      m_kr_hash_cache = new cache<ptr_type, std::uint64_t>(cache_size);
     }
 
     //=========================================================================
@@ -168,136 +165,6 @@ struct avl_grammar_multiroot {
     ~avl_grammar_multiroot() {
       utils::deallocate(m_snippet);
       delete m_kr_hash_cache;
-    }
-
-    void print_stats() const {
-
-      // Print RAM usage breakdown.
-      const std::uint64_t m_roots_vec_ram_use = m_roots_vec.ram_use();
-      const std::uint64_t m_nonterminals_ram_use = m_nonterminals.ram_use();
-      const std::uint64_t m_long_exp_hashes_ram_use = m_long_exp_hashes.ram_use();
-      const std::uint64_t m_long_exp_len_ram_use = m_long_exp_len.ram_use();
-      const std::uint64_t m_hashes_ram_use = m_hashes.ram_use();
-      const std::uint64_t m_kr_hash_cache_ram_use = m_kr_hash_cache->ram_use();
-      const std::uint64_t total =
-        m_roots_vec_ram_use +
-        m_nonterminals_ram_use + 
-        m_long_exp_hashes_ram_use +
-        m_long_exp_len_ram_use +
-        m_hashes_ram_use +
-        m_kr_hash_cache_ram_use;
-      fprintf(stderr, "RAM use:\n");
-      fprintf(stderr, "  m_roots_vec: %.2LfMiB (%.2Lf%%)\n",
-          (1.L * m_roots_vec_ram_use) / (1 << 20),
-          (100.L * m_roots_vec_ram_use) / total);
-      fprintf(stderr, "  m_nonterminals: %.2LfMiB (%.2Lf%%)\n",
-          (1.L * m_nonterminals_ram_use) / (1 << 20),
-          (100.L * m_nonterminals_ram_use) / total);
-      fprintf(stderr, "  m_long_exp_hashes: %.2LfMiB (%.2Lf%%)\n",
-          (1.L * m_long_exp_hashes_ram_use) / (1 << 20),
-          (100.L * m_long_exp_hashes_ram_use) / total);
-      fprintf(stderr, "  m_long_exp_len: %.2LfMiB (%.2Lf%%)\n",
-          (1.L * m_long_exp_len_ram_use) / (1 << 20),
-          (100.L * m_long_exp_len_ram_use) / total);
-      fprintf(stderr, "  m_hashes: %.2LfMiB (%.2Lf%%)\n",
-          (1.L * m_hashes_ram_use) / (1 << 20),
-          (100.L * m_hashes_ram_use) / total);
-      fprintf(stderr, "  m_kr_hash_cache: %.2LfMiB (%.2Lf%%)\n",
-          (1.L * m_kr_hash_cache_ram_use) / (1 << 20),
-          (100.L * m_kr_hash_cache_ram_use) / total);
-      fprintf(stderr, "Total: %.2LfMiB (%.2Lf%%)\n",
-          (1.L * total) / (1 << 20),
-          (100.L * total) / total);
-
-      // Show cache miss rate.
-      m_kr_hash_cache->print_cache_miss_rate();
-    }
-
-    //=========================================================================
-    // Find the leftmost nondeleted root >= key.
-    //=========================================================================
-    std::uint64_t roots_lower_bound(const std::uint64_t key) {
-      std::uint64_t beg = 0;
-      std::uint64_t end = roots_end();
-      while (beg + 1 < end) {
-        const std::uint64_t mid = (beg + end - 1) / 2;
-        const std::uint64_t mid_end = m_roots_vec[mid].first;
-        if (mid_end >= key)
-          end = mid + 1;
-        else beg = mid + 1;
-      }
-
-      // Skip deleted elements.
-      while (m_roots_vec[beg].second ==
-          std::numeric_limits<ptr_type>::max()) {
-        ++beg;
-        ++empty_step_counter;
-      }
-
-      // Return the result.
-      return beg;
-    }
-
-    //=========================================================================
-    // Find the first undeleted root.
-    //=========================================================================
-    inline std::uint64_t roots_begin() const {
-
-      // We use the fact that there is a sentinel at the begnning.
-      return 0;
-    }
-
-    //=========================================================================
-    // Return the past-the-end position in the roots array.
-    //=========================================================================
-    inline std::uint64_t roots_end() const {
-
-      // We use the fact that there is a sentinel at the begnning.
-      return m_roots_vec.size();
-    }
-
-
-    //=========================================================================
-    // Find the next undeleted root.
-    //=========================================================================
-    std::uint64_t roots_next(std::uint64_t pos) {
-      ++pos;
-
-      // Skip deleted elements.
-      while (pos != roots_end() &&
-          m_roots_vec[pos].second ==
-          std::numeric_limits<ptr_type>::max()) {
-        ++pos;
-        ++empty_step_counter;
-      }
-
-      // Return the result.
-      return pos;
-    }
-
-    //=========================================================================
-    // Bring the elements in m_roots_vec together.
-    //=========================================================================
-    void roots_garbage_collector() {
-      std::uint64_t filled = 0;
-      for (std::uint64_t i = roots_begin();
-          i != roots_end(); i = roots_next(i)) {
-        if (i != filled)
-          m_roots_vec[filled] = m_roots_vec[i];
-        ++filled;
-      }
-      while (m_roots_vec.size() > filled)
-        m_roots_vec.pop_back();
-    }
-
-    //=========================================================================
-    // Run garbage collector if needed.
-    //=========================================================================
-    void check_gargage_collector() {
-      if (empty_step_counter > m_roots_vec.size()) {
-        roots_garbage_collector();
-        empty_step_counter = 0;
-      }
     }
 
     //=========================================================================
@@ -418,7 +285,7 @@ struct avl_grammar_multiroot {
     //=========================================================================
     // Add nonterminal expanding to single symbol.
     //=========================================================================
-    std::uint64_t add_nonterminal(const nonterminal_type &nonterm) {
+    ptr_type add_nonterminal(const nonterminal_type &nonterm) {
       const ptr_type new_nonterm_p = m_nonterminals.size();
       m_nonterminals.push_back(nonterm);
 
@@ -427,7 +294,7 @@ struct avl_grammar_multiroot {
             (std::uint64_t)0,
             (std::uint64_t)7) == 0) {
         const std::uint64_t kr_hash = get_kr_hash(new_nonterm_p);
-        text_offset_type * const ret = m_hashes.find(kr_hash);
+        ptr_type * const ret = m_hashes.find(kr_hash);
         if (ret == NULL)
           m_hashes.insert(kr_hash, new_nonterm_p);
         else *ret = new_nonterm_p;
@@ -474,19 +341,15 @@ struct avl_grammar_multiroot {
         kr_hash = karp_rabin_hashing::concat(
             left_hash, right_hash, right_exp_len);
         hash_computed = true;
-        text_offset_type * const ret = m_hashes.find(kr_hash);
+        ptr_type * const ret = m_hashes.find(kr_hash);
         if (ret == NULL)
           m_hashes.insert(kr_hash, new_nonterm_p);
         else *ret = new_nonterm_p;
       }
 
       // Update list of long nonterminals.
-      if (exp_len >= 255) {
-        m_long_exp_len.push_back(
-            pair_type(
-              new_nonterm_p,
-              (text_offset_type)exp_len));
-      }
+      if (exp_len >= 255)
+        m_long_exp_len.push_back(pair_type(new_nonterm_p, exp_len));
 
       // Update list of hashes for long nonterminals.
       if (exp_len >= 255) {
@@ -496,7 +359,6 @@ struct avl_grammar_multiroot {
           kr_hash = karp_rabin_hashing::concat(
               left_hash, right_hash, right_exp_len);
         }
-
         m_long_exp_hashes.push_back(
             hash_pair_type(new_nonterm_p, kr_hash));
       }
@@ -515,7 +377,7 @@ struct avl_grammar_multiroot {
       for (std::uint64_t i = roots_begin();
           i != roots_end(); i = roots_next(i)) {
         const std::uint64_t preflen = m_roots_vec[i].first;
-        const std::uint64_t id = m_roots_vec[i].second;
+        const ptr_type id = m_roots_vec[i].second;
         if (preflen != 0)
           text_length += get_exp_len(id);
       }
@@ -524,7 +386,7 @@ struct avl_grammar_multiroot {
       for (std::uint64_t i = roots_begin();
           i != roots_end(); i = roots_next(i)) {
         const std::uint64_t preflen = m_roots_vec[i].first;
-        const std::uint64_t id = m_roots_vec[i].second;
+        const ptr_type id = m_roots_vec[i].second;
         if (preflen != 0) {
           const nonterminal_type &nonterm = get_nonterminal(id);
           const std::uint64_t exp_len =
@@ -545,8 +407,8 @@ struct avl_grammar_multiroot {
       std::uint64_t exp_total_len = 0;
       for (std::uint64_t i = roots_begin();
           i != roots_end(); i = roots_next(i)) {
-        std::uint64_t preflen = m_roots_vec[i].first;
-        std::uint64_t id = m_roots_vec[i].second;
+        const std::uint64_t preflen = m_roots_vec[i].first;
+        const ptr_type id = m_roots_vec[i].second;
         if (preflen != 0)
           exp_total_len += get_exp_len(id);
       }
@@ -560,7 +422,7 @@ struct avl_grammar_multiroot {
       for (std::uint64_t i = roots_begin();
           i != roots_end(); i = roots_next(i)) {
         const std::uint64_t preflen = m_roots_vec[i].first;
-        const std::uint64_t id = m_roots_vec[i].second;
+        const ptr_type id = m_roots_vec[i].second;
         if (preflen != 0) {
           const nonterminal_type &nonterm = get_nonterminal(id);
           if (!nonterm.compare_expansion_to_text(id, text + ptr, this))
@@ -653,42 +515,6 @@ struct avl_grammar_multiroot {
           const nonterminal_type &nonterm = get_nonterminal(id);
           nonterm.collect_nonterminal_pointers(id, pointers, this);
         }
-      }
-    }
-
-    //=========================================================================
-    // Merge roots enclosed in [begin..end).
-    //=========================================================================
-    void merge_enclosed_roots(
-        const std::uint64_t begin,
-        const std::uint64_t end) {
-
-      // Compute the iterators of elements in m_roots_vec to merge.
-      space_efficient_vector<triple_type> v;
-      std::uint64_t range_beg = roots_lower_bound(begin);
-      std::uint64_t prev_end = m_roots_vec[range_beg].first;
-      range_beg = roots_next(range_beg);
-      std::uint64_t range_end = range_beg;
-      std::uint64_t newend = 0;
-      while (range_end != roots_end() &&
-          (std::uint64_t)m_roots_vec[range_end].first <= end) {
-        const std::uint64_t cur_end = m_roots_vec[range_end].first;
-        const std::uint64_t cur_exp_size = cur_end - prev_end;
-        v.push_back(triple_type(
-              m_roots_vec[range_end].second,
-              (text_offset_type)cur_exp_size,
-              get_kr_hash(m_roots_vec[range_end].second)));
-        m_roots_vec[range_end].second =
-          std::numeric_limits<ptr_type>::max();
-        prev_end = cur_end;
-        newend = range_end;
-        range_end = roots_next(range_end);
-      }
-
-      // Merge the roots in the range.
-      if (!v.empty()) {
-        const std::uint64_t newroot_id = greedy_merge(v);
-        m_roots_vec[newend].second = newroot_id;
       }
     }
 
@@ -800,6 +626,176 @@ struct avl_grammar_multiroot {
       }
     }
 
+    void print_stats() const {
+
+      // Print RAM usage breakdown.
+      const std::uint64_t m_roots_vec_ram_use = m_roots_vec.ram_use();
+      const std::uint64_t m_nonterminals_ram_use = m_nonterminals.ram_use();
+      const std::uint64_t m_long_exp_hashes_ram_use = m_long_exp_hashes.ram_use();
+      const std::uint64_t m_long_exp_len_ram_use = m_long_exp_len.ram_use();
+      const std::uint64_t m_hashes_ram_use = m_hashes.ram_use();
+      const std::uint64_t m_kr_hash_cache_ram_use = m_kr_hash_cache->ram_use();
+      const std::uint64_t total =
+        m_roots_vec_ram_use +
+        m_nonterminals_ram_use + 
+        m_long_exp_hashes_ram_use +
+        m_long_exp_len_ram_use +
+        m_hashes_ram_use +
+        m_kr_hash_cache_ram_use;
+      fprintf(stderr, "RAM use:\n");
+      fprintf(stderr, "  m_roots_vec: %.2LfMiB (%.2Lf%%)\n",
+          (1.L * m_roots_vec_ram_use) / (1 << 20),
+          (100.L * m_roots_vec_ram_use) / total);
+      fprintf(stderr, "  m_nonterminals: %.2LfMiB (%.2Lf%%)\n",
+          (1.L * m_nonterminals_ram_use) / (1 << 20),
+          (100.L * m_nonterminals_ram_use) / total);
+      fprintf(stderr, "  m_long_exp_hashes: %.2LfMiB (%.2Lf%%)\n",
+          (1.L * m_long_exp_hashes_ram_use) / (1 << 20),
+          (100.L * m_long_exp_hashes_ram_use) / total);
+      fprintf(stderr, "  m_long_exp_len: %.2LfMiB (%.2Lf%%)\n",
+          (1.L * m_long_exp_len_ram_use) / (1 << 20),
+          (100.L * m_long_exp_len_ram_use) / total);
+      fprintf(stderr, "  m_hashes: %.2LfMiB (%.2Lf%%)\n",
+          (1.L * m_hashes_ram_use) / (1 << 20),
+          (100.L * m_hashes_ram_use) / total);
+      fprintf(stderr, "  m_kr_hash_cache: %.2LfMiB (%.2Lf%%)\n",
+          (1.L * m_kr_hash_cache_ram_use) / (1 << 20),
+          (100.L * m_kr_hash_cache_ram_use) / total);
+      fprintf(stderr, "Total: %.2LfMiB (%.2Lf%%)\n",
+          (1.L * total) / (1 << 20),
+          (100.L * total) / total);
+
+      // Show cache miss rate.
+      m_kr_hash_cache->print_cache_miss_rate();
+    }
+
+  private:
+
+    //=========================================================================
+    // Find the leftmost nondeleted root >= key.
+    //=========================================================================
+    std::uint64_t roots_lower_bound(const std::uint64_t key) {
+      std::uint64_t beg = 0;
+      std::uint64_t end = roots_end();
+      while (beg + 1 < end) {
+        const std::uint64_t mid = (beg + end - 1) / 2;
+        const std::uint64_t mid_end = m_roots_vec[mid].first;
+        if (mid_end >= key)
+          end = mid + 1;
+        else beg = mid + 1;
+      }
+
+      // Skip deleted elements.
+      while (m_roots_vec[beg].second ==
+          std::numeric_limits<ptr_type>::max()) {
+        ++beg;
+        ++empty_step_counter;
+      }
+
+      // Return the result.
+      return beg;
+    }
+
+    //=========================================================================
+    // Find the first undeleted root.
+    //=========================================================================
+    inline std::uint64_t roots_begin() const {
+
+      // We use the fact that there is a sentinel at the begnning.
+      return 0;
+    }
+
+    //=========================================================================
+    // Return the past-the-end position in the roots array.
+    //=========================================================================
+    inline std::uint64_t roots_end() const {
+
+      // We use the fact that there is a sentinel at the begnning.
+      return m_roots_vec.size();
+    }
+
+
+    //=========================================================================
+    // Find the next undeleted root.
+    //=========================================================================
+    std::uint64_t roots_next(std::uint64_t pos) {
+      ++pos;
+
+      // Skip deleted elements.
+      while (pos != roots_end() &&
+          m_roots_vec[pos].second ==
+          std::numeric_limits<ptr_type>::max()) {
+        ++pos;
+        ++empty_step_counter;
+      }
+
+      // Return the result.
+      return pos;
+    }
+
+    //=========================================================================
+    // Bring the elements in m_roots_vec together.
+    //=========================================================================
+    void roots_garbage_collector() {
+      std::uint64_t filled = 0;
+      for (std::uint64_t i = roots_begin();
+          i != roots_end(); i = roots_next(i)) {
+        if (i != filled)
+          m_roots_vec[filled] = m_roots_vec[i];
+        ++filled;
+      }
+      while (m_roots_vec.size() > filled)
+        m_roots_vec.pop_back();
+    }
+
+  public:
+
+    //=========================================================================
+    // Merge roots enclosed in [begin..end).
+    //=========================================================================
+    void merge_enclosed_roots(
+        const std::uint64_t begin,
+        const std::uint64_t end) {
+
+      // Compute the iterators of elements in m_roots_vec to merge.
+      space_efficient_vector<triple_type> v;
+      std::uint64_t range_beg = roots_lower_bound(begin);
+      std::uint64_t prev_end = m_roots_vec[range_beg].first;
+      range_beg = roots_next(range_beg);
+      std::uint64_t range_end = range_beg;
+      std::uint64_t newend = 0;
+      while (range_end != roots_end() &&
+          (std::uint64_t)m_roots_vec[range_end].first <= end) {
+        const std::uint64_t cur_end = m_roots_vec[range_end].first;
+        const std::uint64_t cur_exp_size = cur_end - prev_end;
+        v.push_back(triple_type(
+              m_roots_vec[range_end].second,
+              cur_exp_size,
+              get_kr_hash(m_roots_vec[range_end].second)));
+        m_roots_vec[range_end].second =
+          std::numeric_limits<ptr_type>::max();
+        prev_end = cur_end;
+        newend = range_end;
+        range_end = roots_next(range_end);
+      }
+
+      // Merge the roots in the range.
+      if (!v.empty()) {
+        const std::uint64_t newroot_id = greedy_merge(v);
+        m_roots_vec[newend].second = newroot_id;
+      }
+    }
+
+    //=========================================================================
+    // Run garbage collector if needed.
+    //=========================================================================
+    void check_gargage_collector() {
+      if (empty_step_counter > m_roots_vec.size()) {
+        roots_garbage_collector();
+        empty_step_counter = 0;
+      }
+    }
+
     //=========================================================================
     // Get the sequence of nonterminals expanding to T[begin..end).
     //=========================================================================
@@ -832,7 +828,7 @@ struct avl_grammar_multiroot {
         const std::uint64_t cur_end = m_roots_vec[pos].first;
         const std::uint64_t id = m_roots_vec[pos].second;
         const std::uint64_t exp_len = cur_end - prev_end;
-        ret.push_back(pair_type(id, (text_offset_type)exp_len));
+        ret.push_back(pair_type(id, exp_len));
         begin = cur_end;
         prev_end = cur_end;
         pos = roots_next(pos);
@@ -932,7 +928,7 @@ struct avl_grammar_multiroot {
       while (prefix_length < length) {
         const std::uint64_t id = dp_nonterm[prefix_length][length - 1];
         const std::uint64_t exp_len = dp_explen[prefix_length][length - 1];
-        ret.push_back(pair_type(id, (text_offset_type)exp_len));
+        ret.push_back(pair_type(id, exp_len));
         prefix_length += dp_sol[prefix_length][length - 1];;
       }
 
@@ -1038,8 +1034,7 @@ struct avl_grammar_multiroot {
     // Merge greedily (shortest first) sequence of nonterminals.
     // Uses binary heap to achieve O(m log m) time.
     //=========================================================================
-    std::uint64_t greedy_merge(
-        space_efficient_vector<triple_type> &seq) {
+    ptr_type greedy_merge(space_efficient_vector<triple_type> &seq) {
 
       // Create the priority queue.
       const std::uint64_t num = seq.size();
@@ -1068,7 +1063,7 @@ struct avl_grammar_multiroot {
       make_heap(seq, heap, heap_size);
 
       // The main algorithm.
-      std::uint64_t ret = 0;
+      ptr_type ret = 0;
       while (true) {
         const std::uint64_t min_elem = heap[0];
 
@@ -1203,8 +1198,8 @@ template<typename char_type, typename text_offset_type>
 nonterminal<char_type, text_offset_type>::nonterminal(
       const std::uint8_t height,
       const std::uint8_t exp_len,
-      const text_offset_type left_p,
-      const text_offset_type right_p)
+      const ptr_type left_p,
+      const ptr_type right_p)
   : m_height(height),
     m_exp_len(exp_len),
     m_left_p(left_p),
@@ -1525,7 +1520,7 @@ void nonterminal<char_type, text_offset_type>::decomposition(
   if (cur_range_beg == begin && cur_range_end == end) {
 
     // If yes, return x as the answer.
-    const std::uint64_t exp_len = cur_range_end - cur_range_beg;
+    const std::uint64_t exp_len = end - begin;
     ret.push_back(pair_type(x_p, exp_len));
   } else {
 

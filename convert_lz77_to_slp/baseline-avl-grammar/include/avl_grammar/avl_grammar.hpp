@@ -49,8 +49,7 @@ struct nonterminal {
     nonterminal();
     nonterminal(const char_type);
     nonterminal(const std::uint8_t, const text_offset_type, const std::uint64_t,
-      const nonterminal_type * const, const nonterminal_type * const);
-    nonterminal(const nonterminal_type * const, const nonterminal_type * const);
+      const ptr_type, const ptr_type);
 
     //=========================================================================
     // Access methods.
@@ -66,7 +65,7 @@ struct nonterminal {
     // Key methods.
     //=========================================================================
     void decomposition(const std::uint64_t, const std::uint64_t,
-        space_efficient_vector<const nonterminal_type*> &) const;
+        space_efficient_vector<ptr_type> &) const;
     std::uint64_t write_expansion(char_type * const) const;
 
     //=========================================================================
@@ -77,14 +76,12 @@ struct nonterminal {
     bool test_avl_property() const;
     std::uint64_t collect_mersenne_karp_rabin_hashes(
         std::vector<std::uint64_t> &) const;
-    void collect_nonterminal_pointers(
-        std::vector<const nonterminal_type*> &) const;
+    void collect_nonterminal_pointers(std::vector<ptr_type> &) const;
     std::uint64_t collect_mersenne_karp_rabin_hashes_2(
-        hash_table<const nonterminal_type*, std::uint64_t> &) const;
+        hash_table<ptr_type, std::uint64_t> &) const;
     void count_nonterminals_in_pruned_grammar(
-        hash_table<const nonterminal_type*, std::uint64_t> &h,
-        hash_table<std::uint64_t, bool> &,
-        std::uint64_t &) const;
+        hash_table<ptr_type, std::uint64_t> &h,
+        hash_table<std::uint64_t, bool> &, std::uint64_t &) const;
 } __attribute__((packed));
 
 //=============================================================================
@@ -259,7 +256,7 @@ struct avl_grammar {
     // Collect Mersenne Karp-Rabin hashes in a hash table.
     //=========================================================================
     void collect_mersenne_karp_rabin_hashes_2(
-        hash_table<const nonterminal_type*, std::uint64_t> &hashes) const {
+        hash_table<ptr_type, std::uint64_t> &hashes) const {
       (void) m_root->collect_mersenne_karp_rabin_hashes_2(hashes);
     }
 
@@ -267,18 +264,18 @@ struct avl_grammar {
     // Count nonterminals in the pruned grammar.
     //=========================================================================
     void count_nonterminals_in_pruned_grammar(
-        hash_table<const nonterminal_type*, std::uint64_t> &hashes,
+        hash_table<ptr_type, std::uint64_t> &hashes,
         hash_table<std::uint64_t, bool> &seen_hashes,
         std::uint64_t &current_count) const {
-      m_root->count_nonterminals_in_pruned_grammar(hashes,
-          seen_hashes, current_count);
+      m_root->count_nonterminals_in_pruned_grammar(
+          hashes, seen_hashes, current_count);
     }
 
     //=========================================================================
     // Collect pointers to all nonterminals reachable from the root.
     //=========================================================================
     void collect_nonterminal_pointers(
-        std::vector<const nonterminal_type*> &pointers) const {
+        std::vector<ptr_type> &pointers) const {
       m_root->collect_nonterminal_pointers(pointers);
     }
 
@@ -297,7 +294,7 @@ struct avl_grammar {
     //=========================================================================
     // Add a substring expanding to a substring of grammar.
     //=========================================================================
-    const nonterminal_type* add_substring_nonterminal(
+    ptr_type add_substring_nonterminal(
         const std::uint64_t begin,
         const std::uint64_t end) {
       return add_substring_nonterminal(m_root, begin, end);
@@ -307,7 +304,7 @@ struct avl_grammar {
     // Given two nonterminals `left' and `right' expanding to X and Y, add
     // nonterminals that expands to XY, and return the pointer to it.
     //=========================================================================
-    const nonterminal_type *add_concat_nonterminal(
+    ptr_type add_concat_nonterminal(
         const ptr_type left_p,
         const ptr_type right_p) {
 
@@ -413,7 +410,7 @@ struct avl_grammar {
     //========================================================================
     void heap_down(
         std::uint64_t i,
-        const space_efficient_vector<const nonterminal_type *> &seq,
+        const space_efficient_vector<ptr_type> &seq,
         text_offset_type * const heap,
         const std::uint64_t heap_size) const {
       ++i;
@@ -463,7 +460,7 @@ struct avl_grammar {
     // Extract min routine.
     //=========================================================================
     std::uint64_t extract_min(
-        const space_efficient_vector<const nonterminal_type *> &seq,
+        const space_efficient_vector<ptr_type> &seq,
         text_offset_type * const heap,
         std::uint64_t &heap_size) const {
       std::uint64_t ret = heap[0];
@@ -477,7 +474,7 @@ struct avl_grammar {
     // Make heap rountine.
     //=========================================================================
     void make_heap(
-        const space_efficient_vector<const nonterminal_type *> &seq,
+        const space_efficient_vector<ptr_type> &seq,
         text_offset_type * const heap,
         const std::uint64_t heap_size) const {
       for (std::uint64_t i = heap_size / 2; i > 0; --i)
@@ -488,8 +485,7 @@ struct avl_grammar {
     // Merge greedily (shortest first) sequence of nonterminals.
     // Uses binary heap to achieve O(m log m) time.
     //=========================================================================
-    ptr_type greedy_merge(
-        space_efficient_vector<ptr_type> &seq) {
+    ptr_type greedy_merge(space_efficient_vector<ptr_type> &seq) {
 
       // Create the priority queue.
       const std::uint64_t num = seq.size();
@@ -624,8 +620,8 @@ nonterminal<char_type, text_offset_type>::nonterminal(
       const std::uint8_t height,
       const text_offset_type exp_len,
       const std::uint64_t kr_hash,
-      const nonterminal_type * const left_p,
-      const nonterminal_type * const right_p)
+      const ptr_type left_p,
+      const ptr_type right_p)
   : m_height(height),
     m_exp_len(exp_len),
     m_kr_hash(kr_hash),
@@ -657,7 +653,7 @@ char_type nonterminal<char_type, text_offset_type>::get_char() const {
 }
 
 //=============================================================================
-// Get nonterminal expansion length.
+// Get nonterminal KR hash.
 //=============================================================================
 template<typename char_type, typename text_offset_type>
 std::uint64_t nonterminal<char_type, text_offset_type>::get_kr_hash() const {
@@ -683,7 +679,7 @@ const nonterminal<char_type, text_offset_type>* nonterminal<char_type, text_offs
 }
 
 //=============================================================================
-// Print the string encoded by the grammar.
+// Print expansion of a given nonterminal.
 //=============================================================================
 template<typename char_type, typename text_offset_type>
 void nonterminal<char_type, text_offset_type>::print_expansion() const {
