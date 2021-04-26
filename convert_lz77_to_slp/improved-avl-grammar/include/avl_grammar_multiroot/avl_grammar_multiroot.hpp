@@ -67,7 +67,7 @@ struct nonterminal {
     //=========================================================================
     // Key methods.
     //=========================================================================
-    void decomposition(const std::uint64_t, const std::uint64_t,
+    void decomposition(const ptr_type, const std::uint64_t,
         const std::uint64_t, space_efficient_vector<pair_type> &,
         const grammar_type * const g) const;
     std::uint64_t write_expansion(const ptr_type, char_type * const,
@@ -305,7 +305,7 @@ struct avl_grammar_multiroot {
       const ptr_type new_nonterm_p = m_nonterminals.size();
       m_nonterminals.push_back(nonterm);
 
-      // With probability 1/8 add to hash table.
+      // With some probability add to hash table.
       if (m_enable_kr_hashing &&
           utils::random_real() < m_kr_hashing_prob) {
         const std::uint64_t kr_hash = get_kr_hash(new_nonterm_p);
@@ -342,7 +342,7 @@ struct avl_grammar_multiroot {
       nonterminal_type new_nonterm(height, truncated_exp_len, left_p, right_p);
       m_nonterminals.push_back(new_nonterm);
 
-      // With probability 1/8 add to hash table.
+      // With some probability add to hash table.
       std::uint64_t kr_hash = 0;
       bool hash_computed = false;
       if (m_enable_kr_hashing &&
@@ -534,9 +534,9 @@ struct avl_grammar_multiroot {
     // Given two nonterminals `left' and `right' expanding to X and Y, add
     // nonterminals that expands to XY, and return the pointer to it.
     //=========================================================================
-    std::uint64_t add_concat_nonterminal(
-        const std::uint64_t left_p,
-        const std::uint64_t right_p) {
+    ptr_type add_concat_nonterminal(
+        const ptr_type left_p,
+        const ptr_type right_p) {
 
       // Consider two cases, depending on whether
       // left of right nonterminal is taller.
@@ -1085,7 +1085,7 @@ struct avl_grammar_multiroot {
       make_heap(seq, heap, heap_size);
 
       // The main algorithm.
-      ptr_type ret = 0;
+      ptr_type ret = std::numeric_limits<ptr_type>::max();
       while (true) {
         const std::uint64_t min_elem = heap[0];
 
@@ -1424,7 +1424,7 @@ void nonterminal<char_type, text_offset_type>::collect_nonterminal_pointers(
     const nonterminal_type &x_right = g->get_nonterminal(x_right_p);
     x_left.collect_nonterminal_pointers(x_left_p, pointers, g);
     x_right.collect_nonterminal_pointers(x_right_p, pointers, g);
- }
+  }
 }
 
 //=============================================================================
@@ -1496,7 +1496,7 @@ void nonterminal<char_type, text_offset_type>
 //=============================================================================
 template<typename char_type, typename text_offset_type>
 void nonterminal<char_type, text_offset_type>::decomposition(
-    std::uint64_t x_p,
+    ptr_type x_p,
     const std::uint64_t begin,
     const std::uint64_t end,
     space_efficient_vector<pair_type> &ret,
