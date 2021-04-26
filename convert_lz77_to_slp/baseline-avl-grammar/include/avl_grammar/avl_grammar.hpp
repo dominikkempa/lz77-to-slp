@@ -555,6 +555,7 @@ struct avl_grammar {
           continue;
         }
 
+        // Compute the height of the previous and next elements.
         std::uint64_t prev_height = 0;
         std::uint64_t next_height = 0;
         if ((std::uint64_t)prev[min_elem] != sentinel) {
@@ -782,9 +783,12 @@ bool nonterminal<char_type, text_offset_type>::test_avl_property(
     const grammar_type * const g) const {
   const nonterminal_type &x = g->get_nonterminal(x_p);
   const std::uint64_t x_height = x.get_height();
+
+  // Handle special case.
   if (x_height == 0)
     return true;
 
+  // Recursively check AVL property for children.
   const ptr_type x_left_p = x.get_left_p();
   const ptr_type x_right_p = x.get_right_p();
   const nonterminal_type &x_left = g->get_nonterminal(x_left_p);
@@ -793,12 +797,14 @@ bool nonterminal<char_type, text_offset_type>::test_avl_property(
       !x_right.test_avl_property(x_right_p, g))
     return false;
 
+  // Check the AVL property for the node.
   const std::uint64_t x_left_height = x_left.get_height();
   const std::uint64_t x_right_height = x_right.get_height();
   if ((x_right_height > x_left_height && x_right_height - x_left_height > 1) ||
       (x_right_height < x_left_height && x_left_height - x_right_height > 1))
     return false;
 
+  // The subtree satisfies the AVL property.
   return true;
 }
 
