@@ -724,7 +724,7 @@ struct avl_grammar_multiroot {
     //=========================================================================
     inline std::uint64_t roots_begin() const {
 
-      // We use the fact that there is a sentinel at the begnning.
+      // We use the fact that there is a sentinel at the beginning.
       return 0;
     }
 
@@ -1041,7 +1041,7 @@ struct avl_grammar_multiroot {
     }
 
     //=========================================================================
-    // Make heap rountine.
+    // Make heap routine.
     //=========================================================================
     void make_heap(
         const space_efficient_vector<triple_type> &seq,
@@ -1112,7 +1112,7 @@ struct avl_grammar_multiroot {
         }
 
         // Merge min_elem with one of its
-        // beighbors (whichever is shorter).
+        // neighbors (whichever is shorter).
         if ((std::uint64_t)prev[min_elem] == sentinel &&
             (std::uint64_t)next[min_elem] == sentinel) {
 
@@ -1344,7 +1344,7 @@ bool nonterminal<char_type, text_offset_type>::compare_expansion_to_text(
 }
 
 //=============================================================================
-// Test the AVL propert of a subtree.
+// Test the AVL property of a subtree.
 //=============================================================================
 template<typename char_type, typename text_offset_type>
 bool nonterminal<char_type, text_offset_type>::test_avl_property(
@@ -1490,7 +1490,7 @@ void nonterminal<char_type, text_offset_type>
 }
 
 //=============================================================================
-// Assuming S is the expansions of the nontermnal, return the
+// Assuming S is the expansions of the nonterminal, return the
 // sequence of nonterminals expanding to S[begin..end).
 //=============================================================================
 template<typename char_type, typename text_offset_type>

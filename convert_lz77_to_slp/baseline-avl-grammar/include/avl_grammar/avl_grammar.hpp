@@ -353,8 +353,7 @@ struct avl_grammar {
           // Careful here: add_concat_nonterminal may reallocate
           // m_nonterminals, which may invalidate refs to m_nonterminals.
           // This was a rather nasty bug, that took a while to find.
-          const ptr_type newright_p =
-            add_concat_nonterminal(leftright_p, right_p);
+          const ptr_type newright_p = add_concat_nonterminal(leftright_p, right_p);
           const nonterminal_type &leftleft = get_nonterminal(leftleft_p);
           const nonterminal_type &newright = get_nonterminal(newright_p);
           if (newright.get_height() > leftleft.get_height() &&
@@ -398,8 +397,7 @@ struct avl_grammar {
         } else {
           const ptr_type rightleft_p = right.get_left_p();
           const ptr_type rightright_p = right.get_right_p();
-          const ptr_type newleft_p =
-            add_concat_nonterminal(left_p, rightleft_p);
+          const ptr_type newleft_p = add_concat_nonterminal(left_p, rightleft_p);
           const nonterminal_type &rightright = get_nonterminal(rightright_p);
           const nonterminal_type &newleft = get_nonterminal(newleft_p);
           if (newleft.get_height() > rightright.get_height() &&
@@ -504,7 +502,7 @@ struct avl_grammar {
     }
 
     //=========================================================================
-    // Make heap rountine.
+    // Make heap routine.
     //=========================================================================
     void make_heap(
         const space_efficient_vector<ptr_type> &seq,
@@ -575,7 +573,7 @@ struct avl_grammar {
         }
 
         // Merge min_elem with one of its
-        // beighbors (whichever is shorter).
+        // neighbors (whichever is shorter).
         if ((std::uint64_t)prev[min_elem] == sentinel &&
             (std::uint64_t)next[min_elem] == sentinel) {
 
@@ -776,7 +774,7 @@ bool nonterminal<char_type, text_offset_type>::compare_expansion_to_text(
 }
 
 //=============================================================================
-// Test the AVL propert of a subtree.
+// Test the AVL property of a subtree.
 //=============================================================================
 template<typename char_type, typename text_offset_type>
 bool nonterminal<char_type, text_offset_type>::test_avl_property(
@@ -922,7 +920,7 @@ void nonterminal<char_type, text_offset_type>
 }
 
 //=============================================================================
-// Assuming S is the expansions of the nontermnal, return the
+// Assuming S is the expansions of the nonterminal, return the
 // sequence of nonterminals expanding to S[begin..end).
 //=============================================================================
 template<typename char_type, typename text_offset_type>
