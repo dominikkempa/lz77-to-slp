@@ -7,7 +7,6 @@
 #include <algorithm>
 
 #include "../utils/karp_rabin_hashing.hpp"
-#include "../utils/packed_pair.hpp"
 #include "../io/async_stream_reader.hpp"
 #include "avl_grammar.hpp"
 
