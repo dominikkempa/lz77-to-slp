@@ -218,7 +218,9 @@ template<
   typename char_type = std::uint8_t,
   typename text_offset_type = std::uint64_t>
 void test_conversion(
-    std::string parsing_filename) {
+    std::string parsing_filename,
+    bool use_kr_hashing,
+    long double kr_hashing_prob) {
 
   // Declare types.
   typedef std::pair<text_offset_type, text_offset_type> phrase_type;
@@ -239,6 +241,10 @@ void test_conversion(
       parsing_size, (2.L * parsing_size * sizeof(text_offset_type)) / (1 << 20));
   fprintf(stderr, "sizeof(char_type) = %lu\n", sizeof(char_type));
   fprintf(stderr, "sizeof(text_offset_type) = %lu\n", sizeof(text_offset_type));
+  fprintf(stderr, "Use KR hashing = %s\n", use_kr_hashing ? "TRUE" : "FALSE");
+  if (use_kr_hashing)
+    fprintf(stderr, "KR hashing probability = %.2Lf%%\n",
+        100.L * kr_hashing_prob);
   fprintf(stderr, "\n\n");
 
   // Convert LZ77 to AVL grammar.
@@ -248,7 +254,7 @@ void test_conversion(
     long double start = utils::wclock();
     grammar =
       convert_lz77_to_avl_grammar_multiroot<char_type, text_offset_type>(
-          parsing_filename);
+          parsing_filename, use_kr_hashing, kr_hashing_prob);
 
     // Print summary.
     long double elapsed = utils::wclock() - start;
@@ -293,8 +299,11 @@ int main(int argc, char **argv) {
 
   // Obtain filenames.
   std::string parsing_filename = argv[1];
+  bool use_kr_hashing = true;
+  long double kr_hashing_prob = 0.125;
 
   // Run the algorithm.
-  test_conversion<char_type, text_offset_type>(parsing_filename);
+  test_conversion<char_type, text_offset_type>(
+      parsing_filename, use_kr_hashing, kr_hashing_prob);
 }
 

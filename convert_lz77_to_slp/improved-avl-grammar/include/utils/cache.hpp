@@ -114,12 +114,17 @@ struct cache {
     }
 
     //=========================================================================
-    // Print cache miss rate.
+    // Return the number of queries.
     //=========================================================================
-    void print_cache_miss_rate() const {
-      fprintf(stderr, "Cache misses: %lu (%.2Lf%%)\n",
-          m_cache_misses,
-          (100.L * m_cache_misses) / m_query_counter);
+    inline std::uint64_t get_query_counter() const {
+      return m_query_counter;
+    }
+
+    //=========================================================================
+    // Return the number of cache misses.
+    //=========================================================================
+    inline std::uint64_t get_cache_misses() const {
+      return m_cache_misses;
     }
 
   private:

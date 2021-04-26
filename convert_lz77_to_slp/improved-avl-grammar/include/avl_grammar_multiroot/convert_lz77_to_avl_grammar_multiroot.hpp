@@ -24,7 +24,10 @@ template<
   typename char_type,
   typename text_offset_type>
 avl_grammar_multiroot<char_type, text_offset_type>*
-convert_lz77_to_avl_grammar_multiroot(const std::string parsing_filename) {
+convert_lz77_to_avl_grammar_multiroot(
+    const std::string parsing_filename,
+    bool use_kr_hashing,
+    long double kr_hashing_prob) {
 
   // Start the timer.
   long double start = utils::wclock();
@@ -49,7 +52,7 @@ convert_lz77_to_avl_grammar_multiroot(const std::string parsing_filename) {
   karp_rabin_hashing::init();
 
   // Compute the AVL grammar expanding to T.
-  grammar_type *grammar = new grammar_type();
+  grammar_type *grammar = new grammar_type(use_kr_hashing, kr_hashing_prob);
   std::uint64_t prefix_length = 0;
   for (std::uint64_t phrase_id = 0; phrase_id < parsing_size; ++phrase_id) {
 
