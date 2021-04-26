@@ -732,8 +732,6 @@ struct avl_grammar_multiroot {
     // Return the past-the-end position in the roots array.
     //=========================================================================
     inline std::uint64_t roots_end() const {
-
-      // We use the fact that there is a sentinel at the begnning.
       return m_roots_vec.size();
     }
 
