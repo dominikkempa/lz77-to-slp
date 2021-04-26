@@ -4,7 +4,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstdint>
-#include <vector>
 #include <algorithm>
 
 #include "../utils/karp_rabin_hashing.hpp"
@@ -31,6 +30,7 @@ convert_lz77_to_avl_grammar(const std::string parsing_filename) {
 
   // Declare types.
   typedef nonterminal<char_type, text_offset_type> nonterminal_type;
+  typedef text_offset_type ptr_type;
   typedef avl_grammar<char_type, text_offset_type> grammar_type;
   typedef async_stream_reader<text_offset_type> reader_type;
 
@@ -68,12 +68,13 @@ convert_lz77_to_avl_grammar(const std::string parsing_filename) {
     std::uint64_t len = parsing_reader->read();
     
     // Compute the AVL grammar expanding to phrase p.
-    const nonterminal_type *phrase_root = NULL;
+    ptr_type phrase_root = std::numeric_limits<text_offset_type>::max();
     if (len == 0) {
 
       // If this is a literal phrase, create a trivial grammar.
-      phrase_root = new nonterminal_type((char_type)pos);
-      grammar->add_nonterminal(phrase_root);
+      const nonterminal_type root((char_type)pos);
+      const std::uint64_t root_id = grammar->add_nonterminal(root);
+      phrase_root = root_id;
     } else {
 
       // Self-overlapping phrases are unadressed in Rytter's paper.
@@ -82,14 +83,14 @@ convert_lz77_to_avl_grammar(const std::string parsing_filename) {
 
         // If the phase is self-overlapping, we create the
         // nonterminal expanding to text[pos..prefix_length).
-        const nonterminal_type * const suffix_nonterm =
+        ptr_type suffix_nonterm =
           grammar->add_substring_nonterminal(pos, prefix_length);
 
         // Square the nonterminal until it reaches length >= len.
-        const nonterminal_type *suffix_pow_nonterm = suffix_nonterm;
+        ptr_type suffix_pow_nonterm = suffix_nonterm;
         std::uint64_t curlen = prefix_length - pos;
         while (curlen < len) {
-          const nonterminal_type * const square =
+          const ptr_type square =
               grammar->add_nonterminal(
                   suffix_pow_nonterm,
                   suffix_pow_nonterm);
@@ -110,13 +111,13 @@ convert_lz77_to_avl_grammar(const std::string parsing_filename) {
     }
 
     // Update prefix length and add new root to the grammar.
-    const std::uint64_t exp_len = phrase_root->get_exp_len();
+    const std::uint64_t exp_len = grammar->get_exp_len(phrase_root);
     prefix_length += exp_len;
     if (phrase_id == 0) {
       grammar->set_root(phrase_root);
     } else {
-      const nonterminal_type * const old_root = grammar->get_root();
-      const nonterminal_type * const new_root =
+      const ptr_type old_root = grammar->get_root();
+      const ptr_type new_root =
         grammar->add_concat_nonterminal(old_root, phrase_root);
       grammar->set_root(new_root);
     }

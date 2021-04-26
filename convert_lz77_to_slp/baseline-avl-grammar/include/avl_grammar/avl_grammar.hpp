@@ -29,7 +29,7 @@ struct nonterminal {
     // Declare types.
     //=========================================================================
     typedef nonterminal<char_type, text_offset_type> nonterminal_type;
-    typedef const nonterminal_type * ptr_type;
+    typedef text_offset_type ptr_type;
     typedef avl_grammar<char_type, text_offset_type> grammar_type;
 
     //=========================================================================
@@ -124,12 +124,12 @@ struct avl_grammar {
     // Declare typedefs.
     //=========================================================================
     typedef nonterminal<char_type, text_offset_type> nonterminal_type;
-    typedef const nonterminal_type * ptr_type;
+    typedef text_offset_type ptr_type;
 
     //=========================================================================
     // Class members.
     //=========================================================================
-    std::vector<ptr_type> m_nonterminals;
+    space_efficient_vector<nonterminal_type> m_nonterminals;
     ptr_type m_root;
 
   public:
@@ -138,21 +138,20 @@ struct avl_grammar {
     // Constructor.
     //=========================================================================
     avl_grammar() :
-      m_root(NULL) {}
+      m_root(std::numeric_limits<ptr_type>::max()) {}
 
     //=========================================================================
     // Destructor.
     //=========================================================================
     ~avl_grammar() {
-      for (std::uint64_t i = 0; i < m_nonterminals.size(); ++i)
-        delete m_nonterminals[i];
     }
 
     //=========================================================================
     // Print the string encoded by the grammar.
     //=========================================================================
     void print_expansion() const {
-      m_root->print_expansion(m_root, this);
+      const nonterminal_type &root = get_nonterminal(m_root);
+      root.print_expansion(m_root, this);
     }
 
     //=========================================================================
@@ -180,22 +179,37 @@ struct avl_grammar {
     //=========================================================================
     // Gives access to a given nonterminal.
     //=========================================================================
-    const nonterminal_type& get_nonterminal(const ptr_type p) const {
-      return *p;
+    const nonterminal_type& get_nonterminal(const ptr_type id) const {
+      return m_nonterminals[(std::uint64_t)id];
     }
 
     //=========================================================================
     // Return the expansion length of a given nonterminal.
     //=========================================================================
-    std::uint64_t get_exp_len(const ptr_type p) const {
-      return p->get_exp_len();
+    std::uint64_t get_exp_len(const ptr_type id) const {
+      const nonterminal_type &nonterm = get_nonterminal(id);
+      const std::uint64_t exp_len = nonterm.get_exp_len();
+      return exp_len;
+    }
+
+    //=========================================================================
+    // Return the expansion length of a given nonterminal.
+    //=========================================================================
+    std::uint64_t get_kr_hash(const ptr_type id) const {
+      const nonterminal_type &nonterm = get_nonterminal(id);
+      const std::uint64_t kr_hash = nonterm.get_kr_hash();
+      return kr_hash;
     }
 
     //=========================================================================
     // Add a nonterminal.
     //=========================================================================
-    void add_nonterminal(const ptr_type nonterm) {
+    ptr_type add_nonterminal(const nonterminal_type &nonterm) {
+      const ptr_type new_nonterm_p = m_nonterminals.size();
       m_nonterminals.push_back(nonterm);
+
+      // Return the id of the nonterminal.
+      return new_nonterm_p;
     }
 
     //=========================================================================
@@ -216,13 +230,13 @@ struct avl_grammar {
       const std::uint8_t height = std::max(left_height, right_height) + 1;
       const std::uint64_t left_kr_hash = left.get_kr_hash();
       const std::uint64_t right_kr_hash = right.get_kr_hash();
-      const std::uint64_t new_kr_hash = karp_rabin_hashing::concat(
+      const std::uint64_t kr_hash = karp_rabin_hashing::concat(
           left_kr_hash, right_kr_hash, right_exp_len);
 
       // Create and add new nonterminal.
-      const ptr_type new_nonterm_p = new nonterminal_type(
-         height, exp_len, new_kr_hash, left_p, right_p);
-      m_nonterminals.push_back(new_nonterm_p);
+      const ptr_type new_nonterm_p = m_nonterminals.size();
+      nonterminal_type new_nonterm(height, exp_len, kr_hash, left_p, right_p);
+      m_nonterminals.push_back(new_nonterm);
 
       // Return the ptr to the new nonterminal.
       return new_nonterm_p;
@@ -236,7 +250,8 @@ struct avl_grammar {
         std::uint64_t &text_length) const {
       text_length = get_exp_len(m_root);
       text = new char_type[text_length];
-      m_root->write_expansion(m_root, text, this);
+      const nonterminal_type &nonterm = get_nonterminal(m_root);
+      nonterm.write_expansion(m_root, text, this);
     }
 
     //=========================================================================
@@ -254,14 +269,16 @@ struct avl_grammar {
         return false;
 
       // Otherwise, compare the generated string with `text'.
-      return m_root->compare_expansion_to_text(m_root, text, this);
+      const nonterminal_type &nonterm = get_nonterminal(m_root);
+      return nonterm.compare_expansion_to_text(m_root, text, this);
     }
 
     //=========================================================================
     // Test the AVL property of all nonterminals.
     //=========================================================================
     bool test_avl_property() const {
-      return m_root->test_avl_property(m_root, this);
+      const nonterminal_type &nonterm = get_nonterminal(m_root);
+      return nonterm.test_avl_property(m_root, this);
     }
 
     //=========================================================================
@@ -269,7 +286,8 @@ struct avl_grammar {
     //=========================================================================
     void collect_mersenne_karp_rabin_hashes(
         std::vector<std::uint64_t> &hashes) const {
-      (void) m_root->collect_mersenne_karp_rabin_hashes(m_root, hashes, this);
+      const nonterminal_type &nonterm = get_nonterminal(m_root);
+      (void) nonterm.collect_mersenne_karp_rabin_hashes(m_root, hashes, this);
     }
 
     //=========================================================================
@@ -277,7 +295,8 @@ struct avl_grammar {
     //=========================================================================
     void collect_mersenne_karp_rabin_hashes_2(
         hash_table<ptr_type, std::uint64_t> &hashes) const {
-      (void) m_root->collect_mersenne_karp_rabin_hashes_2(
+      const nonterminal_type &nonterm = get_nonterminal(m_root);
+      (void) nonterm.collect_mersenne_karp_rabin_hashes_2(
         m_root, hashes, this);
     }
 
@@ -288,7 +307,8 @@ struct avl_grammar {
         hash_table<ptr_type, std::uint64_t> &hashes,
         hash_table<std::uint64_t, bool> &seen_hashes,
         std::uint64_t &current_count) const {
-      m_root->count_nonterminals_in_pruned_grammar(
+      const nonterminal_type &nonterm = get_nonterminal(m_root);
+      nonterm.count_nonterminals_in_pruned_grammar(
           m_root, hashes, seen_hashes, current_count, this);
     }
 
@@ -297,18 +317,20 @@ struct avl_grammar {
     //=========================================================================
     void collect_nonterminal_pointers(
         std::vector<ptr_type> &pointers) const {
-      m_root->collect_nonterminal_pointers(m_root, pointers, this);
+      const nonterminal_type &nonterm = get_nonterminal(m_root);
+      nonterm.collect_nonterminal_pointers(m_root, pointers, this);
     }
 
     //=========================================================================
     // Add a nonterminal expanding to a substring of a given nonterminal.
     //=========================================================================
     ptr_type add_substring_nonterminal(
-        const ptr_type x,
+        const ptr_type x_p,
         const std::uint64_t begin,
         const std::uint64_t end) {
       space_efficient_vector<ptr_type> v;
-      x->decomposition(x, begin, end, v, this);
+      const nonterminal_type &nonterm = get_nonterminal(x_p);
+      nonterm.decomposition(x_p, begin, end, v, this);
       return greedy_merge(v);
     }
 
@@ -540,7 +562,7 @@ struct avl_grammar {
       make_heap(seq, heap, heap_size);
 
       // The main algorithm.
-      ptr_type ret = NULL;
+      ptr_type ret = std::numeric_limits<ptr_type>::max();
       while (true) {
         const std::uint64_t min_elem = heap[0];
 
@@ -626,8 +648,8 @@ nonterminal<char_type, text_offset_type>::nonterminal()
   : m_height(0),
     m_exp_len(1),
     m_kr_hash(0),
-    m_left_p(NULL),
-    m_right_p(NULL) {}
+    m_left_p(std::numeric_limits<text_offset_type>::max()),
+    m_right_p(std::numeric_limits<text_offset_type>::max()) {}
 
 //=============================================================================
 // Constructor for a nonterminal expanding to a single symbol.
@@ -637,8 +659,8 @@ nonterminal<char_type, text_offset_type>::nonterminal(const char_type c)
   : m_height(0),
     m_exp_len(1),
     m_kr_hash(karp_rabin_hashing::hash_char(c)),
-    m_left_p((nonterminal_type *)((std::uint64_t)c)),
-    m_right_p(NULL) {}
+    m_left_p((text_offset_type)((std::uint64_t)c)),
+    m_right_p(std::numeric_limits<text_offset_type>::max()) {}
 
 //=============================================================================
 // Constructor for non-single-symbol nonterminal.
@@ -692,8 +714,7 @@ std::uint64_t nonterminal<char_type, text_offset_type>::get_kr_hash() const {
 // Get nonterminal left ptr.
 //=============================================================================
 template<typename char_type, typename text_offset_type>
-const nonterminal<char_type, text_offset_type>* nonterminal<char_type, text_offset_type>
-::get_left_p() const {
+text_offset_type nonterminal<char_type, text_offset_type>::get_left_p() const {
   return m_left_p;
 }
 
@@ -701,8 +722,7 @@ const nonterminal<char_type, text_offset_type>* nonterminal<char_type, text_offs
 // Get nonterminal left ptr.
 //=============================================================================
 template<typename char_type, typename text_offset_type>
-const nonterminal<char_type, text_offset_type>* nonterminal<char_type, text_offset_type>
-::get_right_p() const {
+text_offset_type nonterminal<char_type, text_offset_type>::get_right_p() const {
   return m_right_p;
 }
 
@@ -937,7 +957,7 @@ void nonterminal<char_type, text_offset_type>::decomposition(
     ptr_type x_p,
     const std::uint64_t begin,
     const std::uint64_t end,
-    space_efficient_vector<const nonterminal_type*> &ret,
+    space_efficient_vector<ptr_type> &ret,
     const grammar_type * const g) const {
 
   // Handle boundary case.
