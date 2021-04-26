@@ -80,7 +80,7 @@ struct nonterminal {
     std::uint64_t collect_mersenne_karp_rabin_hashes_2(
         hash_table<ptr_type, std::uint64_t> &) const;
     void count_nonterminals_in_pruned_grammar(
-        hash_table<ptr_type, std::uint64_t> &h,
+        hash_table<ptr_type, std::uint64_t> &,
         hash_table<std::uint64_t, bool> &, std::uint64_t &) const;
 } __attribute__((packed));
 
