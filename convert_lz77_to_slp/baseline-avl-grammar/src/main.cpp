@@ -8,8 +8,8 @@
 #include <unistd.h>
 #include <getopt.h>
 
-#define TEST_CORRECTNESS
-#define ADDITIONAL_TESTS
+// #define TEST_CORRECTNESS
+// #define ADDITIONAL_TESTS
 
 #include "../include/types/uint40.hpp"
 #include "../include/utils/utils.hpp"
