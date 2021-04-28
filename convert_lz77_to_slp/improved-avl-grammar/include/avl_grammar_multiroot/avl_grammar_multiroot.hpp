@@ -540,7 +540,7 @@ struct avl_grammar_multiroot {
         const ptr_type right_p) {
 
       // Consider two cases, depending on whether
-      // left of right nonterminal is taller.
+      // left or right nonterminal is taller.
       const nonterminal_type &left = get_nonterminal(left_p);
       const nonterminal_type &right = get_nonterminal(right_p);
       if (left.get_height() >= right.get_height()) {
