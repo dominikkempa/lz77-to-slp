@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <algorithm>
 
+#include "uint40.hpp"
 #include "aux/utils.hpp"
 #include "hash_table.hpp"
 
@@ -74,6 +75,12 @@ void heapup(
 
 template<>
 std::uint64_t get_hash(const std::pair<std::uint32_t, std::uint32_t> &x) {
+  return (std::uint64_t)x.first * (std::uint64_t)29996224275833 +
+    (std::uint64_t)x.second * (std::uint64_t)14638944639703;
+}
+
+template<>
+std::uint64_t get_hash(const std::pair<uint40, uint40> &x) {
   return (std::uint64_t)x.first * (std::uint64_t)29996224275833 +
     (std::uint64_t)x.second * (std::uint64_t)14638944639703;
 }
@@ -220,7 +227,7 @@ std::uint64_t repair(
             ((cur_text[left_char_pos - 1] ==
               std::numeric_limits<text_offset_type>::max()) ?
              (prev[left_char_pos - 1] - 1) : (left_char_pos - 1));
-          if (cur_text[left_context_pos] != max_freq_pair_first) {
+          if ((std::uint64_t)cur_text[left_context_pos] != max_freq_pair_first) {
             key_type key_xa = std::make_pair(
                 cur_text[left_context_pos],
                 cur_text[left_char_pos]);
@@ -251,19 +258,20 @@ std::uint64_t repair(
               bool exists_left_neighbor = ((ptr > 0) && 
                   (cur_text[ptr - 1] !=
                    std::numeric_limits<text_offset_type>::max() ||
-                   prev[ptr - 1] != 0));
+                   (std::uint64_t)prev[ptr - 1] != 0));
               while (exists_left_neighbor) {
                 std::uint64_t left_neighbor_pos =
                   (cur_text[ptr - 1] !=
                    std::numeric_limits<text_offset_type>::max()) ?
                   (ptr - 1) : (prev[ptr - 1] - 1);
-                if (cur_text[left_neighbor_pos] == max_freq_pair_first) {
+                if ((std::uint64_t)cur_text[left_neighbor_pos] ==
+                    max_freq_pair_first) {
                   ++run_length;
                   ptr = left_neighbor_pos;
                   exists_left_neighbor = ((ptr > 0) && 
                       (cur_text[ptr - 1] !=
                        std::numeric_limits<text_offset_type>::max() ||
-                       prev[ptr - 1] != 0));
+                       (std::uint64_t)prev[ptr - 1] != 0));
                 } else break;
               }
             }
@@ -338,7 +346,8 @@ std::uint64_t repair(
                     (cur_text[ptr + 1] !=
                      std::numeric_limits<text_offset_type>::max()) ?
                     (ptr + 1) : (next[ptr + 1] + 1);
-                  if (cur_text[right_neighbor_pos] == max_freq_pair_second) {
+                  if ((std::uint64_t)cur_text[right_neighbor_pos] ==
+                      max_freq_pair_second) {
                     ++run_length;
                     ptr = right_neighbor_pos;
                     exists_right_neighbor = ((ptr + 1 != text_length) && 
@@ -383,7 +392,7 @@ std::uint64_t repair(
             ((cur_text[left_char_pos - 1] ==
               std::numeric_limits<text_offset_type>::max()) ?
              (prev[left_char_pos - 1] - 1) : (left_char_pos - 1));
-          if (cur_text[left_context_pos] == alphabet_size)
+          if ((std::uint64_t)cur_text[left_context_pos] == alphabet_size)
             ++cur_run_length;
           else cur_run_length = 1;
         } else cur_run_length = 1;
@@ -417,7 +426,7 @@ std::uint64_t repair(
             prev[left_context_pos] = left_context_pos;
             next[left_context_pos] = left_context_pos;
           } else {
-            if (cur_text[left_context_pos] != alphabet_size ||
+            if ((std::uint64_t)cur_text[left_context_pos] != alphabet_size ||
                 (!(cur_run_length & 1))) {
               pair_records[*value].m_freq += 1;
               heapup<text_offset_type>(pair_records, maxheap,

@@ -12,6 +12,7 @@
 
 #include "aux/utils.hpp"
 #include "repair.hpp"
+#include "uint40.hpp"
 
 
 template<
@@ -53,8 +54,8 @@ void test_repair_on_file(std::string text_filename) {
     fprintf(stderr, "Running algorithm...\n");
     long double start = utils::wclock();
     grammar_size = repair<char_type, text_offset_type>(text, text_length);
-    __attribute__((unused)) long double elapsed = utils::wclock() - start;
-    // fprintf(stderr, "%.2Lfs\n", elapsed);
+    long double elapsed = utils::wclock() - start;
+    fprintf(stderr, "Elapsed: %.2Lfs\n", elapsed);
   }
 
   // Clean up.
@@ -74,7 +75,7 @@ int main(int argc, char **argv) {
   
   // Declare types.
   typedef std::uint8_t char_type;
-  typedef std::uint32_t text_offset_type;
+  typedef uint40 text_offset_type;
 
   // Parse text filename.
   std::string text_filename = std::string(argv[1]);
