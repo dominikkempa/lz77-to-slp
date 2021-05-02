@@ -133,9 +133,12 @@ convert_lz77_to_avl_grammar_multiroot(
   long double total_time = utils::wclock() - start;
   fprintf(stderr, "\rInfo: elapsed = %.2Lfs, "
       "progress = %lu (100.00%%) phrases (%.2LfMiB prefix), "
-      "peak RAM = %.2LfMiB",
+      "peak RAM = %.2LfMiB\n",
       total_time, parsing_size, (1.L * prefix_length) / (1 << 20),
       (1.L * utils::get_peak_ram_allocation()) / (1UL << 20));
+  fprintf(stderr, "Decoded text length = %lu\n", prefix_length);
+  fprintf(stderr, "Normalized runtime: %.2Lfns/char\n",
+      (total_time * 1000000000.L) / prefix_length);
 
   // Clean up.
   parsing_reader->stop_reading();
