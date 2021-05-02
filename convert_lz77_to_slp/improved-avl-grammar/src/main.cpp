@@ -270,6 +270,7 @@ void test_conversion(
   const std::uint64_t n_roots = grammar->number_of_roots();
   const std::uint64_t grammar_size = 2 * n_nonterminals + n_roots;
   const std::uint64_t ram_use = grammar->ram_use();
+  long double avoided_merges = 100.L * grammar->get_avoided_merges();
 
   // Print info. Note that the grammar may
   // still contain unused nonterminals.
@@ -283,6 +284,7 @@ void test_conversion(
       conversion_time, (1000000000.L * conversion_time) / text_length);
   fprintf(stderr, "  Peak RAM use = %.2LfMiB (%.2Lfbytes/phrase)\n",
       (1.L * ram_use) / (1UL << 20), (1.L * ram_use) / n_phrases);
+  fprintf(stderr, "  Avoided merges: %.2Lf%%\n", avoided_merges);
   fprintf(stderr, "\n");
 
   // Store stats useful for experiments (disable for final release!)
@@ -295,6 +297,8 @@ void test_conversion(
         kr_hashing_prob, (1000000000.L * conversion_time) / text_length);
     fprintf(f, "RamUse\t%.2Lf\t%.2Lf\n",
         kr_hashing_prob, (1.L * ram_use) / n_phrases);
+    fprintf(f, "AvMerge\t%.2Lf\t%.2Lf\n",
+        kr_hashing_prob, avoided_merges);
     std::fclose(f);
   }
 

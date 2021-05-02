@@ -146,6 +146,12 @@ struct avl_grammar_multiroot {
     bool m_enable_kr_hashing;
     long double m_kr_hashing_prob;
 
+    //=========================================================================
+    // Internal statistics.
+    //=========================================================================
+    std::uint64_t m_merge_count;
+    std::uint64_t m_avoided_merges;
+
   public:
 
     //=========================================================================
@@ -154,6 +160,8 @@ struct avl_grammar_multiroot {
     avl_grammar_multiroot(
         bool enable_kr_hashing,
         long double kr_hashing_prob = (long double)0.0) {
+      m_merge_count = 0;
+      m_avoided_merges = 0;
       const std::uint64_t cache_size = (1 << 14);
 
       // Initialize standard members.
@@ -999,11 +1007,18 @@ struct avl_grammar_multiroot {
         seq.push_back(ret[i]);
     }
 
+    //=========================================================================
+    // Return the fraction avoided merges.
+    //=========================================================================
+    long double get_avoided_merges() const {
+      return (long double)m_avoided_merges / (long double)m_merge_count;
+    }
+
   private:
 
     //=========================================================================
     // Heap down routine.
-    //========================================================================
+    //=========================================================================
     void heap_down(
         std::uint64_t i,
         const space_efficient_vector<triple_type> &seq,
@@ -1162,13 +1177,16 @@ struct avl_grammar_multiroot {
           const std::uint64_t merged_len = left_len + right_len;
           std::uint64_t h = 0;
           ptr_type id_merged = 0;
+          ++m_merge_count;
           if (m_enable_kr_hashing) {
             const std::uint64_t left_hash = seq[min_elem].third;
             const std::uint64_t right_hash = seq[right_elem].third;
             h = karp_rabin_hashing::concat(left_hash, right_hash, right_len);
             const ptr_type * const hash_ret = m_hashes.find(h);
-            if (hash_ret != NULL) id_merged = *hash_ret;
-            else id_merged = add_concat_nonterminal(left_p, right_p);
+            if (hash_ret != NULL) {
+              id_merged = *hash_ret;
+              ++m_avoided_merges;
+            } else id_merged = add_concat_nonterminal(left_p, right_p);
           } else id_merged = add_concat_nonterminal(left_p, right_p);
           seq[min_elem].first = id_merged;
           seq[min_elem].second = merged_len;
@@ -1190,13 +1208,16 @@ struct avl_grammar_multiroot {
           const std::uint64_t merged_len = left_len + right_len;
           std::uint64_t h = 0;
           ptr_type id_merged = 0;
+          ++m_merge_count;
           if (m_enable_kr_hashing) {
             const std::uint64_t left_hash = seq[left_elem].third;
             const std::uint64_t right_hash = seq[min_elem].third;
             h = karp_rabin_hashing::concat(left_hash, right_hash, right_len);
             const ptr_type * const hash_ret = m_hashes.find(h);
-            if (hash_ret != NULL) id_merged = *hash_ret;
-            else id_merged = add_concat_nonterminal(left_p, right_p);
+            if (hash_ret != NULL) {
+              id_merged = *hash_ret;
+              ++m_avoided_merges;
+            } else id_merged = add_concat_nonterminal(left_p, right_p);
           } else id_merged = add_concat_nonterminal(left_p, right_p);
           seq[min_elem].first = id_merged;
           seq[min_elem].second = merged_len;
