@@ -638,6 +638,31 @@ struct avl_grammar_multiroot {
     }
 
     //=========================================================================
+    // Return RAM use.
+    //=========================================================================
+    std::uint64_t ram_use() const {
+      const std::uint64_t m_roots_vec_ram_use = m_roots_vec.ram_use();
+      const std::uint64_t m_nonterminals_ram_use = m_nonterminals.ram_use();
+      const std::uint64_t m_long_exp_len_ram_use = m_long_exp_len.ram_use();
+      std::uint64_t m_long_exp_hashes_ram_use = 0;
+      std::uint64_t m_hashes_ram_use = 0;
+      std::uint64_t m_kr_hash_cache_ram_use = 0;;
+      if (m_enable_kr_hashing) {
+        m_long_exp_hashes_ram_use = m_long_exp_hashes.ram_use();
+        m_hashes_ram_use = m_hashes.ram_use();
+        m_kr_hash_cache_ram_use = m_kr_hash_cache->ram_use();
+      }
+      const std::uint64_t total =
+        m_roots_vec_ram_use +
+        m_nonterminals_ram_use + 
+        m_long_exp_hashes_ram_use +
+        m_long_exp_len_ram_use +
+        m_hashes_ram_use +
+        m_kr_hash_cache_ram_use;
+      return total;
+    }
+
+    //=========================================================================
     // Print statistics.
     //=========================================================================
     void print_stats() const {

@@ -249,22 +249,40 @@ void test_conversion(
 
   // Convert LZ77 to AVL grammar.
   grammar_type *grammar = NULL;
+  std::uint64_t text_length = 0;
+  std::uint64_t n_phrases = 0;
+  long double conversion_time = 0.0;
   {
     fprintf(stderr, "Convert LZ77 to SLP...\n");
     long double start = utils::wclock();
     grammar =
       convert_lz77_to_avl_grammar_multiroot<char_type, text_offset_type>(
-          parsing_filename, use_kr_hashing, kr_hashing_prob);
+          parsing_filename, use_kr_hashing, kr_hashing_prob,
+          n_phrases, text_length);
 
     // Print summary.
-    long double elapsed = utils::wclock() - start;
-    fprintf(stderr, "\nConversion time: %.2Lfs\n", elapsed);
+    conversion_time = utils::wclock() - start;
+    fprintf(stderr, "\n\n");
   }
+
+  // Obtain statistics.
+  const std::uint64_t n_nonterminals = grammar->size();
+  const std::uint64_t n_roots = grammar->number_of_roots();
+  const std::uint64_t grammar_size = 2 * n_nonterminals + n_roots;
+  const std::uint64_t ram_use = grammar->ram_use();
 
   // Print info. Note that the grammar may
   // still contain unused nonterminals.
-  fprintf(stderr, "Number of nonterminals = %lu\n", grammar->size());
-  fprintf(stderr, "Number of roots = %lu\n", grammar->number_of_roots());
+  fprintf(stderr, "Statistics:\n");
+  fprintf(stderr, "  Text length = %lu\n", text_length);
+  fprintf(stderr, "  Number of nonterminals = %lu\n", grammar->size());
+  fprintf(stderr, "  Number of roots = %lu\n", grammar->number_of_roots());
+  fprintf(stderr, "  Grammar size = %lu (%.2Lfelems/phrase)\n",
+      grammar_size, (1.L * grammar_size) / n_phrases);
+  fprintf(stderr, "  Conversion time = %.2Lfs (%.2Lfns/char)\n",
+      conversion_time, (1000000000.L * conversion_time) / text_length);
+  fprintf(stderr, "  Peak RAM use = %.2LfMiB (%.2Lfbytes/phrase)\n",
+      (1.L * ram_use) / (1UL << 20), (1.L * ram_use) / n_phrases);
   fprintf(stderr, "\n");
 
   // Print RAM use.

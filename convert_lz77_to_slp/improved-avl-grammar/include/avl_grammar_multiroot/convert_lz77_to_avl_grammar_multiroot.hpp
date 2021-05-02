@@ -27,7 +27,9 @@ avl_grammar_multiroot<char_type, text_offset_type>*
 convert_lz77_to_avl_grammar_multiroot(
     const std::string parsing_filename,
     bool use_kr_hashing,
-    long double kr_hashing_prob) {
+    long double kr_hashing_prob,
+    std::uint64_t &n_phrases,
+    std::uint64_t &text_length) {
 
   // Start the timer.
   long double start = utils::wclock();
@@ -130,19 +132,21 @@ convert_lz77_to_avl_grammar_multiroot(
     }
   }
 
-  long double total_time = utils::wclock() - start;
-  fprintf(stderr, "\rInfo: elapsed = %.2Lfs, "
-      "progress = %lu (100.00%%) phrases (%.2LfMiB prefix), "
-      "peak RAM = %.2LfMiB\n",
-      total_time, parsing_size, (1.L * prefix_length) / (1 << 20),
-      (1.L * utils::get_peak_ram_allocation()) / (1UL << 20));
-  fprintf(stderr, "Decoded text length = %lu\n", prefix_length);
-  fprintf(stderr, "Normalized runtime: %.2Lfns/char\n",
-      (total_time * 1000000000.L) / prefix_length);
-
   // Clean up.
   parsing_reader->stop_reading();
   delete parsing_reader;
+
+  // Print summary.
+  long double total_time = utils::wclock() - start;
+  fprintf(stderr, "\rInfo: elapsed = %.2Lfs, "
+      "progress = %lu (100.00%%) phrases (%.2LfMiB prefix), "
+      "peak RAM = %.2LfMiB",
+      total_time, parsing_size, (1.L * prefix_length) / (1 << 20),
+      (1.L * utils::get_peak_ram_allocation()) / (1UL << 20));
+
+  // Store output values.
+  n_phrases = parsing_size;
+  text_length = prefix_length;
 
   // Return the result.
   return grammar;
