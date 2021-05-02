@@ -285,6 +285,19 @@ void test_conversion(
       (1.L * ram_use) / (1UL << 20), (1.L * ram_use) / n_phrases);
   fprintf(stderr, "\n");
 
+  // Store stats useful for experiments (disable for final release!)
+  {
+    std::string stats_filename = parsing_filename + ".stats";
+    std::FILE *f = std::fopen(stats_filename.c_str(), "a+");
+    fprintf(f, "G\t%.2Lf\t%.2Lf\n",
+        kr_hashing_prob, (1.L * grammar_size) / n_phrases);
+    fprintf(f, "T\t%.2Lf\t%.2Lf\n",
+        kr_hashing_prob, (1000000000.L * conversion_time) / text_length);
+    fprintf(f, "S\t%.2Lf\t%.2Lf\n",
+        kr_hashing_prob, (1.L * ram_use) / n_phrases);
+    std::fclose(f);
+  }
+
   // Print RAM use.
   grammar->print_stats();
 
