@@ -289,11 +289,11 @@ void test_conversion(
   {
     std::string stats_filename = parsing_filename + ".stats";
     std::FILE *f = std::fopen(stats_filename.c_str(), "a+");
-    fprintf(f, "G\t%.2Lf\t%.2Lf\n",
+    fprintf(f, "GramSiz\t%.2Lf\t%.2Lf\n",
         kr_hashing_prob, (1.L * grammar_size) / n_phrases);
-    fprintf(f, "T\t%.2Lf\t%.2Lf\n",
+    fprintf(f, "Runtime\t%.2Lf\t%.2Lf\n",
         kr_hashing_prob, (1000000000.L * conversion_time) / text_length);
-    fprintf(f, "S\t%.2Lf\t%.2Lf\n",
+    fprintf(f, "RamUse\t%.2Lf\t%.2Lf\n",
         kr_hashing_prob, (1.L * ram_use) / n_phrases);
     std::fclose(f);
   }
