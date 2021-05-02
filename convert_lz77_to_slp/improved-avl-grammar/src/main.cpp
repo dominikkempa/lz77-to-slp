@@ -335,9 +335,10 @@ int main(int argc, char **argv) {
 
   if (argc == 3) {
     std::string p = std::string(argv[2]);
-    if (p == std::string("0"))
+    if (p == std::string("0")) {
       use_kr_hashing = false;
-    else
+      kr_hashing_prob = 0.0;
+    } else
       kr_hashing_prob = atof(p.c_str());
   }
 
