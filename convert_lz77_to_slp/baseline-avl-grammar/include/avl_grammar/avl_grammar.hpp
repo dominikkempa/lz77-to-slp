@@ -175,6 +175,27 @@ struct avl_grammar {
     }
 
     //=========================================================================
+    // Returns true if the given nonterminal is a liteval (i.e., exp len = 1).
+    //========================================================================
+    bool is_literal(const ptr_type p) const {
+      const std::uint64_t height = m_nonterminals[p].get_height();
+      return (height == 0);
+    }
+
+    //=========================================================================
+    // Return the total length of right-hand sides of all expansions.
+    //=========================================================================
+    std::uint64_t total_rhs_length() const {
+      std::uint64_t ret = 0;
+      for (std::uint64_t i = 0; i < m_nonterminals.size(); ++i) {
+        if (is_literal(i))
+          ret += 1;
+        else ret += 2;
+      }
+      return ret;
+    }
+
+    //=========================================================================
     // Gives access to a given nonterminal.
     //=========================================================================
     const nonterminal_type& get_nonterminal(const ptr_type id) const {

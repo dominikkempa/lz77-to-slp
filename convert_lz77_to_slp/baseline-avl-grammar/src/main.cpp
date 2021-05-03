@@ -194,7 +194,14 @@ void additional_tests(
           pointers.end()), pointers.end());
     long double elapsed = utils::wclock() - start;
     fprintf(stderr, "%.2Lfs ", elapsed);
-    fprintf(stderr, "(%lu)\n", pointers.size());
+    std::uint64_t total_rhs_length = 0;
+    for (std::uint64_t i = 0; i < pointers.size(); ++i) {
+      if (grammar->is_literal(pointers[i]))
+        total_rhs_length += 1;
+      else total_rhs_length += 2;
+    }
+    fprintf(stderr, "(#nonterminals = %lu, total rhs len = %lu), ",
+        pointers.size(), total_rhs_length);
   }
 }
 
@@ -241,6 +248,7 @@ void test_conversion(
   // Print info. Note that the grammar may
   // still contain unused nonterminals.
   fprintf(stderr, "Number of nonterminals = %lu\n", grammar->size());
+  fprintf(stderr, "Total rhs len = %lu\n", grammar->total_rhs_length());
   fprintf(stderr, "\n");
 
   // Print RAM use.
