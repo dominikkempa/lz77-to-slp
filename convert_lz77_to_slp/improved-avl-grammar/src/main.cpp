@@ -268,7 +268,8 @@ void test_conversion(
   // Obtain statistics.
   const std::uint64_t n_nonterminals = grammar->size();
   const std::uint64_t n_roots = grammar->number_of_roots();
-  const std::uint64_t grammar_size = 2 * n_nonterminals + n_roots;
+  const std::uint64_t total_rhs_length = grammar->total_rhs_length();
+  const std::uint64_t grammar_size = total_rhs_length + n_roots;
   const std::uint64_t ram_use = grammar->ram_use();
   long double avoided_merges = 100.L * grammar->get_avoided_merges();
 
@@ -276,8 +277,8 @@ void test_conversion(
   // still contain unused nonterminals.
   fprintf(stderr, "Statistics:\n");
   fprintf(stderr, "  Text length = %lu\n", text_length);
-  fprintf(stderr, "  Number of nonterminals = %lu\n", grammar->size());
-  fprintf(stderr, "  Number of roots = %lu\n", grammar->number_of_roots());
+  fprintf(stderr, "  Number of nonterminals = %lu\n", n_nonterminals);
+  fprintf(stderr, "  Number of roots = %lu\n", n_roots);
   fprintf(stderr, "  Grammar size = %lu (%.2Lfelems/phrase)\n",
       grammar_size, (1.L * grammar_size) / n_phrases);
   fprintf(stderr, "  Conversion time = %.2Lfs (%.2Lfns/char)\n",

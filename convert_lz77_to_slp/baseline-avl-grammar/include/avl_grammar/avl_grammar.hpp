@@ -178,7 +178,8 @@ struct avl_grammar {
     // Returns true if the given nonterminal is a liteval (i.e., exp len = 1).
     //========================================================================
     bool is_literal(const ptr_type p) const {
-      const std::uint64_t height = m_nonterminals[p].get_height();
+      const nonterminal_type &nonterm = get_nonterminal(p);
+      const std::uint64_t height = nonterm.get_height();
       return (height == 0);
     }
 

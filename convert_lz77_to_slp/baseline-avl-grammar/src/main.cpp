@@ -245,10 +245,15 @@ void test_conversion(
     fprintf(stderr, "\nConversion time: %.2Lfs\n", elapsed);
   }
 
+  // Obtain statistics.
+  const std::uint64_t n_nonterminals = grammar->size();
+  const std::uint64_t total_rhs_length = grammar->total_rhs_length();
+  const std::uint64_t grammar_size = total_rhs_length;
+
   // Print info. Note that the grammar may
   // still contain unused nonterminals.
-  fprintf(stderr, "Number of nonterminals = %lu\n", grammar->size());
-  fprintf(stderr, "Total rhs len = %lu\n", grammar->total_rhs_length());
+  fprintf(stderr, "Number of nonterminals = %lu\n", n_nonterminals);
+  fprintf(stderr, "Grammar size = %lu\n", grammar_size);
   fprintf(stderr, "\n");
 
   // Print RAM use.
