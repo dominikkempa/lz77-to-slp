@@ -1,5 +1,5 @@
-#ifndef __AVL_GRAMMAR_MULTIROOT_HPP_INCLUDED
-#define __AVL_GRAMMAR_MULTIROOT_HPP_INCLUDED
+#ifndef __LAZY_AVL_GRAMMAR_HPP_INCLUDED
+#define __LAZY_AVL_GRAMMAR_HPP_INCLUDED
 
 #include <cstdio>
 #include <cstdlib>
@@ -16,10 +16,10 @@
 
 
 //=============================================================================
-// Class used to represent multiroot AVL grammar. Forward declaration.
+// Class used to represent the lazy AVL grammar. Forward declaration.
 //=============================================================================
 template<typename char_type, typename text_offset_type>
-struct avl_grammar_multiroot;
+struct lazy_avl_grammar;
 
 //=============================================================================
 // Class used to represent nonterminal. Forward declaration.
@@ -33,7 +33,7 @@ struct nonterminal {
     //=========================================================================
     typedef nonterminal<char_type, text_offset_type> nonterminal_type;
     typedef text_offset_type ptr_type;
-    typedef avl_grammar_multiroot<char_type, text_offset_type> grammar_type;
+    typedef lazy_avl_grammar<char_type, text_offset_type> grammar_type;
     typedef packed_pair<text_offset_type, text_offset_type> pair_type;
 
     //=========================================================================
@@ -111,12 +111,12 @@ std::uint64_t get_hash(const std::uint64_t &x) {
 }
 
 //=============================================================================
-// Implementation of the avl_grammar_multiroot class.
+// Implementation of the lazy_avl_grammar class.
 //=============================================================================
 template<
   typename char_type = std::uint8_t,
   typename text_offset_type = std::uint64_t>
-struct avl_grammar_multiroot {
+struct lazy_avl_grammar {
   static_assert(sizeof(char_type) <= sizeof(text_offset_type),
       "Error: sizeof(char_type) > sizeof(text_offset_type)!");
 
@@ -157,7 +157,7 @@ struct avl_grammar_multiroot {
     //=========================================================================
     // Constructor.
     //=========================================================================
-    avl_grammar_multiroot(
+    lazy_avl_grammar(
         bool enable_kr_hashing,
         long double kr_hashing_prob = (long double)0.0) {
       m_merge_count = 0;
@@ -183,7 +183,7 @@ struct avl_grammar_multiroot {
     //=========================================================================
     // Destructor.
     //=========================================================================
-    ~avl_grammar_multiroot() {
+    ~lazy_avl_grammar() {
       if (m_enable_kr_hashing) {
         utils::deallocate(m_snippet);
         delete m_kr_hash_cache;

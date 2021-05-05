@@ -13,8 +13,8 @@
 
 #include "../include/types/uint40.hpp"
 #include "../include/utils/utils.hpp"
-#include "../include/avl_grammar_multiroot/avl_grammar_multiroot.hpp"
-#include "../include/avl_grammar_multiroot/convert_lz77_to_avl_grammar_multiroot.hpp"
+#include "../include/lazy_avl_grammar/lazy_avl_grammar.hpp"
+#include "../include/lazy_avl_grammar/lz_to_lazy_avl_grammar.hpp"
 
 
 //=============================================================================
@@ -26,7 +26,7 @@ template<
   typename text_offset_type>
 void check_correctness(
     const std::string parsing_filename,
-    avl_grammar_multiroot<char_type, text_offset_type> * const grammar) {
+    lazy_avl_grammar<char_type, text_offset_type> * const grammar) {
 
   // Print initial message.
   fprintf(stderr, "\nRun correctness tests:\n");
@@ -149,7 +149,7 @@ template<
   typename char_type,
   typename text_offset_type>
 void additional_tests(
-    avl_grammar_multiroot<char_type, text_offset_type> * const grammar) {
+    lazy_avl_grammar<char_type, text_offset_type> * const grammar) {
 
   // Print initial message.
   fprintf(stderr, "\nRun additional tests:\n");
@@ -224,7 +224,7 @@ void test_conversion(
 
   // Declare types.
   typedef std::pair<text_offset_type, text_offset_type> phrase_type;
-  typedef avl_grammar_multiroot<char_type, text_offset_type> grammar_type;
+  typedef lazy_avl_grammar<char_type, text_offset_type> grammar_type;
 
   // Turn paths absolute.
   parsing_filename = utils::absolute_path(parsing_filename);
@@ -256,7 +256,7 @@ void test_conversion(
     fprintf(stderr, "Convert LZ77 to SLP...\n");
     long double start = utils::wclock();
     grammar =
-      convert_lz77_to_avl_grammar_multiroot<char_type, text_offset_type>(
+      lz_to_lazy_avl_grammar<char_type, text_offset_type>(
           parsing_filename, use_kr_hashing, kr_hashing_prob,
           n_phrases, text_length);
 

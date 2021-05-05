@@ -1,5 +1,5 @@
-#ifndef __CONVERT_LZ77_TO_AVL_GRAMMAR_MULTIROOT_HPP_INCLUDED
-#define __CONVERT_LZ77_TO_AVL_GRAMMAR_MULTIROOT_HPP_INCLUDED
+#ifndef __LZ_TO_LAZY_AVL_GRAMMAR_HPP_INCLUDED
+#define __LZ_TO_LAZY_AVL_GRAMMAR_HPP_INCLUDED
 
 #include <cstdio>
 #include <cstdlib>
@@ -10,7 +10,7 @@
 #include "../utils/packed_pair.hpp"
 #include "../utils/space_efficient_vector.hpp"
 #include "../io/async_stream_reader.hpp"
-#include "avl_grammar_multiroot.hpp"
+#include "lazy_avl_grammar.hpp"
 
 
 //=============================================================================
@@ -23,8 +23,8 @@
 template<
   typename char_type,
   typename text_offset_type>
-avl_grammar_multiroot<char_type, text_offset_type>*
-convert_lz77_to_avl_grammar_multiroot(
+lazy_avl_grammar<char_type, text_offset_type>*
+lz_to_lazy_avl_grammar(
     const std::string parsing_filename,
     bool use_kr_hashing,
     long double kr_hashing_prob,
@@ -37,7 +37,7 @@ convert_lz77_to_avl_grammar_multiroot(
   // Declare types.
   typedef nonterminal<char_type, text_offset_type> nonterminal_type;
   typedef text_offset_type ptr_type;
-  typedef avl_grammar_multiroot<char_type, text_offset_type> grammar_type;
+  typedef lazy_avl_grammar<char_type, text_offset_type> grammar_type;
   typedef async_stream_reader<text_offset_type> reader_type;
   typedef packed_pair<ptr_type, text_offset_type> pair_type;
 
