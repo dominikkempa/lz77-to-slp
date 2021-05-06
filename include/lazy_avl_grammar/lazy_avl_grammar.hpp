@@ -1052,7 +1052,7 @@ struct lazy_avl_grammar {
 
       // Write its length, and then the roots sequence.
       writer->write((text_offset_type)m_roots_vec.size());
-      for (std::uint64_t i = 0; i < m_roots_vec.size(); ++i) {
+      for (std::uint64_t i = 1; i < m_roots_vec.size(); ++i) {
         const std::uint64_t p = (std::uint64_t)m_roots_vec[i].second + 1;
         writer->write((text_offset_type)p);
       }
