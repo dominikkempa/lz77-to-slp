@@ -13,6 +13,7 @@
 #include "../utils/cache.hpp"
 #include "../utils/packed_pair.hpp"
 #include "../utils/packed_triple.hpp"
+#include "../io/async_stream_writer.hpp"
 
 
 //=============================================================================
@@ -1034,6 +1035,47 @@ struct lazy_avl_grammar {
     //=========================================================================
     long double get_avoided_merges() const {
       return (long double)m_avoided_merges / (long double)m_merge_count;
+    }
+
+    //=========================================================================
+    // Write the grammar to a file.
+    //=========================================================================
+    void write_to_file(const std::string filename) {
+
+      // Create the output writer.
+      const std::uint64_t bufsize = (1 << 19);
+      typedef async_stream_writer<text_offset_type> writer_type;
+      writer_type *writer = new writer_type(filename, bufsize, 4);
+
+      // Run the roots garbage collector.
+      roots_garbage_collector();
+
+      // Write its length, and then the roots sequence.
+      writer->write((text_offset_type)m_roots_vec.size());
+      for (std::uint64_t i = 0; i < m_roots_vec.size(); ++i) {
+        const std::uint64_t p = (std::uint64_t)m_roots_vec[i].second + 1;
+        writer->write((text_offset_type)p);
+      }
+
+      // Write expansions of non-root nonterminals.
+      // Note: some may be unused in the grammar!
+      for (std::uint64_t i = 0; i < m_nonterminals.size(); ++i) {
+        const nonterminal_type &nonterm = get_nonterminal(i);
+        const std::uint64_t height = nonterm.get_height();
+        if (height == 0) {
+          const char_type c = nonterm.get_char();
+          writer->write((text_offset_type)0);
+          writer->write((text_offset_type)c);
+        } else {
+          const std::uint64_t left = (std::uint64_t)nonterm.get_left_p() + 1;
+          const std::uint64_t right = (std::uint64_t)nonterm.get_right_p() + 1;
+          writer->write((text_offset_type)left);
+          writer->write((text_offset_type)right);
+        }
+      }
+
+      // Clean up.
+      delete writer;
     }
 
   private:

@@ -219,6 +219,7 @@ template<
   typename text_offset_type = std::uint64_t>
 void test_conversion(
     std::string parsing_filename,
+    std::string output_filename,
     bool use_kr_hashing,
     long double kr_hashing_prob) {
 
@@ -228,6 +229,7 @@ void test_conversion(
 
   // Turn paths absolute.
   parsing_filename = utils::absolute_path(parsing_filename);
+  output_filename = utils::absolute_path(output_filename);
 
   // Obtain some basic statistics about input.
   std::uint64_t parsing_size =
@@ -237,6 +239,7 @@ void test_conversion(
   fprintf(stderr, "Convert LZ77 to SLP\n");
   fprintf(stderr, "Timestamp = %s", utils::get_timestamp().c_str());
   fprintf(stderr, "Parsing filename = %s\n", parsing_filename.c_str());
+  fprintf(stderr, "Output filename = %s\n", output_filename.c_str());
   fprintf(stderr, "Number of LZ77 phrases = %lu (%.2LfMiB)\n",
       parsing_size, (2.L * parsing_size * sizeof(text_offset_type)) / (1 << 20));
   fprintf(stderr, "sizeof(char_type) = %lu\n", sizeof(char_type));
@@ -313,6 +316,15 @@ void test_conversion(
   additional_tests<char_type, text_offset_type>(grammar);
 #endif
 
+  // Write grammar to file.
+  {
+    fprintf(stderr, "Writing grammar to file... ");
+    long double start = utils::wclock();
+    grammar->write_to_file(output_filename);
+    long double elapsed = utils::wclock() - start;
+    fprintf(stderr, "DONE (%.2Lfs)\n", elapsed);
+  }
+
   // Clean up.
   delete grammar;
 
@@ -335,6 +347,7 @@ int main(int argc, char **argv) {
 
   // Obtain filenames.
   std::string parsing_filename = argv[1];
+  std::string output_filename = parsing_filename + ".slg";
   bool use_kr_hashing = true;
   long double kr_hashing_prob = 0.125;
 
@@ -349,6 +362,7 @@ int main(int argc, char **argv) {
 
   // Run the algorithm.
   test_conversion<char_type, text_offset_type>(
-      parsing_filename, use_kr_hashing, kr_hashing_prob);
+      parsing_filename, output_filename,
+      use_kr_hashing, kr_hashing_prob);
 }
 
