@@ -318,7 +318,7 @@ void test_conversion(
 
   // Write grammar to file.
   {
-    fprintf(stderr, "Writing grammar to file... ");
+    fprintf(stderr, "\nWrite grammar to file... ");
     long double start = utils::wclock();
     grammar->write_to_file(output_filename);
     long double elapsed = utils::wclock() - start;
