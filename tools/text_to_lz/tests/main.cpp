@@ -19,22 +19,21 @@
 //=============================================================================
 // Run tests for text up to a given length on a given number of cases.
 //=============================================================================
+template<typename char_type, typename text_offset_type>
 void test(
-    const std::uint64_t max_length,
+    const std::uint64_t max_text_length,
     const std::uint64_t testcases) {
 
   // Print initial message.
   fprintf(stderr, "TEST, max_length = %lu, testcases = %lu\n",
-      max_length, testcases);
+      max_text_length, testcases);
 
   // Declate types.
-  typedef std::uint8_t char_type;
-  typedef uint48 text_offset_type;
   typedef std::pair<text_offset_type, text_offset_type> pair_type;
 
   // Allocate text and SA.
-  char_type * const text = new char_type[max_length];
-  text_offset_type * const sa = new text_offset_type[max_length];
+  char_type * const text = new char_type[max_text_length];
+  text_offset_type * const sa = new text_offset_type[max_text_length];
 
   // Run tests.
   for (std::uint64_t testid = 0; testid < testcases; ++testid) {
@@ -45,9 +44,11 @@ void test(
 
     // Generate the text.
     const std::uint64_t text_length =
-      utils::random_int64(1L, (int64_t)max_length);
+      utils::random_int<std::uint64_t>(
+          (std::uint64_t)1,
+          (std::uint64_t)max_text_length);
     for (std::uint64_t i = 0; i < text_length; ++i)
-      text[i] = 'a' + utils::random_int64(0, 3);
+      text[i] = 'a' + utils::random_int<std::uint64_t>(0UL, 3UL);
 
     // Compute SA of text.
     compute_sa(text, text_length, sa);
@@ -103,17 +104,20 @@ int main() {
   srand(time(0) + getpid());
 
 #ifdef NDEBUG
-  static const std::uint64_t length_limit = (1 << 10);
+  static const std::uint64_t text_length_limit = (1 << 10);
   static const std::uint64_t n_tests = 10000;
 #else
-  static const std::uint64_t length_limit = (1 << 9);
+  static const std::uint64_t text_length_limit = (1 << 9);
   static const std::uint64_t n_tests = 1000;
 #endif
 
+  typedef std::uint8_t char_type;
+  typedef uint48 text_offset_type;
+
   // Run tests.
-  for (std::uint64_t max_length = 1;
-      max_length <= length_limit; max_length *= 2)
-    test(max_length, n_tests);
+  for (std::uint64_t max_text_length = 1;
+      max_text_length <= text_length_limit; max_text_length *= 2)
+    test<char_type, text_offset_type>(max_text_length, n_tests);
 
   // Print summary.
   fprintf(stderr, "All tests passed.\n");
