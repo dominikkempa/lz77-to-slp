@@ -4,16 +4,16 @@ CC = g++
 CFLAGS = -Wall -Wextra -pedantic -Wshadow -funroll-loops -DNDEBUG -O3 -pthread -std=c++0x -march=native
 CFLAGS_DEBUG = -Wall -Wextra -pedantic -Wshadow -pthread -std=c++0x -g2
 
-all: test test_debug
+all: repair repair_debug
 
-test:
-	$(CC) $(CFLAGS) -o test main.cpp ./aux/utils.cpp -fopenmp
+repair:
+	$(CC) $(CFLAGS) -o repair ./src/main.cpp ./src/utils.cpp -fopenmp
 
-test_debug:
-	$(CC) $(CFLAGS_DEBUG) -o test_debug main.cpp ./aux/utils.cpp -fopenmp
+repair_debug:
+	$(CC) $(CFLAGS_DEBUG) -o repair_debug ./src/main.cpp ./src/utils.cpp -fopenmp
 
 clean:
 	/bin/rm -f *.o
 
 nuclear:
-	/bin/rm -f test test_debug *.o
+	/bin/rm -f repair repair_debug *.o

@@ -10,9 +10,10 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "aux/utils.hpp"
-#include "repair.hpp"
-#include "uint40.hpp"
+#include "../include/utils.hpp"
+#include "../include/repair.hpp"
+#include "../include/uint40.hpp"
+#include "../include/uint48.hpp"
 
 
 template<

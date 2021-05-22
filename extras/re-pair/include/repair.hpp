@@ -6,7 +6,8 @@
 #include <algorithm>
 
 #include "uint40.hpp"
-#include "aux/utils.hpp"
+#include "uint48.hpp"
+#include "utils.hpp"
 #include "hash_table.hpp"
 
 
@@ -81,6 +82,12 @@ std::uint64_t get_hash(const std::pair<std::uint32_t, std::uint32_t> &x) {
 
 template<>
 std::uint64_t get_hash(const std::pair<uint40, uint40> &x) {
+  return (std::uint64_t)x.first * (std::uint64_t)29996224275833 +
+    (std::uint64_t)x.second * (std::uint64_t)14638944639703;
+}
+
+template<>
+std::uint64_t get_hash(const std::pair<uint48, uint48> &x) {
   return (std::uint64_t)x.first * (std::uint64_t)29996224275833 +
     (std::uint64_t)x.second * (std::uint64_t)14638944639703;
 }

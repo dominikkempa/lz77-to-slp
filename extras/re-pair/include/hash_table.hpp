@@ -4,7 +4,7 @@
 #include <limits>
 #include <algorithm>
 
-#include "aux/utils.hpp"
+#include "utils.hpp"
 
 template<typename key_type>
 std::uint64_t get_hash(const key_type &) {
