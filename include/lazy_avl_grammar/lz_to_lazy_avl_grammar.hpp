@@ -63,11 +63,11 @@ lz_to_lazy_avl_grammar(
       long double elapsed = utils::wclock() - start;
       fprintf(stderr, "\rInfo: elapsed = %.2Lfs, "
           "progress = %lu (%.2Lf%%) phrases (%.2LfMiB prefix), "
-          "peak RAM = %.2LfMiB",
+          "grammar RAM usage = %.2LfMiB",
           elapsed, phrase_id + 1,
           (100.L * (phrase_id + 1)) / parsing_size,
           (1.L * prefix_length) / (1 << 20),
-          (1.L * utils::get_peak_ram_allocation()) / (1UL << 20));
+          (1.L * grammar->ram_use()) / (1UL << 20));
     }
 
     // Check if we need to run garbage collector.
@@ -140,9 +140,10 @@ lz_to_lazy_avl_grammar(
   long double total_time = utils::wclock() - start;
   fprintf(stderr, "\rInfo: elapsed = %.2Lfs, "
       "progress = %lu (100.00%%) phrases (%.2LfMiB prefix), "
-      "peak RAM = %.2LfMiB",
-      total_time, parsing_size, (1.L * prefix_length) / (1 << 20),
-      (1.L * utils::get_peak_ram_allocation()) / (1UL << 20));
+      "grammar RAM usage = %.2LfMiB",
+      total_time, parsing_size,
+      (1.L * prefix_length) / (1 << 20),
+      (1.L * grammar->ram_use()) / (1UL << 20));
 
   // Store output values.
   n_phrases = parsing_size;

@@ -286,12 +286,13 @@ void test_conversion(
       grammar_size, (1.L * grammar_size) / n_phrases);
   fprintf(stderr, "  Conversion time = %.2Lfs (%.2Lfns/char)\n",
       conversion_time, (1000000000.L * conversion_time) / text_length);
-  fprintf(stderr, "  Peak RAM use = %.2LfMiB (%.2Lfbytes/phrase)\n",
+  fprintf(stderr, "  Grammar RAM use = %.2LfMiB (%.2Lfbytes/phrase)\n",
       (1.L * ram_use) / (1UL << 20), (1.L * ram_use) / n_phrases);
   fprintf(stderr, "  Avoided merges: %.2Lf%%\n", avoided_merges);
   fprintf(stderr, "\n");
 
-  // Store stats useful for experiments (disable for final release!)
+  // Store stats useful for experiments.
+#if 0
   {
     std::string stats_filename = parsing_filename + ".stats";
     std::FILE *f = std::fopen(stats_filename.c_str(), "a+");
@@ -305,6 +306,7 @@ void test_conversion(
         kr_hashing_prob, avoided_merges);
     std::fclose(f);
   }
+#endif
 
   // Print RAM use.
   grammar->print_stats();
