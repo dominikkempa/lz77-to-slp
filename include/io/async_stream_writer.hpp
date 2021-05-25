@@ -1,6 +1,12 @@
 /**
- * @file    include/io/async_stream_writer.hpp
+ * @file    async_stream_writer.hpp
  * @section LICENCE
+ *
+ * This file is part of Lazy-AVLG v0.1.0
+ * See: https://github.com/dominikkempa/lz77-to-slp
+ *
+ * Copyright (C) 2016-2021
+ *   Dominik Kempa <dominik.kempa (at) gmail.com>
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation

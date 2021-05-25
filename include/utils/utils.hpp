@@ -2,6 +2,9 @@
  * @file    utils.hpp
  * @section LICENCE
  *
+ * This file is part of Lazy-AVLG v0.1.0
+ * See: https://github.com/dominikkempa/lz77-to-slp
+ *
  * Copyright (C) 2012-2021
  *   Dominik Kempa <dominik.kempa (at) gmail.com>
  *
