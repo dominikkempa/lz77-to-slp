@@ -23,7 +23,7 @@ Compilation and usage
 
 Lazy-AVLG is compiled by simply typing `make` in the directory
 containing this README. This will build the executable called
-`text_to_grammar`. The simplest usage of Lazy-AVLG is as follows.
+`lz_to_grammar`. The simplest usage of Lazy-AVLG is as follows.
 Suppose the input LZ77 parsing (which can be computed using the
 program in `tools/text_to_lz`) is located in `/data/input.txt.lz77`.
 Then, to compute the lazy AVL grammar of `input.txt`, type:
