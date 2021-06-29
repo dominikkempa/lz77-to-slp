@@ -1,3 +1,35 @@
+/**
+ * @file    compute_lz77.hpp
+ * @section LICENCE
+ *
+ * This file is part of Lazy-AVLG v0.1.0
+ * See: https://github.com/dominikkempa/lz77-to-slp
+ *
+ * Copyright (C) 2016-2021
+ *   Dominik Kempa <dominik.kempa (at) gmail.com>
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ **/
+
 #ifndef __COMPUTE_LZ77_HPP_INCLUDED
 #define __COMPUTE_LZ77_HPP_INCLUDED
 
@@ -6,8 +38,29 @@
 #include <algorithm>
 
 
+//=============================================================================
+// The implementation of the KKP2n algorithm to compute the LZ77 parsing
+// of a given text in O(n) time. Excluding the output parsing, it uses 2n
+// words of working space. The algorthm is described in:
+//
+// @article{KKP16,
+//   author    = {Juha K{\"{a}}rkk{\"{a}}inen and
+//                Dominik Kempa and Simon J. Puglisi},
+//   title     = {Lazy {L}empel-{Z}iv Factorization Algorithms},
+//   journal   = {{ACM} J. Exp. Algorithmics},
+//   volume    = {21},
+//   number    = {1},
+//   pages     = {2.4:1--2.4:19},
+//   year      = {2016},
+//   doi       = {10.1145/2699876},
+// }
+//=============================================================================
+
 namespace compute_lz77 {
 
+//=============================================================================
+// Compute phrase length. Forward declaration.
+//=============================================================================
 template<
   typename char_type,
   typename text_offset_type>
@@ -17,6 +70,9 @@ std::uint64_t parse_phrase(
     const char_type * const,
     std::vector<std::pair<text_offset_type, text_offset_type> > &);
 
+//=============================================================================
+// Main parsing function.
+//=============================================================================
 template<
   typename char_type,
   typename text_offset_type>
@@ -82,6 +138,9 @@ void kkp2n(
   delete[] psv;
 }
 
+//=============================================================================
+// Implementation of the function to compute phrase length.
+//=============================================================================
 template<
   typename char_type,
   typename text_offset_type>
