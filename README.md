@@ -15,14 +15,14 @@ For more detailed description of the algorithm and reports of
 experimental evaluation, refer to the following paper.
 
     @inproceedings{lazyavl,
-      author =    {Dominik Kempa and Ben Langmead},
-      title =     {Fast and Space-Efficient Construction of {AVL}
-                   Grammars from the {LZ77} Parsing},
-      booktitle = {29th Annual European Symposium on Algorithms
-                   (ESA 2021)},
-      pages     = {56:1--56:14},
-      year      = {2021},
-      doi       = {10.4230/LIPIcs.ESA.2021.56},
+      author =      {Dominik Kempa and Ben Langmead},
+      title =       {Fast and Space-Efficient Construction of {AVL}
+                     Grammars from the {LZ77} Parsing},
+      booktitle =   {29th Annual European Symposium on Algorithms
+                     (ESA 2021)},
+      pages =       {56:1--56:14},
+      year =        {2021},
+      doi =         {10.4230/LIPIcs.ESA.2021.56},
     }
 
 The above paper is available on arXiv at
