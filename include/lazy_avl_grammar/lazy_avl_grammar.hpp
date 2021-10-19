@@ -99,7 +99,7 @@ struct nonterminal {
     //=========================================================================
     // Key methods.
     //=========================================================================
-    void decomposition(const ptr_type, const std::uint64_t,
+    void decomposition(ptr_type, const std::uint64_t,
         const std::uint64_t, space_efficient_vector<pair_type> &,
         const grammar_type * const g) const;
     std::uint64_t write_expansion(const ptr_type, char_type * const,

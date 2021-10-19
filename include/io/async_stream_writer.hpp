@@ -216,7 +216,7 @@ class async_stream_writer {
   private:
     template<typename T>
     static void io_thread_code(async_stream_writer<T> *caller) {
-      typedef buffer<T> buffer_type;
+      typedef buffer<T> buffer_type_T;
       while (true) {
 
         // Wait for the full buffer (or a stop signal).
@@ -232,7 +232,7 @@ class async_stream_writer {
         }
 
         // Extract the buffer from the collection.
-        buffer_type *buffer = caller->m_full_buffers->pop();
+        buffer_type_T *buffer = caller->m_full_buffers->pop();
         lk.unlock();
 
         // Write the data to disk.

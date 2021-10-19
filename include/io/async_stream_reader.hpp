@@ -223,7 +223,7 @@ class async_stream_reader {
   private:
     template<typename T>
     static void io_thread_code(async_stream_reader<T> *caller) {
-      typedef buffer<T> buffer_type;
+      typedef buffer<T> buffer_type_T;
       while (true) {
 
         // Wait for an empty buffer (or a stop signal).
@@ -240,7 +240,7 @@ class async_stream_reader {
         }
 
         // Extract the buffer from the queue.
-        buffer_type * const buffer = caller->m_empty_buffers->pop();
+        buffer_type_T * const buffer = caller->m_empty_buffers->pop();
         lk.unlock();
 
         // Read the data from disk.
