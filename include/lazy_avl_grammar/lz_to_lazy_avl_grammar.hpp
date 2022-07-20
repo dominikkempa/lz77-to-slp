@@ -185,4 +185,4 @@ lz_to_lazy_avl_grammar(
   return grammar;
 }
 
-#endif  // __CONVERT_LZ77_TO_AVL_GRAMMAR_MULTIROOT_HPP_INCLUDED
+#endif  // __LZ_TO_LAZY_AVL_GRAMMAR_HPP_INCLUDED

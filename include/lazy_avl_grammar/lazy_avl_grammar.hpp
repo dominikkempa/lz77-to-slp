@@ -1755,4 +1755,4 @@ void nonterminal<char_type, text_offset_type>::decomposition(
   }
 }
 
-#endif  // __AVL_GRAMMAR_MULTIROOT_HPP_INCLUDED
+#endif  // __LAZY_AVL_GRAMMAR_HPP_INCLUDED
