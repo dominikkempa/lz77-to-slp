@@ -220,7 +220,7 @@ std::string absolute_path(std::string filename) {
   return std::string(path);
 }
 
-void empty_page_cache(const std::string filename) {
+/*void empty_page_cache(const std::string filename) {
 #if defined(_POSIX_VERSION)
   const int fd = open(filename.c_str(), O_RDWR);
   if (fd == -1) {
@@ -232,7 +232,7 @@ void empty_page_cache(const std::string filename) {
   posix_fadvise(fd, 0, length, POSIX_FADV_DONTNEED);
   close(fd);
 #endif
-}
+}*/
 
 std::string get_timestamp() {
   const std::time_t result = std::time(NULL);
