@@ -396,7 +396,8 @@ struct lazy_avl_grammar {
       const std::uint64_t left_exp_len = get_exp_len(left_p);
       const std::uint64_t right_exp_len = get_exp_len(right_p);
       const std::uint64_t exp_len = left_exp_len + right_exp_len;
-      const std::uint64_t truncated_exp_len = std::min(255UL, exp_len);
+      const std::uint64_t truncated_exp_len =
+        std::min((std::uint64_t)255, exp_len);
       const std::uint8_t left_height = left.get_height();
       const std::uint8_t right_height = right.get_height();
       const std::uint8_t height = std::max(left_height, right_height) + 1;
