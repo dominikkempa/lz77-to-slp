@@ -40,10 +40,10 @@
 #include <unistd.h>
 #include <getopt.h>
 
-#include "../include/utils.hpp"
-#include "../include/compute_sa.hpp"
+#include "../include/types/uint40.hpp"
+#include "../include/utils/utils.hpp"
+#include "../include/utils/compute_sa.hpp"
 #include "../include/compute_lz77.hpp"
-#include "../include/uint40.hpp"
 
 
 //=============================================================================
@@ -215,29 +215,26 @@ int main(int argc, char **argv) {
   if (utils::file_exists(output_filename)) {
 
     // Output file exists, should we proceed?
-    char *line = NULL;
-    std::uint64_t buflen = 0;
-    std::int64_t len = 0L;
+    char *line = new char[80];
+    std::uint64_t len = 0;
 
     // Obtain the answer.
     do {
       printf("Output file (%s) exists. Overwrite? [y/n]: ",
           output_filename.c_str());
-      if ((len = getline(&line, &buflen, stdin)) == -1) {
-        printf("\nError: failed to read answer\n\n");
-        std::fflush(stdout);
-        usage(program_name, EXIT_FAILURE);
-      }
-    } while (len != 2 || (line[0] != 'y' && line[0] != 'n'));
+      char ch = 0;
+      for (len = 0L; ((ch = std::getc(stdin)) != EOF) && (ch != '\n'); ++len)
+        line[len] = ch;
+    } while (len != 1 || (line[0] != 'y' && line[0] != 'n'));
 
     // If not, then exit.
     if (line[0] == 'n') {
-      free(line);
+      delete[] line;
       std::exit(EXIT_FAILURE);
     }
 
     // Otherwise, we proceed.
-    free(line);
+    delete[] line;
   }
 
   // Set types.

@@ -37,10 +37,10 @@
 #include <cstdlib>
 #include <cstdint>
 
-#include "uint40.hpp"
-#include "uint48.hpp"
-#include "sais.hxx"
-#include "naive_compute_sa.hpp"
+#include "include/types/uint40.hpp"
+#include "include/types/uint48.hpp"
+#include "include/utils/sais.hxx"
+#include "include/utils/naive_compute_sa.hpp"
 
 
 //=============================================================================
