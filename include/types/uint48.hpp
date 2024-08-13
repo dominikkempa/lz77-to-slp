@@ -53,6 +53,13 @@ class uint48 {
     uint48(const std::int64_t& a) :
       low(a & 0xFFFFFFFFL), high((a >> 32) & 0xFFFF) {}
 
+    inline uint40& operator=(const uint40& x) {
+      if (this != &x) {
+        low = x.low;
+        high = x.high;
+      }
+      return *this;
+    }
     inline operator uint64_t() const {
       return (((std::uint64_t)high) << 32) | (std::uint64_t)low; }
     inline bool operator == (const uint48& b) const {
