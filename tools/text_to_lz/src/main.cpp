@@ -107,7 +107,7 @@ void compute_lz77_and_write_to_file(
   {
     fprintf(stderr, "Compute LZ77... ");
     const long double start = utils::wclock();
-    compute_lz77::kkp2n(text, text_length, sa, parsing);
+    lz77::kkp2n(text, text_length, sa, parsing);
     const long double elapsed = utils::wclock() - start;
     fprintf(stderr, "%.2Lfs\n", elapsed);
   }
@@ -239,7 +239,7 @@ int main(int argc, char **argv) {
 
   // Set types.
   typedef std::uint8_t char_type;
-  typedef uint40 text_offset_type;
+  typedef std::uint64_t text_offset_type;
 
   // Run the parsing algorithm.
   compute_lz77_and_write_to_file<char_type, text_offset_type>(

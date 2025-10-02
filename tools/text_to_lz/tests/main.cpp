@@ -39,10 +39,10 @@
 #include <ctime>
 #include <unistd.h>
 
-#include "../include/uint40.hpp"
-#include "../include/uint48.hpp"
-#include "../include/utils.hpp"
-#include "../include/compute_sa.hpp"
+#include "../include/types/uint40.hpp"
+#include "../include/types/uint48.hpp"
+#include "../include/utils/utils.hpp"
+#include "../include/utils/compute_sa.hpp"
 #include "../include/compute_lz77.hpp"
 #include "sequential_lz77_decode.hpp"
 #include "naive_lz77_encode.hpp"
@@ -87,7 +87,7 @@ void test(
 
     // Compute the parsin using the tested algorithm.
     std::vector<pair_type> parsing;
-    compute_lz77::kkp2n(text, text_length, sa, parsing);
+    lz77::kkp2n(text, text_length, sa, parsing);
 
     // Compute the parsing using naive algorithm.
     std::vector<pair_type> correct_parsing;

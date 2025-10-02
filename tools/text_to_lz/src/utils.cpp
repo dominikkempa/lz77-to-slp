@@ -220,18 +220,6 @@ std::string absolute_path(std::string filename) {
   return std::string(path);
 }
 
-/*void empty_page_cache(const std::string filename) {
-  const int fd = open(filename.c_str(), O_RDWR);
-  if (fd == -1) {
-    std::perror(filename.c_str());
-    std::exit(EXIT_FAILURE);
-  }
-  const off_t length = lseek(fd, 0, SEEK_END);
-  lseek(fd, 0L, SEEK_SET);
-  posix_fadvise(fd, 0, length, POSIX_FADV_DONTNEED);
-  close(fd);
-}*/
-
 std::string get_timestamp() {
   const std::time_t result = std::time(NULL);
   return std::string(std::ctime(&result));

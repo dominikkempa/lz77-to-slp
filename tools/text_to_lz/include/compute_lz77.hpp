@@ -56,7 +56,7 @@
 // }
 //=============================================================================
 
-namespace compute_lz77 {
+namespace lz77 {
 
 //=============================================================================
 // Compute phrase length. Forward declaration.
@@ -191,6 +191,6 @@ std::uint64_t parse_phrase(
   return i + std::max((std::uint64_t)1, len);
 }
 
-}  // namespace compute_lz77
+}  // namespace lz77
 
 #endif  // __COMPUTE_LZ77_HPP_INCLUDED
