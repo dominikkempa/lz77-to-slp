@@ -32,7 +32,7 @@ std::uint64_t hash_string(
   std::uint64_t h = 0;
   for (std::uint64_t i = 0; i < length; ++i) {
     h = mul_mod_mersenne(h, hash_variable, mersenne_prime_exponent);
-    h = mod_mersenne(h + (std::uint64_t)str[i], mersenne_prime_exponent);
+    h = mod_mersenne(h + (std::uint64_t)str[i] + (std::uint64_t)1, mersenne_prime_exponent);
   }
   return h;
 }
@@ -42,7 +42,7 @@ std::uint64_t hash_string(
 //=============================================================================
 template<typename char_type>
 std::uint64_t hash_char(const char_type c) {
-  return mod_mersenne((std::uint64_t)c, mersenne_prime_exponent);
+  return mod_mersenne(((std::uint64_t)c) + (std::uint64_t)1, mersenne_prime_exponent);
 }
 
 }  // namespace karp_rabin_hashing
